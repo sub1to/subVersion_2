@@ -190,16 +190,31 @@ bool	CHack::refresh()
 		}
 		
 		//entity cleanup
+		static std::unordered_map<Entity, int>	countMap;
 		if(!m_entityCleanup.empty() && clock() - m_entityCleanupClock > 0x10)
 		{
 			Entity e = m_entityCleanup[0];
 			if(!ENTITY::IS_AN_ENTITY(e))
 			{
+				if(countMap.find(m_entityCleanup[0]) != countMap.end())
+					countMap.erase(m_entityCleanup[0]);
 				m_entityCleanup.erase(m_entityCleanup.begin());
 				m_entityCleanupTries = 0;
 			}
 			else if(m_entityCleanupTries > 5)
 			{
+				std::unordered_map<Entity, int>::iterator it = countMap.find(m_entityCleanup[0]);
+				if(it != countMap.end())
+					if(it->second < 0x20)
+						it->second++;
+					else
+					{
+						countMap.erase(it);
+						m_entityCleanup.erase(m_entityCleanup.begin());
+						m_entityCleanupTries = 0;
+					}
+				else
+					countMap[m_entityCleanup[0]] = 1;
 				m_entityCleanup.push_back(m_entityCleanup[0]);
 				m_entityCleanup.erase(m_entityCleanup.begin());
 				m_entityCleanupTries = 0;
@@ -207,7 +222,7 @@ bool	CHack::refresh()
 			else if(script::request_control_of_entity(e))
 			{
 				script::detach_entity(e);
-				ENTITY::SET_ENTITY_AS_MISSION_ENTITY(e, false, false);
+				//ENTITY::SET_ENTITY_AS_MISSION_ENTITY(e, false, false);
 				ENTITY::DELETE_ENTITY(&e);
 				if(ENTITY::IS_AN_ENTITY(m_entityCleanup[0]))
 					m_entityCleanupTries = 0xFF;
@@ -227,7 +242,7 @@ bool	CHack::refresh()
 		}
 		
 		//vehicle spawn
-		if(!m_requestedVehicle.empty() && script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn))
+		if(!m_requestedVehicle.empty() && script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_VEH_PERSIST"])->m_bOn))
 			m_requestedVehicle.erase(m_requestedVehicle.begin());
 		
 		//ped spawn
@@ -507,7 +522,7 @@ bool	CHack::refresh()
 			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
 			feat->m_clockTick = clock();
 		}
-		/*
+
 		//clear reports
 		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEAR_REPORTS"]);
 		if(!feat->m_bSet && feat->m_bOn)
@@ -515,7 +530,7 @@ bool	CHack::refresh()
 			script::clear_badsports();
 			feat->m_bSet = true;
 		}
-		*/
+
 		//Time Freeze
 		feat = CMenu::getFeature(feature::map["FEATURE_T_PAUSE_CLOCK"]);
 		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
@@ -691,7 +706,7 @@ bool	CHack::refresh()
 				}
 			}*/
 
-			if (remotePed > 0)// && remotePed != PLAYER::PLAYER_PED_ID())
+			if (remotePed > 0)// && remotePed != playerPed)
 			{
 				szName = PLAYER::GET_PLAYER_NAME(i);
 				if(feat->m_szName != szName)
@@ -735,7 +750,7 @@ bool	CHack::refresh()
 
 			//Track player
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TRACK"]);
-			if(plrFeat->m_bOn)
+			if(plrFeat->m_bOn || CMenu::getFeature(feature::map["FEATURE_A_TRACK"])->m_bOn)
 			{
 				script::draw_esp_on_entity(remotePed, szName, bEspBox, bEspHealth, bEspDist, fEspMaxDist);
 			}
@@ -997,7 +1012,7 @@ bool	CHack::refresh()
 		}
 
 		//all players
-		checkAllPlayerFeature("FEATURE_A_TRACK", "PLRFEAT_TRACK", 3);
+		//checkAllPlayerFeature("FEATURE_A_TRACK", "PLRFEAT_TRACK", 3);
 		checkAllPlayerFeature("FEATURE_A_TP_TO_ME", "PLRFEAT_TP_TO_ME");
 		checkAllPlayerFeature("FEATURE_A_TP_TO_SEA", "PLRFEAT_TP_TO_SEA");
 		checkAllPlayerFeature("FEATURE_A_TP_TO_AIR", "PLRFEAT_TP_TO_AIR");

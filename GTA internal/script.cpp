@@ -153,7 +153,7 @@ namespace script
 	{
 		size_t len = str.size();
 		unsigned int hash, i;
-		for (hash = i = 0; i < len; ++i)
+		for(hash = i = 0; i < len; ++i)
 		{
 			hash += tolower(str[i]);
 			hash += (hash << 10);
@@ -438,7 +438,8 @@ namespace script
 		return true;
 	}
 
-	bool spawn_vehicle(const char* model, Vehicle* vehOut, bool warp, bool bypass)
+
+	bool spawn_vehicle(const char* model, Vehicle* vehOut, bool warp, bool bypass, bool persist)
 	{
 		v3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
@@ -453,9 +454,10 @@ namespace script
 		bool	bFly	= warp && (VEHICLE::IS_THIS_MODEL_A_HELI(vehHash) || VEHICLE::IS_THIS_MODEL_A_PLANE(vehHash)) ? true : false;
 		if(bFly)
 			pos.z += 100.f;
-		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), false, true);
+		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, true);
 		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YOMOMA");
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
 
 		if(bFly)
 		{
@@ -467,16 +469,13 @@ namespace script
 		
 		if(warp)
 			PED::SET_PED_INTO_VEHICLE(playerPed, veh, -1);
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
-
 		if(vehOut != nullptr)
 			*vehOut = veh;
-
-		
 		if(bypass)
-			vehicle_bypass(veh);							//mp bypass
-		else
+			vehicle_bypass(veh);	//mp bypass
+		if(!persist)
 			ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);	//make sure vehicle will despawn if out of range
+
 		return true;
 	}
 
@@ -676,7 +675,6 @@ namespace script
 
 	void clear_badsports()
 	{
-		return;
 		STATS::STAT_SET_INT($("MPPLY_GRIEFING"), 0, 1);
 		STATS::STAT_SET_INT($("MPPLY_OFFENSIVE_LANGUAGE"), 0, 1);
 		STATS::STAT_SET_INT($("MPPLY_OFFENSIVE_TAGPLATE"), 0, 1);
@@ -1202,7 +1200,6 @@ namespace script
 		count.erase(count.find(p));
 		return true;
 	}
-
 
 
 	void	shoot_ped(Ped ped, DWORD bone, bool owned)

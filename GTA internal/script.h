@@ -76,7 +76,9 @@ namespace script
 	void	ped_weapon(Ped p, std::string weapon, bool give = true);
 
 	bool	spawn_ped(char* model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
-	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, bool warp = false, bool bypass = false);
+
+	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, bool warp = false, bool bypass = false, bool persist = false);
+
 	void	vehicle_bypass(Vehicle vehicle);
 	bool	spawn_object(const char* model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
@@ -109,7 +111,6 @@ namespace script
 	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, v3 rot = {0.f, 0.f, 0.f}, Entity ent = NULL);
 
 	void	anti_afk(Ped p, char* anim, bool r);
-
 
 	bool	send_assasins_after_player(Player p, Ped ped);
 

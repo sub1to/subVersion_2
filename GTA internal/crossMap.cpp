@@ -152,6 +152,9 @@ uint64_t __HASHMAPDATA[] = {
 	0x2513DFB0FB8400FE, 0x32DAC6D3F4E23D5D, //ui::set_text_outline
 	0x202709F4C58A0424, 0xBD18006F0815A298, //ui::_set_notification_text_entry
 	0x2ED7843F8F801023, 0x23048DD0C6E21613, //ui::_draw_notification
+	0x5CDE92C702A8FCE7, 0xF1FE04D602EA392E, //ui::add_blip_for_entity
+	0x6F6F290102C02AB4, 0xB8F5F7438C07CC5E, //ui::set_blip_as_friendly
+	0xDF735600A4696DAF, 0xA0BCCD5C2B5FC84F, //ui::set_blip_sprite
 	0x1098355A16064BB3, 0xF1C11B6A9E7E70CC, //audio::set_mobile_radio_enabled_during_gameplay
 	0xE8AF77C4C06ADC93, 0x04F0F99162081258, //audio::get_player_radio_station_index
 	0xB28ECA15046CA8B9, 0xE0A4834569DED46F, //audio::get_radio_station_name
@@ -188,6 +191,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x142A02425FF02BD9, 0xBD415ADB0A08F6EF, //ai::task_start_scenario_in_place
 	0xEA47FE3719165B94, 0xEB1EFACA68933402, //ai::task_play_anim
 	0xF166E48407BAC484, 0x7DD7196E1A0C1D43, //ai::task_combat_ped
+	0xF2EAB31979A7F910, 0xD3C1FC2A6E8F1095, //ai::task_hands_up
 	0x35B9E0803292B641, 0x021538A59EA44D7A, //streaming::is_model_in_cdimage
 	0x19AAC8F07BFEC53E, 0x2ED6701376DBCF71, //streaming::is_model_a_vehicle
 	0x963D27A58DF860AC, 0xE1324F59713746FA, //streaming::request_model
@@ -212,6 +216,10 @@ uint64_t __HASHMAPDATA[] = {
 	0x3A618A217E5154F0, 0x2F8697C8670CAD58, //graphics::draw_rect
 	0x6C38AF3693A69A91, 0x6A8D4CCECC6DB79B, //graphics::_set_ptfx_asset_next_call
 	0xDDE23F30CC5A0F03, 0xEAB2A9346EED6163, //graphics::_start_particle_fx_looped_on_entity_bone_2
+	0xB3271D7AB655B441, 0x731753D8494ABECD, //stats::stat_set_int
+	0x4851997F37FE9B3C, 0x098CDAAE6268B0D0, //stats::stat_set_float
+	0x4B33C4243DE0C432, 0xCE46AC18A4A47E2D, //stats::stat_set_bool
+	0x2C29BFB64F4FCBE4, 0xC43DC246FFFC2C87, //stats::stat_set_date
 };
 
 /*

@@ -251,6 +251,7 @@ namespace feature
 		feature::map.emplace("FEATURE_O_ATTACH_BONE", CMenu::addFeature(1, -1, "Attach Bone Index", feat_value_str, "boneAttach", 0.f, (float) (sizeof(hash::ped_bone_name) / sizeof(*hash::ped_bone_name)) - 1, 1.f, hash::ped_bone_name));
 	
 		*parent		= CMenu::addFeature(2, -1, "Vehicles", feat_parent);
+			feature::map.emplace("FEATURE_S_VEH_PERSIST",	 CMenu::addFeature(-1, *parent, "Persist", feat_toggle, "spawnVehPersist"));
 			feature::map.emplace("FEATURE_S_IN_VEHICLE",	 CMenu::addFeature(-1, *parent, "Spawn in Vehicle", feat_toggle, "spawnInVeh"));
 			feature::map.emplace("FEATURE_S_SP_BYPASS",	 CMenu::addFeature(-1, *parent, "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
 			feature::map.emplace("FEATURE_S_MP_BYPASS",	 CMenu::addFeature(-1, *parent, "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));
