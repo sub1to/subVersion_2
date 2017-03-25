@@ -71,7 +71,7 @@ namespace feature
 			feature::map.emplace("FEATURE_P_CLEAR_REPORTS",	 CMenu::addFeature(-1, *parent, "Clear Reports", feat_action));
 			feature::map.emplace("FEATURE_P_MONEY_DROP",	 CMenu::addFeature(-1, *parent, "Money Drop", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
 			feature::map.emplace("FEATURE_P_CLONE_BODYGUARD",	 CMenu::addFeature(-1, *parent, "Clone Bodyguard", feat_action));
-			feature::map.emplace("FEATURE_P_CLEANUP_OBJECTS",	 CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
+			//feature::map.emplace("FEATURE_P_CLEANUP_OBJECTS",	 CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
 			feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);
@@ -192,7 +192,10 @@ namespace feature
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			feature::map.emplace("FEATURE_I_FPS_COUNTER",	 CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));
 			feature::map.emplace("FEATURE_I_SPEED_O_METER",	 CMenu::addFeature(-1, *parent, "Speed-O-Meter", feat_toggle, "uiSpeedo"));
-			feature::map.emplace("FEATURE_I_MENU_SCALE",	 CMenu::addFeature(-1, *parent, "Menu Scale", feat_slider, "uiScale", 1.f, 2.f, .25f));
+			feature::map.emplace("FEATURE_I_MENU_SCALE",	 CMenu::addFeature(-1, *parent, "Menu Scale", feat_slider, "uiScale", 1.f, 2.f, 1.f));
+			feature::map.emplace("FEATURE_I_MENU_PADDING_X",	 CMenu::addFeature(-1, *parent, "Padding X", feat_value, "uiPaddingX", 0.f, 4000.f, 50.f));
+			feature::map.emplace("FEATURE_I_MENU_PADDING_Y",	 CMenu::addFeature(-1, *parent, "Padding Y", feat_value, "uiPaddingY", 0.f, 4000.f, 50.f));
+			feature::map.emplace("FEATURE_I_SAVE_INI",	 CMenu::addFeature(-1, *parent, "Save settings to ini", feat_action));
 
 
 		*parent	= CMenu::addFeature(1, -1, "Online Players", feat_parent);
@@ -224,7 +227,6 @@ namespace feature
 					CMenu::addFeature(-1, map["PLRFEAT_ATTACH_OBJ_PARENT"], hash::object_prop_attach_name[j], feat_attach, hash::object_prop_attach_hash[j], i);
 				map.emplace("PLRFEAT_TRAP_IN_CAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Trap In Cage", feat_action));
 				map.emplace("PLRFEAT_CLEAR_TASKS", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Clear Tasks", feat_action));
-				map.emplace("PLRFEAT_CRASH", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Crash", feat_action));
 				map.emplace("PLRFEAT_SHOOT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Shoot", feat_action));
 				map.emplace("PLRFEAT_CHRISFORMAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Send Chris Formage", feat_action));
 			feature::player_map.emplace(i, map);
@@ -240,7 +242,6 @@ namespace feature
 			feature::map.emplace("FEATURE_A_GIVE_WEAPONS",	 CMenu::addFeature(-1, *parent, "Give All Weapons", feat_action));
 			feature::map.emplace("FEATURE_A_REMOVE_WEAPONS",	 CMenu::addFeature(-1, *parent, "Remove All Weapons", feat_action));
 			feature::map.emplace("FEATURE_A_TRAP_IN_CAGE",	 CMenu::addFeature(-1, *parent, "Trap In Cage", feat_action));
-			feature::map.emplace("FEATURE_A_CRASH",	 CMenu::addFeature(-1, *parent, "Crash", feat_action));
 
 		*parent	= CMenu::addFeature(1, -1, "ESP Options", feat_parent);
 			feature::map.emplace("FEATURE_O_ESP_MAX_DIST",	 CMenu::addFeature(-1, *parent, "Max Distance", feat_action_value, "espMaxDist", 500.f, 10000.f, 500.f));
@@ -251,7 +252,7 @@ namespace feature
 		feature::map.emplace("FEATURE_O_ATTACH_BONE", CMenu::addFeature(1, -1, "Attach Bone Index", feat_value_str, "boneAttach", 0.f, (float) (sizeof(hash::ped_bone_name) / sizeof(*hash::ped_bone_name)) - 1, 1.f, hash::ped_bone_name));
 	
 		*parent		= CMenu::addFeature(2, -1, "Vehicles", feat_parent);
-			feature::map.emplace("FEATURE_S_VEH_PERSIST",	 CMenu::addFeature(-1, *parent, "Persist", feat_toggle, "spawnVehPersist"));
+			feature::map.emplace("FEATURE_S_VEH_MOD",	 CMenu::addFeature(-1, *parent, "Spawn Upgraded", feat_toggle, "spawnVehUpgrade"));
 			feature::map.emplace("FEATURE_S_IN_VEHICLE",	 CMenu::addFeature(-1, *parent, "Spawn in Vehicle", feat_toggle, "spawnInVeh"));
 			feature::map.emplace("FEATURE_S_SP_BYPASS",	 CMenu::addFeature(-1, *parent, "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
 			feature::map.emplace("FEATURE_S_MP_BYPASS",	 CMenu::addFeature(-1, *parent, "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));

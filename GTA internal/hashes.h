@@ -137,8 +137,8 @@ namespace hash
 	extern char* chaos_mode_type[8];
 	extern char* noclip_type[2];
 
-	extern char* anti_afk_hash[3];
-	extern char* anti_afk_name[3];
+	extern char* anti_afk_hash[2];
+	extern char* anti_afk_name[2];
 };
 
 #endif

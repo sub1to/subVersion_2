@@ -118,8 +118,8 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 		//attach render window to gta window
 		RECT rectWnd;
 		GetWindowRect(hWndTarget, &rectWnd);
-		int	x	= rectWnd.left	+ LAYOUT_PADDING_LEFT,
-			y	= rectWnd.top	+ LAYOUT_PADDING_TOP;
+		int	x	= rectWnd.left	+ CRender::m_screen.x,
+			y	= rectWnd.top	+ CRender::m_screen.y;
 		SetWindowPos(hWnd, 0, x, y, CRender::m_screen.w, CRender::m_screen.h, SWP_NOREDRAW | SWP_NOZORDER);
 
 		//remove from topmost if gta is not active
@@ -159,6 +159,21 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 		{
 			CRender::m_screen.w	= (int) (LAYOUT_WIDTH * feat->getValue());
 			CRender::m_screen.h	= (int) (LAYOUT_HEIGHT * feat->getValue());
+		}
+
+		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_X"]);
+		if(feat->m_bOn && CRender::m_screen.x != (int) feat->getValue())
+			CRender::m_screen.x = (int) feat->getValue();
+
+		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_Y"]);
+		if(feat->m_bOn && CRender::m_screen.y != (int) feat->getValue())
+			CRender::m_screen.y = (int) feat->getValue();
+
+		feat = CMenu::getFeature(feature::map["FEATURE_I_SAVE_INI"]);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			CMenu::m_iniParser.write();
+			feat->m_bSet = true;
 		}
 
 		if(CMenu::m_disableParent.size() > 0)

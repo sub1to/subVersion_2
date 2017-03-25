@@ -24,9 +24,6 @@
 #define FONT_BUFFER_SIZE	0x10									//max amount of fonts
 
 //Layout defines
-#define LAYOUT_PADDING_TOP	50
-#define LAYOUT_PADDING_LEFT	50
-
 #define LAYOUT_BORDER_SIZE		2
 #define LAYOUT_ELEMENT_WIDTH	300
 #define LAYOUT_ELEMENT_HEIGHT	25
@@ -48,8 +45,10 @@
 
 struct scrnVars
 {
-	int		w = LAYOUT_WIDTH,		//screen width
-			h = LAYOUT_HEIGHT;
+	int		w = LAYOUT_WIDTH,	//size
+			h = LAYOUT_HEIGHT,
+			x = 50,				//padding
+			y = 50;
 };
 
 class CRender

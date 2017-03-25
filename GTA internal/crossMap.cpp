@@ -126,6 +126,13 @@ uint64_t __HASHMAPDATA[] = {
 	0x4F1D4BE3A7F24601, 0x357EE036FE09513D, //vehicle::set_vehicle_colours
 	0xA7C4F2C6E744A550, 0x58060A1B26EA2597, //vehicle::get_vehicle_max_number_of_passengers
 	0x22AC59A870E6A669, 0xC0FA8EEF6413F866, //vehicle::is_vehicle_seat_free
+	0x1F2AA07F00B3217A, 0x5991FAEA924B5EE0, //vehicle::set_vehicle_mod_kit
+	0x9088EB5A43FFB0A1, 0xE0B7A718D08DF2B6, //vehicle::set_number_plate_text_index
+	0x2A1F4F37F95BAD08, 0xA6EBC11A2C89D4A1, //vehicle::toggle_vehicle_mod
+	0x6AF0636DDEDCB6DD, 0xE8BE9EFA248A9414, //vehicle::set_vehicle_mod
+	0x57C51E6BAD752696, 0xA3C6B7F3E39994ED, //vehicle::set_vehicle_window_tint
+	0x487EB21CC7295BA1, 0xE8356B7E1B731437, //vehicle::set_vehicle_wheel_type
+	0x7F6DB52EEFC96DF8, 0xC2AFD5CFEDC8F22A, //vehicle::is_this_model_a_car
 	0x509D5878EB39E842, 0x521A82CF998EDB21, //object::create_object
 	0xE143FA2249364369, 0x29280EF6724677F5, //object::get_closest_object_of_type
 	0x673966A0C0FD7171, 0xAB96B96F513DBFC2, //object::create_ambient_pickup
@@ -146,9 +153,9 @@ uint64_t __HASHMAPDATA[] = {
 	0xC02F4DBFB51D988B, 0xD9DDC2582B7C61C4, //ui::set_text_centre
 	0x465C84BC39F1C351, 0x403F622BEAB190B9, //ui::set_text_dropshadow
 	0x441603240D202FA6, 0x815C87228CF5C384, //ui::set_text_edge
-	0xCD015E5BB0D96A57, 0x30122BDF124C9221, //ui::_draw_text
+	0xCD015E5BB0D96A57, 0x30122BDF124C9221, //ui::end_text_command_diplay_text
 	0x63145D9C883A1A70, 0x71D93F31C9937FC7, //ui::set_text_wrap
-	0x25FBB336DF1804CB, 0x169EAB5A8FBE845B, //ui::_set_text_entiry
+	0x25FBB336DF1804CB, 0x169EAB5A8FBE845B, //ui::begin_text_command_display_text
 	0x2513DFB0FB8400FE, 0x32DAC6D3F4E23D5D, //ui::set_text_outline
 	0x202709F4C58A0424, 0xBD18006F0815A298, //ui::_set_notification_text_entry
 	0x2ED7843F8F801023, 0x23048DD0C6E21613, //ui::_draw_notification
@@ -183,7 +190,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x742A637471BCECD9, 0x477EC31C5BA5FAD8, //network::network_add_ped_to_synchronised_scene
 	0x9A1B3FCDB36C8697, 0xD299F9D47AAE6209, //network_network_start_synchronised_scene
 	0x6C0E2E0125610278, 0xDE881A032F5BA110, //network::network_get_player_index_from_ped
-	0xBC1D768F2F5D6C05, 0x7081D1CF61F5A498, //network::0xBC1D768F2F5D6C05
+	0xBC1D768F2F5D6C05, 0x7081D1CF61F5A498, //network::_network_hash_from_player_handle
 	0x837765A25378F0BB, 0xBEBA2DED4C4C66BD, //cam::get_gameplay_cam_rot
 	0x14D6F5678D8F1B37, 0x667FF09580838E25, //cam::get_gameplay_cam_coord
 	0xAAA34F8A7CB32098, 0xBC8C26E1CC191108, //ai::clear_ped_tasks_immediately
@@ -212,9 +219,9 @@ uint64_t __HASHMAPDATA[] = {
 	0x25223CA6B4D20B7F, 0x80BC37C67CB292E5, //time::get_clock_hours
 	0x13D2B8ADD79640F2, 0x32883EAC7DC86C40, //time::get_clock_minutes
 	0x47C3B5848C3E45D8, 0x673705D8148968BD, //time::set_clock_time
-	0x34E82F05DF2974F5, 0x28FABF021DDC68FC, //graphics::_world_to_screen
+	0x34E82F05DF2974F5, 0x28FABF021DDC68FC, //graphics::get_screen_coord_from_world_coord
 	0x3A618A217E5154F0, 0x2F8697C8670CAD58, //graphics::draw_rect
-	0x6C38AF3693A69A91, 0x6A8D4CCECC6DB79B, //graphics::_set_ptfx_asset_next_call
+	0x6C38AF3693A69A91, 0x6A8D4CCECC6DB79B, //graphics::_use_particle_fx_asset_next_call
 	0xDDE23F30CC5A0F03, 0xEAB2A9346EED6163, //graphics::_start_particle_fx_looped_on_entity_bone_2
 	0xB3271D7AB655B441, 0x731753D8494ABECD, //stats::stat_set_int
 	0x4851997F37FE9B3C, 0x098CDAAE6268B0D0, //stats::stat_set_float

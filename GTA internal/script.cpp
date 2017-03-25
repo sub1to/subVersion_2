@@ -327,9 +327,9 @@ namespace script
 		UI::SET_TEXT_CENTRE(false);
 		UI::SET_TEXT_DROPSHADOW(2, 0, 0, 0, 175);
 		UI::SET_TEXT_EDGE(0, 0, 0, 0, 0);
-		UI::_SET_TEXT_ENTRY("STRING"); //
+		UI::BEGIN_TEXT_COMMAND_DISPLAY_TEXT("STRING"); //
 		UI::ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(&text[0]);
-		UI::_DRAW_TEXT(x, y);
+		UI::END_TEXT_COMMAND_DISPLAY_TEXT(x, y);
 	}
 
 	void draw_esp_on_entity(Entity e, std::string text, bool bBox, bool bHealth, bool bDist, float fMaxDist)
@@ -338,7 +338,7 @@ namespace script
 		v3 playerPos	= ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false);
 		float	dist		= pos.getDist(playerPos);
 		float	x, x2, y, y2;
-		if(dist < fMaxDist && GRAPHICS::_WORLD_TO_SCREEN(pos.x, pos.y, pos.z -1.f, &x, &y) && GRAPHICS::_WORLD_TO_SCREEN(pos.x, pos.y, pos.z + .8f, &x2, &y2))
+		if(dist < fMaxDist && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z -1.f, &x, &y) && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z + .8f, &x2, &y2))
 		{
 			float	w, h;
 			h	= y - y2;
@@ -431,15 +431,11 @@ namespace script
 		else
 			ENTITY::SET_PED_AS_NO_LONGER_NEEDED(&ped);
 
-		//ENTITY::SET_ENTITY_INVINCIBLE(ped, false);
-
-		//
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(pedHash);
 		return true;
 	}
 
-
-	bool spawn_vehicle(const char* model, Vehicle* vehOut, bool warp, bool bypass, bool persist)
+	bool spawn_vehicle(const char* model, Vehicle* vehOut, bool warp, bool bypass, bool upgrade)
 	{
 		v3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
@@ -454,7 +450,7 @@ namespace script
 		bool	bFly	= warp && (VEHICLE::IS_THIS_MODEL_A_HELI(vehHash) || VEHICLE::IS_THIS_MODEL_A_PLANE(vehHash)) ? true : false;
 		if(bFly)
 			pos.z += 100.f;
-		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, true);
+		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
 		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YOMOMA");
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
@@ -466,16 +462,17 @@ namespace script
 		}
 		else
 			VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(veh);
-		
 		if(warp)
 			PED::SET_PED_INTO_VEHICLE(playerPed, veh, -1);
 		if(vehOut != nullptr)
 			*vehOut = veh;
 		if(bypass)
 			vehicle_bypass(veh);	//mp bypass
-		if(!persist)
-			ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);	//make sure vehicle will despawn if out of range
+		if(upgrade)
+			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0);
 
+		
+		
 		return true;
 	}
 
@@ -485,6 +482,7 @@ namespace script
 		if(DECORATOR::DECOR_EXIST_ON(v, "MPBitset"))
 			i	= DECORATOR::DECOR_GET_INT(v, "MPBitset");
 		GAMEPLAY::SET_BIT(&i, 3);
+		GAMEPLAY::SET_BIT(&i, 1);
 		DECORATOR::DECOR_SET_INT(v, "MPBitset", i);
 		VEHICLE::SET_VEHICLE_IS_STOLEN(v, false);
 	}
@@ -492,6 +490,28 @@ namespace script
 	void vehicle_sp_bypass(bool b)
 	{
 		*CHooking::getGlobalPtr(0x2794B2) = b;
+	}
+
+	bool	upgrade_car(Vehicle v, bool car)
+	{
+		if(!request_control_of_entity(v))
+			return false;
+		VEHICLE::SET_VEHICLE_MOD_KIT(v, 0);
+		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT_INDEX(v, PLATE_YELLOWONBLACK);
+		VEHICLE::SET_VEHICLE_WHEEL_TYPE(v, WHEEL_TYPE_HIGHEND);
+		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_TURBO, 1);
+		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_XENONLIGHTS, 1);
+		if(car)
+			VEHICLE::SET_VEHICLE_MOD(v, MOD_FRONTWHEELS, WHEEL_HIGHEND_CARBONSRACER, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_ENGINE, 3, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_BRAKES, 2, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_TRANSMISSION, 2, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_SUSPENSION, 3, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_ARMOR, 4, 0);
+		VEHICLE::SET_VEHICLE_MOD(v, MOD_SUSPENSION, 3, 0);
+		VEHICLE::SET_VEHICLE_WINDOW_TINT(v, PLAYER::IS_PLAYER_ONLINE() ? 1 : 5);
+		VEHICLE::SET_VEHICLE_COLOURS(v, VehicleColorChrome, VehicleColorChrome);
+		return true;
 	}
 
 	bool spawn_object(const char* model, Object* objOut)
@@ -667,7 +687,7 @@ namespace script
 	{
 		return;
 		STREAMING::REQUEST_NAMED_PTFX_ASSET("scr_rcbarry2");
-		GRAPHICS::_SET_PTFX_ASSET_NEXT_CALL("scr_rcbarry2");
+		GRAPHICS::_USE_PARTICLE_FX_ASSET_NEXT_CALL("scr_rcbarry2");
 		//GRAPHICS::_START_PARTICLE_FX_NON_LOOPED_AT_COORD_2("scr_clown_appears", pos.x, pos.y, pos.z, 0.f, 0.f, 0.f, 1.f, false, false, false);
 		GRAPHICS::_START_PARTICLE_FX_LOOPED_ON_ENTITY_BONE("scr_clown_appears", e, 0.f, 0.f, -.3f, 0.f, 0.f, 0.f, 0, 1.f, false, false, false);
 		//GRAPHICS::_START_PARTICLE_FX_NON_LOOPED_ON_ENTITY_2("scr_clown_appears", e, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, false, false, false);
@@ -1201,7 +1221,6 @@ namespace script
 		return true;
 	}
 
-
 	void	shoot_ped(Ped ped, DWORD bone, bool owned)
 	{
 		v3 dir		= v3(ENTITY::GET_ENTITY_ROTATION(ped, 0)).transformRotToDir();
@@ -1218,7 +1237,6 @@ namespace script
 
 	void	lester_offradar_toggle(bool b)
 	{
-		//__int64*	ptr	= CHooking::getGlobalPtr(2421664 + (1 + (PLAYER::PLAYER_ID() * 358)) + 203);
 		__int64*	ptr	= CHooking::getGlobalPtr(0x24F46C + (PLAYER::PLAYER_ID() * 358));
 		if((b && !(*ptr & 1)) || (!b && *ptr & 1))
 			*ptr ^= 1;
@@ -1226,7 +1244,7 @@ namespace script
 
 	void	lester_offradar_add(int ms)
 	{
-		//*CHooking::getGlobalPtr(2433125 + 69) = NETWORK::GET_NETWORK_TIME() + ms;
-		*CHooking::getGlobalPtr(0x2520AA) = NETWORK::GET_NETWORK_TIME() + ms;
+		if(*CHooking::getGlobalPtr(0x2520AA) < NETWORK::GET_NETWORK_TIME() + (ms / 2))
+			*CHooking::getGlobalPtr(0x2520AA) = NETWORK::GET_NETWORK_TIME() + ms;
 	}
 };

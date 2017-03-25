@@ -285,36 +285,41 @@ void CMenu::menuLeft()
 	return getFeatureCur(m_iActiveFeature)->dec();
 }
 
-void CMenu::menuTabRight()
+void CMenu::menuTabSave()
 {
-	while(m_pFeatureCur[0]->m_iCat < 0)
-		menuBack();
+	m_pFeatureCat[m_iActiveCat]->m_iActiveParentRet		= m_pFeatureCur[0]->m_iParent;
 	m_pFeatureCat[m_iActiveCat]->m_iDisplayOffsetRet	= m_iFeatureCurDisplayOffset;
 	m_pFeatureCat[m_iActiveCat]->m_iActiveFeatureRet	= m_iActiveFeature;
+	m_pFeatureCat[m_iActiveCat]->m_szDisplay			= m_pFeatureCat[m_iActiveCat]->m_szName;
+}
 
+void CMenu::menuTabRestore()
+{
+	if(m_pFeatureCat[m_iActiveCat]->m_iActiveParentRet > -1)
+		fillFeatureCurBuffer(m_pFeatureCat[m_iActiveCat]->m_iActiveParentRet, FFB_PARENT);
+	m_iFeatureCurDisplayOffset	= m_pFeatureCat[m_iActiveCat]->m_iDisplayOffsetRet;
+	m_iActiveFeature			= m_pFeatureCat[m_iActiveCat]->m_iActiveFeatureRet;
+}
+
+void CMenu::menuTabRight()
+{
+	menuTabSave();
 	if(m_iActiveCat < m_pFeatureCat.size() - 1)
 		setActiveCat(m_iActiveCat + 1);
 	else
 		setActiveCat(0);
-
-	m_iFeatureCurDisplayOffset	= m_pFeatureCat[m_iActiveCat]->m_iDisplayOffsetRet;
-	m_iActiveFeature			= m_pFeatureCat[m_iActiveCat]->m_iActiveFeatureRet;
+	menuTabRestore();
 	return;
 }
 
 void CMenu::menuTabLeft()
 {
-	while(m_pFeatureCur[0]->m_iCat < 0)
-		menuBack();
-	m_pFeatureCat[m_iActiveCat]->m_iDisplayOffsetRet	= m_iFeatureCurDisplayOffset;
-	m_pFeatureCat[m_iActiveCat]->m_iActiveFeatureRet	= m_iActiveFeature;
-
+	menuTabSave();
 	if(m_iActiveCat - 1 >= 0)
 		setActiveCat(m_iActiveCat - 1);
 	else
 		setActiveCat((int) m_pFeatureCat.size() - 1);
-	m_iFeatureCurDisplayOffset	= m_pFeatureCat[m_iActiveCat]->m_iDisplayOffsetRet;
-	m_iActiveFeature			= m_pFeatureCat[m_iActiveCat]->m_iActiveFeatureRet;
+	menuTabRestore();
 	return;
 }
 
@@ -883,6 +888,9 @@ void CIniParser::read()
 	file.open(m_szFile, std::ios::in);
 	if(!file.is_open())
 		return;
+
+	m_section.clear();
+	m_key.clear();
 
 	std::string szLine;
 	int			iSection = -1;

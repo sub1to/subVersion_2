@@ -645,11 +645,11 @@ namespace hash
 
 
 	char* anti_afk_hash[] = {
-	"world_human_smoking", "world_human_yoga", "world_human_push_ups"
+	"world_human_smoking", "world_human_yoga"
 	};
 
 	char* anti_afk_name[] = {
-	"Smoking", "Yoga", "Push-Ups"
+	"Smoking", "Yoga"
 	};
 
 };

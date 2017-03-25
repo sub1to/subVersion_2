@@ -62,7 +62,8 @@ class CFeatCat
 	public:
 		int			m_iId,
 					m_iActiveFeatureRet = 0,
-					m_iDisplayOffsetRet = 0;
+					m_iDisplayOffsetRet = 0,
+					m_iActiveParentRet	= -1;
 		std::string	m_szName,
 					m_szDisplay;
 };
@@ -296,6 +297,8 @@ class CMenu
 		static void		menuBack();
 		static void		menuTabLeft();	//prev tab
 		static void		menuTabRight();	//next tab
+		static void		menuTabSave();	//save tab state
+		static void		menuTabRestore();	//retore tab
 
 		static int			addFeatureCategory(std::string name);
 		static int			getFeatureCategoryCount();

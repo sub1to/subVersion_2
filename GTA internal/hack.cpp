@@ -143,6 +143,7 @@ bool	CHack::refresh()
 
 		bool	playerInVeh	= PED::IS_PED_IN_ANY_VEHICLE(playerPed, true) > 0;
 		Vehicle playerVeh = NULL;
+		bool	playerVehDriver = false;
 		if(playerInVeh)
 		{
 			playerVeh		= PED::GET_VEHICLE_PED_IS_USING(playerPed);
@@ -152,6 +153,8 @@ bool	CHack::refresh()
 				CMenu::getFeature(feature::map["FEATURE_V_LICENSE"])->m_bRestored	= true;		//so if it was triggered, we don't get a popup as soon as we get in the car
 				m_lastVehicle	= playerVeh;
 			}
+			if(VEHICLE::GET_PED_IN_VEHICLE_SEAT(playerVeh, -1) == playerPed)
+				playerVehDriver = true;
 		}
 		else if(m_lastVehicle != NULL)
 			if(ENTITY::IS_AN_ENTITY(m_lastVehicle) && ENTITY::IS_ENTITY_A_VEHICLE(m_lastVehicle) && VEHICLE::IS_VEHICLE_DRIVEABLE(m_lastVehicle, false))
@@ -222,7 +225,7 @@ bool	CHack::refresh()
 			else if(script::request_control_of_entity(e))
 			{
 				script::detach_entity(e);
-				//ENTITY::SET_ENTITY_AS_MISSION_ENTITY(e, false, false);
+				ENTITY::SET_ENTITY_AS_MISSION_ENTITY(e, false, false);
 				ENTITY::DELETE_ENTITY(&e);
 				if(ENTITY::IS_AN_ENTITY(m_entityCleanup[0]))
 					m_entityCleanupTries = 0xFF;
@@ -242,7 +245,7 @@ bool	CHack::refresh()
 		}
 		
 		//vehicle spawn
-		if(!m_requestedVehicle.empty() && script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_VEH_PERSIST"])->m_bOn))
+		if(!m_requestedVehicle.empty() && script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_VEH_MOD"])->m_bOn))
 			m_requestedVehicle.erase(m_requestedVehicle.begin());
 		
 		//ped spawn
@@ -461,11 +464,8 @@ bool	CHack::refresh()
 					script::lester_offradar_add(60);
 				feat->m_bSet = true;
 			}
-			if(feat->m_bOn && clock() - feat->m_clockTick > 30000)
-			{
-				script::lester_offradar_add(60);
-				feat->m_clockTick = clock();
-			}
+			if(feat->m_bOn)
+				script::lester_offradar_add(60000);
 		}
 		
 		//clean player
@@ -484,13 +484,13 @@ bool	CHack::refresh()
 			feat->m_bSet = true;
 		}
 		
-		//clean objects
+		/*/clean objects
 		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEANUP_OBJECTS"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::remove_nearby_objects();
 			feat->m_bSet = true;
-		}
+		}//*/
 		
 		//Super run
 		feat = CMenu::getFeature(feature::map["FEATURE_P_SUPER_RUN"]);
@@ -522,7 +522,7 @@ bool	CHack::refresh()
 			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
 			feat->m_clockTick = clock();
 		}
-
+		
 		//clear reports
 		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEAR_REPORTS"]);
 		if(!feat->m_bSet && feat->m_bOn)
@@ -530,7 +530,7 @@ bool	CHack::refresh()
 			script::clear_badsports();
 			feat->m_bSet = true;
 		}
-
+		
 		//Time Freeze
 		feat = CMenu::getFeature(feature::map["FEATURE_T_PAUSE_CLOCK"]);
 		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
@@ -567,7 +567,8 @@ bool	CHack::refresh()
 		if(playerVeh != NULL)
 		{
 			//request control
-			script::request_control_of_entity(playerVeh);
+			if(playerVehDriver)
+				script::request_control_of_entity(playerVeh);
 
 			//Speed-O-Meter
 			feat = CMenu::getFeature(feature::map["FEATURE_I_SPEED_O_METER"]);
@@ -706,7 +707,7 @@ bool	CHack::refresh()
 				}
 			}*/
 
-			if (remotePed > 0)// && remotePed != playerPed)
+			if (remotePed > 0 && remotePed != playerPed)
 			{
 				szName = PLAYER::GET_PLAYER_NAME(i);
 				if(feat->m_szName != szName)
@@ -986,14 +987,6 @@ bool	CHack::refresh()
 				plrFeat->m_bSet = true;
 			}
 			
-			//crash
-			/*plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_CRASH"]);
-			if(!plrFeat->m_bSet && plrFeat->m_bOn)
-			{
-				if(script::crash_player(remotePed))
-					plrFeat->m_bSet = true;
-			}*/
-			
 			//send assasins
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_CHRISFORMAGE"]);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
@@ -1021,7 +1014,6 @@ bool	CHack::refresh()
 		checkAllPlayerFeature("FEATURE_A_REMOVE_WEAPONS", "PLRFEAT_REMOVE_WEAPONS");
 		checkAllPlayerFeature("FEATURE_A_TRAP_IN_CAGE", "PLRFEAT_TRAP_IN_CAGE");
 		checkAllPlayerFeature("FEATURE_A_EXPLODE", "PLRFEAT_EXPLODE");
-		checkAllPlayerFeature("FEATURE_A_CRASH", "PLRFEAT_CRASH");
 
 		//memory hack stuff
 		if(m_pCPedPlayer != m_pCWorld->CPedLocalPlayer)

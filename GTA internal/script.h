@@ -76,12 +76,11 @@ namespace script
 	void	ped_weapon(Ped p, std::string weapon, bool give = true);
 
 	bool	spawn_ped(char* model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
-
-	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, bool warp = false, bool bypass = false, bool persist = false);
-
+	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, bool warp = false, bool bypass = false, bool upgrade = false);
 	void	vehicle_bypass(Vehicle vehicle);
 	bool	spawn_object(const char* model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
+	bool	upgrade_car(Vehicle v, bool car);
 
 	void	teleport_player_on_foot(Ped p, float X, float Y, float Z);
 
