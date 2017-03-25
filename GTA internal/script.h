@@ -80,6 +80,7 @@ namespace script
 	void	vehicle_bypass(Vehicle vehicle);
 	bool	spawn_object(const char* model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
+	void	vehicle_mp_bypass(bool b);
 	bool	upgrade_car(Vehicle v, bool car);
 
 	void	teleport_player_on_foot(Ped p, float X, float Y, float Z);
@@ -118,6 +119,8 @@ namespace script
 
 	void	lester_offradar_toggle(bool b);
 	void	lester_offradar_add(int ms);
+
+	void	spectate_player(Ped p, bool b = false);
 }
 
 #endif

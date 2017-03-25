@@ -200,7 +200,7 @@ void killProcess()
 	for(int i = 0; i < CMenu::getFeatureCount(); i++)
 	{
 		CMenu::getFeature(i)->m_bOn		= false;
-		CMenu::getFeature(i)->m_bSet		= false;
+		CMenu::getFeature(i)->m_bSet	= false;
 	}
 
 	Sleep(0xFF);

@@ -73,11 +73,11 @@ void	CHack::killNpc()
 {
 	if(m_pCPedPlayer->CAttacker == nullptr)
 		return;
-	if(m_pCPedPlayer->CAttacker->CPed0 != nullptr && m_pCPedPlayer->CAttacker->CPed0->fHealth > 0.f)
+	if(m_pCPedPlayer->CAttacker->CPed0 != nullptr && m_pCPedPlayer->CAttacker->CPed0 != m_pCPedPlayer && m_pCPedPlayer->CAttacker->CPed0->fHealth > 0.f)
 		m_pCPedPlayer->CAttacker->CPed0->fHealth = 0.f;
-	if(m_pCPedPlayer->CAttacker->CPed1 != nullptr && m_pCPedPlayer->CAttacker->CPed1->fHealth > 0.f)
+	if(m_pCPedPlayer->CAttacker->CPed1 != nullptr && m_pCPedPlayer->CAttacker->CPed1 != m_pCPedPlayer && m_pCPedPlayer->CAttacker->CPed1->fHealth > 0.f)
 		m_pCPedPlayer->CAttacker->CPed1->fHealth = 0.f;
-	if(m_pCPedPlayer->CAttacker->CPed2 != nullptr && m_pCPedPlayer->CAttacker->CPed2->fHealth > 0.f)
+	if(m_pCPedPlayer->CAttacker->CPed2 != nullptr && m_pCPedPlayer->CAttacker->CPed2 != m_pCPedPlayer && m_pCPedPlayer->CAttacker->CPed2->fHealth > 0.f)
 		m_pCPedPlayer->CAttacker->CPed2->fHealth = 0.f;
 	return;
 }
@@ -241,6 +241,14 @@ bool	CHack::refresh()
 		if(!feat->m_bSet)
 		{
 			script::vehicle_sp_bypass(feat->m_bOn);
+			feat->m_bSet = true;
+		}
+
+		//global mp kick bypass
+		feat = CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"]);
+		if(!feat->m_bSet)
+		{
+			script::vehicle_mp_bypass(feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
@@ -591,6 +599,11 @@ bool	CHack::refresh()
 				feat->m_bSet = true;
 			}
 
+			//upgrade
+			feat = CMenu::getFeature(feature::map["FEATURE_V_UPGRADE"]);
+			if(playerInVeh && !feat->m_bSet && feat->m_bOn && script::upgrade_car(playerVeh, true))
+				feat->m_bSet = true;
+
 			//Flip vehicle
 			feat = CMenu::getFeature(feature::map["FEATURE_V_FLIP"]);
 			if(!feat->m_bSet && feat->m_bOn)
@@ -752,8 +765,14 @@ bool	CHack::refresh()
 			//Track player
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TRACK"]);
 			if(plrFeat->m_bOn || CMenu::getFeature(feature::map["FEATURE_A_TRACK"])->m_bOn)
-			{
 				script::draw_esp_on_entity(remotePed, szName, bEspBox, bEspHealth, bEspDist, fEspMaxDist);
+
+			//Specate player
+			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_SPECTATE"]);
+			if(!plrFeat->m_bSet)
+			{
+				script::spectate_player(remotePed, plrFeat->m_bOn);
+				plrFeat->m_bSet = true;
 			}
 			
 			//teleport to player

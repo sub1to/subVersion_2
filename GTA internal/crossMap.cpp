@@ -41,6 +41,7 @@ uint64_t __HASHMAPDATA[] = {
 	0xF25D331DC2627BBC, 0x9B0FAF2C1DE9BB5A, //player::is_player_online
 	0x50FAC3A3E030A6E1, 0xD560851477A3D4CA, //player::get_player_ped_script_index
 	0x13EDE1A5DBF797C9, 0x41B9773A1CCDC74C, //player::get_player_target_entity
+	0xA5EDC40EF369B48D, 0x592069F95C314814, //player::get_player_index
 	0x997ABD671D25CA0B, 0xFD0FE723227D5AB6, //ped::is_ped_in_any_vehicle
 	0x9A9112A0FE9A4713, 0x60604E51E30D25B8, //ped::get_vehicle_ped_is_in
 	0x6094AD011A2EA87D, 0xFD05A5AA90984873, //ped::get_vehicle_ped_is_using
@@ -133,12 +134,14 @@ uint64_t __HASHMAPDATA[] = {
 	0x57C51E6BAD752696, 0xA3C6B7F3E39994ED, //vehicle::set_vehicle_window_tint
 	0x487EB21CC7295BA1, 0xE8356B7E1B731437, //vehicle::set_vehicle_wheel_type
 	0x7F6DB52EEFC96DF8, 0xC2AFD5CFEDC8F22A, //vehicle::is_this_model_a_car
+	0xE38E9162A2500646, 0xF218D5E7A1FA1079, //vehicle::get_num_vehicle_mods
 	0x509D5878EB39E842, 0x521A82CF998EDB21, //object::create_object
 	0xE143FA2249364369, 0x29280EF6724677F5, //object::get_closest_object_of_type
 	0x673966A0C0FD7171, 0xAB96B96F513DBFC2, //object::create_ambient_pickup
 	0xFC8202EFC642E6F2, 0x0385EDD8AAEC86F4, //gameplay::get_frame_count
 	0xC906A7DAB05C8D2B, 0x4F34E573D7F5024B, //gameplay::get_ground_z_for_3d_coord
 	0x933D6A9EEC1BACD0, 0xEB79FECD9022AAF0, //gameplay::set_bit
+	0xE80492A9AC099A93, 0x21E7933CCC7B3724, //gameplay::clear_bit
 	0xD53343AA4FB7DD28, 0x0E29C61F26D96FDB, //gameplay::get_random_int_in_range
 	0x867654CBC7606F2C, 0x85E1976B9B8DADE8, //gameplay::shoot_single_bullet_between_coords
 	0x338D2E3477711050, 0xB392F182B2E2F596, //gameplay::clear_override_weather
@@ -179,7 +182,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x01BF60A500E28887, 0xC38F0FBE1914783C, //network::network_has_control_of_entity
 	0xB69317BF5E782347, 0xE647AA9998A1123E, //network::network_request_controL_of_entity
 	0xA11700682F3AD45C, 0x3D9BACD0411D4A4E, //network::network_get_network_id_from_entity
-	0x4D36070FE0215186, 0x093776FE2E6B4BAC, //network::network_has_control_of_network_id
+	0x4D36070FE0215186, 0x93776FE2E6B4BAC,  //network::network_has_control_of_network_id
 	0xA670B3662FAFFBD0, 0x4EDACF77CDD9CFEB, //network::network_request_control_of_network_id
 	0x299EEB23175895FC, 0x73E0878A3E31819C, //network::set_network_id_can_migrate
 	0xE679E3E06E363892, 0x8A2AB944595BC051, //network::network_override_clock_time
@@ -191,6 +194,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x9A1B3FCDB36C8697, 0xD299F9D47AAE6209, //network_network_start_synchronised_scene
 	0x6C0E2E0125610278, 0xDE881A032F5BA110, //network::network_get_player_index_from_ped
 	0xBC1D768F2F5D6C05, 0x7081D1CF61F5A498, //network::_network_hash_from_player_handle
+	0x423DE3854BB50894, 0x858DD33AFD804F9F, //network::network_set_in_spectator_mode
 	0x837765A25378F0BB, 0xBEBA2DED4C4C66BD, //cam::get_gameplay_cam_rot
 	0x14D6F5678D8F1B37, 0x667FF09580838E25, //cam::get_gameplay_cam_coord
 	0xAAA34F8A7CB32098, 0xBC8C26E1CC191108, //ai::clear_ped_tasks_immediately

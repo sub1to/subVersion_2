@@ -31,7 +31,7 @@ Copyright 2017 sub1to
 	//////////
 	//Getting started:
 	//////////
-		1.	Start GTAV
+		1.	Start GTAV (windowed / borderless)
 		2.	Inject subVersion.dll using any injector
 			I prefer Xenos Injector (with manual map)
 		3.	GL HF

@@ -79,37 +79,27 @@ namespace script
 
 	bool request_control_of_id(Entity netid)
 	{
-		int i = 0;
-		while(!NETWORK::NETWORK_HAS_CONTROL_OF_NETWORK_ID(netid) && i < 5)
-		{
+		if(!NETWORK::NETWORK_HAS_CONTROL_OF_NETWORK_ID(netid))
 			NETWORK::NETWORK_REQUEST_CONTROL_OF_NETWORK_ID(netid);
-			i++;
-		}
 		return true && NETWORK::NETWORK_HAS_CONTROL_OF_NETWORK_ID(netid);
 	}
 
 	bool request_control_of_entity(Entity entity)
 	{
-		if(!NETWORK::NETWORK_IS_SESSION_STARTED() || NETWORK::NETWORK_IS_HOST())
+		if(!NETWORK::NETWORK_IS_SESSION_STARTED())
 			return true;
 		if(ENTITY::IS_ENTITY_A_PED(entity))
 			for(int i = 0; i < MAX_PLAYERS; i++)
 				if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == entity)
 					return false;
-		int i = 0;
-		while(!NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity) && i < 5)
-		{
+
+		if(!NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity))
 			NETWORK::NETWORK_REQUEST_CONTROL_OF_ENTITY(entity);
-			i++;
-		}
-		bool r	= true;
-		r = r && NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity);
 
 		int netID = NETWORK::NETWORK_GET_NETWORK_ID_FROM_ENTITY(entity);
-		r = r && request_control_of_id(netID);
-
+		request_control_of_id(netID);
 		NETWORK::SET_NETWORK_ID_CAN_MIGRATE(netID, 1);
-		return r;
+		return true && NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity);
 	}
 
 	void update_nearby_ped(Ped origin, int c)
@@ -451,7 +441,7 @@ namespace script
 		if(bFly)
 			pos.z += 100.f;
 		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
-		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YOMOMA");
+		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YO MOMMA");
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
 
@@ -487,30 +477,40 @@ namespace script
 		VEHICLE::SET_VEHICLE_IS_STOLEN(v, false);
 	}
 
+	void vehicle_mp_bypass(bool b)
+	{
+		//GAMEPLAY::SET_BIT((int*)CHooking::getGlobalPtr(1591201 + (1 * (PLAYER::GET_PLAYER_INDEX() + 602)) + 258 + 13), 3);
+		if(b)
+			GAMEPLAY::SET_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
+		else
+			GAMEPLAY::CLEAR_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
+	}
+
 	void vehicle_sp_bypass(bool b)
 	{
 		*CHooking::getGlobalPtr(0x2794B2) = b;
 	}
 
-	bool	upgrade_car(Vehicle v, bool car)
+	bool	upgrade_car(Vehicle v, bool wheels)
 	{
 		if(!request_control_of_entity(v))
 			return false;
+
+		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(v, "YO MOMMA");
 		VEHICLE::SET_VEHICLE_MOD_KIT(v, 0);
 		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT_INDEX(v, PLATE_YELLOWONBLACK);
 		VEHICLE::SET_VEHICLE_WHEEL_TYPE(v, WHEEL_TYPE_HIGHEND);
 		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_TURBO, 1);
 		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_XENONLIGHTS, 1);
-		if(car)
-			VEHICLE::SET_VEHICLE_MOD(v, MOD_FRONTWHEELS, WHEEL_HIGHEND_CARBONSRACER, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_ENGINE, 3, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_BRAKES, 2, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_TRANSMISSION, 2, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_SUSPENSION, 3, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_ARMOR, 4, 0);
-		VEHICLE::SET_VEHICLE_MOD(v, MOD_SUSPENSION, 3, 0);
-		VEHICLE::SET_VEHICLE_WINDOW_TINT(v, PLAYER::IS_PLAYER_ONLINE() ? 1 : 5);
+		VEHICLE::SET_VEHICLE_MOD(v, 0, VEHICLE::GET_NUM_VEHICLE_MODS(v, 0) - 2, false);		//biggest spoiler = ugly
+		VEHICLE::SET_VEHICLE_WINDOW_TINT(v, 1);
 		VEHICLE::SET_VEHICLE_COLOURS(v, VehicleColorChrome, VehicleColorChrome);
+		for(int i = 1; i < 0x30; ++i)
+		{
+			if(!wheels && i > 22 && i < 25)
+				continue;
+			VEHICLE::SET_VEHICLE_MOD(v, i, VEHICLE::GET_NUM_VEHICLE_MODS(v, i) - 1, false);
+		}
 		return true;
 	}
 
@@ -744,11 +744,10 @@ namespace script
 	void teleport_player_on_foot(Ped ped, float X, float Y, float Z)
 	{
 		AI::CLEAR_PED_TASKS_IMMEDIATELY(ped);
-		int scene2 = NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(X, Y, Z, 0.0, 0.0, 0.0, 2, 0, 0, 0);
-		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(ped, scene2, "mini@strip_club@private_dance@part3", "priv_dance_p3", 8.0f, -8.0, 5, 0, 30, 0);
-		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene2);
+		int scene = NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(X, Y, Z, 0.0, 0.0, 0.0, 2, 0, 0, 0);
+		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(ped, scene, "mini@strip_club@private_dance@part3", "priv_dance_p3", 8.0f, -8.0, 5, 0, 30, 0);
+		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
 	}
-
 
 	void teleport_all_players_to_me()
 	{
@@ -951,7 +950,7 @@ namespace script
 
 	void	drop_money_on_entity(Entity e, int amount, char* prop)
 	{
-		if(PLAYER::IS_PLAYER_ONLINE() || NETWORK::NETWORK_IS_SESSION_STARTED())
+		if(NETWORK::NETWORK_IS_SESSION_STARTED())
 			return;
 		v3 pos = ENTITY::GET_ENTITY_COORDS(e, true);
 		Hash	modelHash = $(prop);
@@ -1246,5 +1245,10 @@ namespace script
 	{
 		if(*CHooking::getGlobalPtr(0x2520AA) < NETWORK::GET_NETWORK_TIME() + (ms / 2))
 			*CHooking::getGlobalPtr(0x2520AA) = NETWORK::GET_NETWORK_TIME() + ms;
+	}
+
+	void	spectate_player(Ped p, bool b)
+	{
+		NETWORK::NETWORK_SET_IN_SPECTATOR_MODE(b, p);
 	}
 };

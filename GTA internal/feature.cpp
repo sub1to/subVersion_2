@@ -78,6 +78,7 @@ namespace feature
 			feature::map.emplace("FEATURE_V_TRUEGOD",	 CMenu::addFeature(-1, *parent, "God", feat_toggle, "vehTrueGodMode"));
 			feature::map.emplace("FEATURE_V_GOD",	 CMenu::addFeature(-1, *parent, "Demi-God", feat_toggle, "vehGodMode"));
 			feature::map.emplace("FEATURE_V_REPAIR",	 CMenu::addFeature(-1, *parent, "Repair", feat_action));
+			feature::map.emplace("FEATURE_V_UPGRADE",	 CMenu::addFeature(-1, *parent, "Upgrade", feat_action));
 			feature::map.emplace("FEATURE_V_FLIP",	 CMenu::addFeature(-1, *parent, "Flip", feat_action));
 			feature::map.emplace("FEATURE_V_STICK_TO_GROUND",	 CMenu::addFeature(-1, *parent, "Stick to Ground", feat_toggle, "vehStickGround"));
 			feature::map.emplace("FEATURE_V_BOOST",	 CMenu::addFeature(-1, *parent, "Boost", feat_action_value, "vehImpulse", 0.f, 200.f, 20.f));
@@ -149,6 +150,7 @@ namespace feature
 				CMenu::addFeature(-1, *(parent + 1), "Saved 5", feat_teleport, "pos4", tp_saved);
 				CMenu::addFeature(-1, *(parent + 1), "Saved 6", feat_teleport, "pos5", tp_saved);
 			CMenu::addFeature(-1, *parent, "LS Customs", feat_teleport, tp_static, -365.425f, -131.809f, 38.9f);
+			CMenu::addFeature(-1, *parent, "Mors Mutual Insurance", feat_teleport, tp_static, -232.74f, -1163.556f, 24.95f);
 			CMenu::addFeature(-1, *parent, "LSIA Runway", feat_teleport, tp_static, -1336.f, -3044.f, 14.15f);
 			CMenu::addFeature(-1, *parent, "Sandy Shores Airfield", feat_teleport, tp_static, 1747.f, 3273.f, 41.35f);
 			CMenu::addFeature(-1, *parent, "Mount Chiliad", feat_teleport, tp_static, 489.979f, 5587.527f, 794.3f);
@@ -205,6 +207,7 @@ namespace feature
 		
 			map.emplace("PLRFEAT_PARENT", CMenu::addFeature(-1, *parent, "!Invalid!", feat_parent));
 				map.emplace("PLRFEAT_TRACK", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Track Player", feat_toggle));
+				map.emplace("PLRFEAT_SPECTATE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Spectate Player", feat_toggle));
 				map.emplace("PLRFEAT_TP_TO", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to player", feat_action));
 				map.emplace("PLRFEAT_TP_TO_CAR", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to vehicle", feat_action));
 				map.emplace("PLRFEAT_TP_TO_ME", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to me", feat_action));
