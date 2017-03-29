@@ -89,6 +89,8 @@ public:
 	float fArmor; //0x14B0 
 	char pad_0x14B4[0x3C]; //0x14B4
 	CVehicle* CVehicleLast2; //0x14F0 
+	char pad_0x14F8[0xDC]; //0x14F8
+	__int32 iCash; //0x15D4 
 
 	bool isGod()
 	{
@@ -441,6 +443,9 @@ public:
 
 
 
+
+
+
 class CReplayInterfacePed
 {
 private:
@@ -450,11 +455,12 @@ private:
     	struct Ped
     	{
     		CPed* ped;
-    		char _pad0[0x8];
+			__int32 handle;
+    		char _pad0[0x4];
     	};
      
     public:
-    	Ped peds[256];
+    	Ped peds[0x100];
     };
      
 public:
@@ -466,9 +472,66 @@ public:
      
     CPed* get_ped(const int& index)
     {
-    	return (index < max_peds && ped_list->peds[index].ped != nullptr ? ped_list->peds[index].ped : nullptr);
+		if(index < max_peds)
+			return ped_list->peds[index].ped;
+		return nullptr;
+    }
+
+	int get_ped_handle(const int& index)
+    {
+		if(index < max_peds && ped_list->peds[index].ped != nullptr)
+			return ped_list->peds[index].handle;
+		return -1;
     }
 };
+
+class CPickup
+{
+public:
+    char _0x0000[0x30];
+    CNavigation* Navigation; //0x0030 
+    char _0x0038[0x58];
+    v3 VisualPosition; //0x0090 
+    char _0x009C[0x3F4];
+    __int32 iMoney; //0x0490 
+    char _0x0484[0x104];
+
+};//Size=0x0588
+
+class PickupHandle
+{
+public:
+    CPickup* pickup; //0x0000 
+    __int32 handle; //0x0008
+	char _pad0[0x4];
+
+};//Size=0x0588
+
+class CPickupList
+{
+public:
+    PickupHandle pickups[0x49];//pickups[0x49]; //0x0000 
+
+};//Size=0x0490
+
+class CReplayInterfacePickup
+{
+public:
+    char _0x0000[0x100];
+    CPickupList* pickup_list; //0x0100 
+    __int32 max_pickups; //0x0108 
+    char _0x010C[0x4];
+    __int32 number_of_pickups; //0x0110 
+    char _0x0114[0x34];
+
+	CPickup* get_pickup(const int& index)
+    {
+		if(index < max_pickups)
+			return pickup_list->pickups[index].pickup;
+		return nullptr;
+    }
+
+};//Size=0x0148
 
 
 class CReplayInterface
@@ -478,7 +541,7 @@ public:
     void* camera_interface;
     void* vehicle_interface;
     CReplayInterfacePed* ped_interface;
-    void* pickup_interface;
+    CReplayInterfacePickup* pickup_interface;
     void* object_interface;
 };
 

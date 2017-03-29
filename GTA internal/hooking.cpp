@@ -29,6 +29,7 @@ NativeRegistration**						CHooking::m_regTable;
 CReplayInterface*							CHooking::m_replayIntf;
 std::unordered_map<uint64_t,NativeHandler>	CHooking::m_handlerCache;
 __int64**									CHooking::m_globalBase;
+MemoryPool**								CHooking::m_entityPool;
 
 /*
 	//Private function declarations
@@ -177,6 +178,7 @@ void findPatterns()
 	CPattern pattern_replay		("\x48\x8D\x0D\x00\x00\x00\x00\x48\x8B\xD7\xE8\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x8A\xD8\xE8\x00\x00\x00\x00\x84\xDB\x75\x13\x48\x8D\x0D\x00\x00\x00\x00",	"xxx????xxxx????xxx????xxx????xxxxxxx????");
 	CPattern pattern_global		("\x4C\x8D\x05\x00\x00\x00\x00\x4D\x8B\x08\x4D\x85\xC9\x74\x11",									"xxx????xxxxxxxx");
 	CPattern pattern_playerList	("\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",	"xxx????x????xxxx????xxx");
+	CPattern pattern_entityPool	("\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",										"xxx????xxxxxxx");
 
 	char* ptr	= nullptr;
 
@@ -200,6 +202,9 @@ void findPatterns()
 
 	ptr	= pattern_playerList.find(1).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find player list pattern")			: CHack::m_pCPlayers		= (CPlayers*)				(ptr + *(uint32_t*) ptr + 4);
+
+	ptr	= pattern_entityPool.find(1).get<char>(3);
+	ptr	== nullptr ?	killProcess("Failed to find entity pool pattern")			: CHooking::m_entityPool	= (MemoryPool**)			(ptr + *(uint32_t*) ptr + 4);
 
 	ptr	= pattern_modelCheck.find(0).get<char>(0);
 	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern") : mem_nop(ptr, 24);

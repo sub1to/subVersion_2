@@ -30,6 +30,25 @@ namespace util
 	{
 		return GAMEPLAY::GET_RANDOM_INT_IN_RANGE(start, end);
 	}
+
+	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle)
+	{
+		if(pool == nullptr)
+			return 0;
+
+		int index	= handle >> 8;
+		int flag	= pool->BoolAdr[index];
+
+		if(flag & 0x80 || flag != (handle & 0xFF))
+			return 0;
+
+		return pool->ListAddr + index * pool->ItemSize;
+	}
+
+	CPed*	ped_handle_to_ptr(Ped ped)
+	{
+		return *reinterpret_cast<CPed**>(get_address_of_item_in_pool(*CHooking::m_entityPool, ped) + 8);
+	}
 }
 
 namespace script
@@ -1243,12 +1262,84 @@ namespace script
 
 	void	lester_offradar_add(int ms)
 	{
-		if(*CHooking::getGlobalPtr(0x2520AA) < NETWORK::GET_NETWORK_TIME() + (ms / 2))
-			*CHooking::getGlobalPtr(0x2520AA) = NETWORK::GET_NETWORK_TIME() + ms;
+		int	time	= NETWORK::GET_NETWORK_TIME();
+		if(*CHooking::getGlobalPtr(0x2520AA) < time + (ms / 2))
+			*CHooking::getGlobalPtr(0x2520AA) = time + ms;
 	}
 
 	void	spectate_player(Ped p, bool b)
 	{
 		NETWORK::NETWORK_SET_IN_SPECTATOR_MODE(b, p);
+	}
+
+	void	ped_money_drop(Ped playerPed, clock_t* tmr)
+	{
+		v3 playerPos	= ENTITY::GET_ENTITY_COORDS(playerPed, false);
+
+		if(clock() - *tmr > 0x60)
+		{
+			if(CHack::m_nearbyPed.empty())
+				script::update_nearby_ped(PLAYER::PLAYER_PED_ID(), 0x80);
+			else
+			{
+				if(CHack::m_nearbyPed[0] > 0 && ENTITY::DOES_ENTITY_EXIST(CHack::m_nearbyPed[0]))
+				{
+					request_control_of_entity(CHack::m_nearbyPed[0]);
+					CPed* cped = util::ped_handle_to_ptr(CHack::m_nearbyPed[0]);
+					if(cped != nullptr && cped != CHack::m_pCPedPlayer && cped->fHealth > 100.f && cped->fHealth < 250)
+					{
+						cped->iCash = 2000;
+						AI::CLEAR_PED_TASKS_IMMEDIATELY(CHack::m_nearbyPed[0]);
+						teleport_entity_to_coords(CHack::m_nearbyPed[0], {playerPos.x, playerPos.y, playerPos.z + 2.5f}, false);
+						cped->fHealth = 0;
+					}
+				}
+				CHack::m_nearbyPed.erase(CHack::m_nearbyPed.begin());
+				*tmr	= clock();
+			}
+		}
+
+		if(CHooking::m_replayIntf->pickup_interface->number_of_pickups > 0)
+		{
+			int max	= CHooking::m_replayIntf->pickup_interface->max_pickups;
+			for(int i = 0; i < max; ++i)
+			{
+				CPickup*	pickup	= CHooking::m_replayIntf->pickup_interface->get_pickup(i);
+				if(pickup == nullptr || pickup->Navigation == nullptr || pickup->iMoney < 100 || pickup->VisualPosition.getDist(playerPos) > 50.f)
+					continue;
+				pickup->Navigation->v3Pos	= playerPos;
+				pickup->VisualPosition		= playerPos;
+			}
+		}
+	}
+
+	void	stealth_money(int mils)
+	{
+		int	max		= 0;
+		int	rest	= mils;
+		if(mils > 90)
+		{
+			max		= mils / 90;
+			rest	= mils - (90 * max);
+		}
+		rest	*= 1000000;
+		
+		while(max > 0 || rest > 0)
+		{
+			int	amount;
+			if(rest > 0)
+			{
+				amount = rest;
+				rest = 0;
+			}
+			else
+			{
+				amount	= 90000000;
+				--max;
+			}
+			Any transactionID	= INT_MAX;
+			if(UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&transactionID, 1474183246, 1982688246, 1445302971, amount, 4))
+				UNK3::_NETWORK_SHOP_CHECKOUT_START(transactionID);
+		}
 	}
 };

@@ -72,6 +72,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x17C07FC640E86B4E, 0x425DAA25CBB7EDE2, //ped::get_ped_bone_coords
 	0x4700A416E8324EF3, 0x5D709FE87FA3B4C5, //ped::get_ped_max_health
 	0x9483AF821605B1D8, 0x55C72967EFB9CECF, //ped::get_ped_armour
+	0x1913FE4CBF41C463, 0x6018E338F7ABCE75, //ped::set_ped_config_flag
 	0x7239B21A38F536BA, 0x23E9113C762466ED, //entity::does_entity_exist
 	0x731EC8A916BD11A1, 0x2032470B7EE4912E, //entity::is_an_entity
 	0x524AC5ECEA15343E, 0x80E9CA64E9C8E070, //entity::is_entity_a_ped
@@ -231,6 +232,8 @@ uint64_t __HASHMAPDATA[] = {
 	0x4851997F37FE9B3C, 0x098CDAAE6268B0D0, //stats::stat_set_float
 	0x4B33C4243DE0C432, 0xCE46AC18A4A47E2D, //stats::stat_set_bool
 	0x2C29BFB64F4FCBE4, 0xC43DC246FFFC2C87, //stats::stat_set_date
+	0x3C5FD37B5499582E, 0x1EB4A371BFB0E524, //unk3::_network_shop_begin_service
+	0x39BE7CEA8D9CC8E6, 0xF0045367541BC90,  //unk3::_network_shop_checkout_start
 };
 
 /*

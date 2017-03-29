@@ -73,6 +73,7 @@ namespace feature
 			feature::map.emplace("FEATURE_P_CLONE_BODYGUARD",	 CMenu::addFeature(-1, *parent, "Clone Bodyguard", feat_action));
 			//feature::map.emplace("FEATURE_P_CLEANUP_OBJECTS",	 CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
 			feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
+			feature::map.emplace("FEATURE_P_TINY",	 CMenu::addFeature(-1, *parent, "Tiny Player", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);
 			feature::map.emplace("FEATURE_V_TRUEGOD",	 CMenu::addFeature(-1, *parent, "God", feat_toggle, "vehTrueGodMode"));
@@ -190,6 +191,9 @@ namespace feature
 			feature::map.emplace("FEATURE_U_NOCLIP_SPEED",	 CMenu::addFeature(-1, *parent, "No Clip Speed", feat_action_value, "noclipSpeed", 1.f, 10.f, 1.f));
 			feature::map.emplace("FEATURE_U_CHAOS_MODE",	 CMenu::addFeature(-1, *parent, "Chaos Mode", feat_value_str, "", 0.f, (float) (sizeof(hash::chaos_mode_type) / sizeof(*hash::chaos_mode_type)) - 1, 1.f, hash::chaos_mode_type));
 			feature::map.emplace("FEATURE_U_SMASH_VEHICLES",	 CMenu::addFeature(-1, *parent, "Smash Vehicles", feat_action));
+			feature::map.emplace("FEATURE_U_PED_DROP",	 CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
+			feature::map.emplace("FEATURE_U_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Money", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
+			feature::map.emplace("FEATURE_U_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			feature::map.emplace("FEATURE_I_FPS_COUNTER",	 CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));
@@ -208,6 +212,7 @@ namespace feature
 			map.emplace("PLRFEAT_PARENT", CMenu::addFeature(-1, *parent, "!Invalid!", feat_parent));
 				map.emplace("PLRFEAT_TRACK", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Track Player", feat_toggle));
 				map.emplace("PLRFEAT_SPECTATE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Spectate Player", feat_toggle));
+				map.emplace("PLRFEAT_PED_DROP", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Ped Drop", feat_toggle));
 				map.emplace("PLRFEAT_TP_TO", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to player", feat_action));
 				map.emplace("PLRFEAT_TP_TO_CAR", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to vehicle", feat_action));
 				map.emplace("PLRFEAT_TP_TO_ME", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Teleport to me", feat_action));

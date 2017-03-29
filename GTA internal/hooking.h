@@ -24,6 +24,14 @@
 
 typedef void(__cdecl *NativeHandler)(scrNativeCallContext* context);	// Native function handler type
 
+struct MemoryPool
+{
+    uintptr_t ListAddr;
+    char* BoolAdr;
+    int MaxCount;
+    int ItemSize;
+};
+
 struct NativeRegistration
 {
 	NativeRegistration*	nextRegistration;
@@ -42,6 +50,7 @@ class CHooking
 		static CReplayInterface*							m_replayIntf;
 		static std::unordered_map<uint64_t,NativeHandler>	m_handlerCache;
 		static __int64**									m_globalBase;
+		static MemoryPool**									m_entityPool;
 
 		static void				init();
 		static void				cleanup();

@@ -133,12 +133,15 @@ bool	CHack::refresh()
 		if(!PLAYER::IS_PLAYER_PLAYING(player))
 			return false;
 
-		/*int max = CHooking::m_replayIntf->ped_interface->max_peds;
+		/*int max = CHooking::m_replayIntf->ped_interface->number_of_peds;
 		for(int i = 0; i < max; i++)
 		{
 			CPed* ped = CHooking::m_replayIntf->ped_interface->get_ped(i);
-			if(ped != nullptr && ped != m_pCPedPlayer)
-				ped->fHealth = 0.f;
+			if(ped != nullptr || ped != m_pCPedPlayer)
+				continue;
+			Ped id = CHooking::m_replayIntf->ped_interface->get_ped_handle(i);
+			v3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, false);
+			script::teleport_entity_to_coords(id, playerPos, false);
 		}*/
 
 		bool	playerInVeh	= PED::IS_PED_IN_ANY_VEHICLE(playerPed, true) > 0;
@@ -523,19 +526,61 @@ bool	CHack::refresh()
 			if(script::smash_vehicles(&feat->m_clockTick))
 				feat->m_bSet	= true;
 		
-		//money drop
+		//money drop (sp only)
 		feat = CMenu::getFeature(feature::map["FEATURE_P_MONEY_DROP"]);
 		if(feat->m_bOn && clock() - feat->m_clockTick > 0x60)
 		{
 			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
 			feat->m_clockTick = clock();
 		}
+
+		//ped drop
+		feat = CMenu::getFeature(feature::map["FEATURE_U_PED_DROP"]);
+		if(feat->m_bOn || !feat->m_bSet)
+		{
+			if(feat->m_bOn)
+				script::ped_money_drop(playerPed, &feat->m_clockTick);
+			else
+				m_nearbyPed.clear();
+			feat->m_bSet		= true;
+		}
 		
+		//stealth money
+		feat = CMenu::getFeature(feature::map["FEATURE_U_STEALTH_MONEY"]);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::stealth_money((int) feat->getValue());
+			feat->m_bSet		= true;
+		}
+
+		//rp loop
+		feat = CMenu::getFeature(feature::map["FEATURE_U_RP_LOOP"]);
+		if(feat->m_bOn && clock() - feat->m_clockTick > 0x6F)
+		{
+			if(!feat->m_bSet)
+			{
+				CMenu::getFeature(feature::map["FEATURE_P_WANTED"])->toggle(false);
+				CMenu::getFeature(feature::map["FEATURE_P_NEVERWANTED"])->toggle(false);
+				feat->m_bSet	= true;
+			}
+			m_pCPedPlayer->CPlayerInfo->CWantedData.dwWantedLevel	= feat->m_bRestored ? 5 : 0;
+			feat->m_bRestored	= !feat->m_bRestored;
+			feat->m_clockTick	= clock();
+		}
+
 		//clear reports
 		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEAR_REPORTS"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::clear_badsports();
+			feat->m_bSet = true;
+		}
+
+		//tiny player
+		feat = CMenu::getFeature(feature::map["FEATURE_P_TINY"]);
+		if(!feat->m_bSet)
+		{
+			PED::SET_PED_CONFIG_FLAG(playerPed, 223, feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
@@ -761,6 +806,17 @@ bool	CHack::refresh()
 				OBJECT::CREATE_AMBIENT_PICKUP($("PICKUP_MONEY_CASE"), pos.x, pos.y, pos.z + 2.f, 0, 2000, $("prop_money_bag_01"), 0, 1);
 				plrFeat->m_clockTick = clock();
 			}*/
+
+			//ped drop
+			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_PED_DROP"]);
+			if(plrFeat->m_bOn || !plrFeat->m_bSet)
+			{
+				if(plrFeat->m_bOn)
+					script::ped_money_drop(remotePed, &plrFeat->m_clockTick);
+				else
+					m_nearbyPed.clear();
+				plrFeat->m_bSet		= true;
+			}
 
 			//Track player
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TRACK"]);

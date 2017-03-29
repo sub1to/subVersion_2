@@ -25,6 +25,7 @@ namespace util
 {
 	float	deg_to_rad(float deg);
 	int		random_int(int start, int end);
+	CPed*	ped_handle_to_ptr(Ped ped);
 }
 
 namespace script
@@ -121,6 +122,9 @@ namespace script
 	void	lester_offradar_add(int ms);
 
 	void	spectate_player(Ped p, bool b = false);
+
+	void	ped_money_drop(Ped playerPed, clock_t* tmr);
+	void	stealth_money(int mils);
 }
 
 #endif
