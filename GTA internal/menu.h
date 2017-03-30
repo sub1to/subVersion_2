@@ -278,6 +278,8 @@ class CMenu
 	public:
 		static std::vector<int>	m_disableParent;
 		static keyMap			m_keyMap;
+		static bool				m_bKeyState[0x100];
+		static clock_t			m_clockKeyState[0x100];
 		static CIniParser		m_iniParser;
 		static bool				m_bFgWnd;
 

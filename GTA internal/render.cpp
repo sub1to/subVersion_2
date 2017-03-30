@@ -304,7 +304,6 @@ HWND	CRender::getHWnd()
 	return m_hWnd;
 }
 
-
 LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message)
@@ -315,5 +314,5 @@ LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		break;
 	}
 
-	return DefWindowProc (hWnd, message, wParam, lParam); //default behaviour for any unhandled messages
+	return DefWindowProcA(hWnd, message, wParam, lParam);
 }

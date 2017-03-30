@@ -27,6 +27,8 @@ std::vector<int>	CMenu::m_disableParent;
 CIniParser			CMenu::m_iniParser;
 bool				CMenu::m_bFgWnd	= true;
 keyMap				CMenu::m_keyMap;
+bool				CMenu::m_bKeyState[0x100]	= { false };
+clock_t				CMenu::m_clockKeyState[0x100];
 
 /*
 	//CMenu static private members
@@ -120,9 +122,18 @@ void CMenu::uninitialze()
 */
 bool CMenu::checkKeyState(DWORD key, int flag)
 {
-	if(m_bFgWnd)
-		return flag & 1 ? (GetAsyncKeyState(key) & 0x8001) == 0x8001 : GetAsyncKeyState(key) != 0;
-	return false;
+	if(!m_bFgWnd)
+		return false;
+	clock_t	c	= clock();
+	bool	r	= false;
+	bool	b	= (GetKeyState(key) & 0x8000) == 0x8000;
+	if((b && flag == 0) || (b && flag & 1 && (!m_bKeyState[key] || c - m_clockKeyState[key] > 0xFF)))
+	{
+		r		= true;
+		m_clockKeyState[key]	= c;
+	}
+	m_bKeyState[key]	= b;
+	return r;
 }
 
 void CMenu::checkKeys()
