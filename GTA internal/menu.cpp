@@ -27,8 +27,6 @@ std::vector<int>	CMenu::m_disableParent;
 CIniParser			CMenu::m_iniParser;
 bool				CMenu::m_bFgWnd	= true;
 keyMap				CMenu::m_keyMap;
-bool				CMenu::m_bKeyState[0x100]	= { false };
-clock_t				CMenu::m_clockKeyState[0x100];
 
 /*
 	//CMenu static private members
@@ -118,21 +116,40 @@ void CMenu::uninitialze()
 
 /*
 	flag
-	0x1		realtime	(bit 0x0 and 0xF)
+	0x1		step
 */
 bool CMenu::checkKeyState(DWORD key, int flag)
 {
 	if(!m_bFgWnd)
 		return false;
+
 	clock_t	c	= clock();
-	bool	r	= false;
-	bool	b	= (GetKeyState(key) & 0x8000) == 0x8000;
-	if((b && flag == 0) || (b && flag & 1 && (!m_bKeyState[key] || c - m_clockKeyState[key] > 0xFF)))
+
+	static bool			bKeyState[0x100][2]		= { false, false };
+	static clock_t		clockKeyState[0x100]	= { c };
+
+	bool	r		= false;
+	bool	b		= (GetKeyState(key) & 0x8000) == 0x8000;
+	short	delay	= bKeyState[key][1] ? 0x50 : 0x200;
+
+	if(b)
 	{
-		r		= true;
-		m_clockKeyState[key]	= c;
+		if(flag & 1)
+		{
+			if(!bKeyState[key][0] || c - clockKeyState[key] > delay)
+			{
+				if(bKeyState[key][0] && delay == 0x200)
+					bKeyState[key][1]	= true;
+				r		= true;
+				clockKeyState[key]	= c;
+			}
+		}
+		else
+			r	= true;
 	}
-	m_bKeyState[key]	= b;
+	else
+		bKeyState[key][1]	= false;
+	bKeyState[key][0]	= b;
 	return r;
 }
 

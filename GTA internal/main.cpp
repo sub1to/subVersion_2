@@ -106,7 +106,7 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 			break;
 
 		//exit
-		if(GetAsyncKeyState(CMenu::m_keyMap["Exit"]) || !CLog::m_fatal.empty())
+		if(CMenu::checkKeyState(CMenu::m_keyMap["Exit"]) || !CLog::m_fatal.empty())
 		{
 			killProcess();
 			break;
