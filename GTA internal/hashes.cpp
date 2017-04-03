@@ -462,7 +462,7 @@ namespace hash
 	"KURUMA2", "LYNX", "MASSACRO", "MASSACRO2", "NINEF",
 	"NINEF2", "OMNIS", "PENUMBRA", "RAPIDGT", "RAPIDGT2",
 	"RAPTOR", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER", "SEVEN70",
-	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2"
+	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2", "RUSTON"
 	};
 
 	char* vehicle_sport_name[] = {
@@ -473,7 +473,7 @@ namespace hash
 	"KURUMA2", "LYNX", "MASSACRO", "MASSACRO2", "NINEF",
 	"NINEF2", "OMNIS", "PENUMBRA", "RAPIDGT", "RAPIDGT2",
 	"RAPTOR", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER", "SEVEN70",
-	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2"
+	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2", "RUSTON"
 	};
  
 	char* vehicle_sport_classic_hash[] = {
@@ -481,7 +481,7 @@ namespace hash
 	"FELTZER3", "JB700", "MAMBA", "MANANA", "MONROE",
 	"PEYOTE", "PIGALLE", "STINGER", "STINGERGT", "TORNADO",
 	"TORNADO2", "TORNADO3", "TORNADO4", "TORNADO5", "TORNADO6",
-	"ZTYPE"
+	"ZTYPE", "TURISMO2", "INFERNUS2"
 	};
 
 	char* vehicle_sport_classic_name[] = {
@@ -489,21 +489,21 @@ namespace hash
 	"FELTZER3", "JB700", "MAMBA", "MANANA", "MONROE",
 	"PEYOTE", "PIGALLE", "STINGER", "STINGERGT", "TORNADO",
 	"TORNADO2", "TORNADO3", "TORNADO4", "TORNADO5", "TORNADO6",
-	"ZTYPE"
+	"ZTYPE", "TURISMO2", "INFERNUS2"
 	};
  
 	char* vehicle_super_hash[] = {
 	"ADDER", "BANSHEE2", "BULLET", "CHEETAH", "ENTITYXF",
 	"FMJ", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
 	"PFISTER811", "PROTOTIPO", "REAPER", "SULTANRS", "T20",
-	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO"
+	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO", "GP1"
 	};
 
 	char* vehicle_super_name[] = {
 	"Adder", "Banshee Super", "Bullet", "Cheetah", "ENTITYXF",
 	"FMJ", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
 	"PFISTER811", "PROTOTIPO", "REAPER", "SULTANRS", "T20",
-	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO"
+	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO", "GP1"
 	};
  
 	char* vehicle_suv_hash[] = {
