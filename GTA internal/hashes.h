@@ -100,14 +100,14 @@ namespace hash
 	extern char* vehicle_service_hash[10];
 	extern char* vehicle_service_name[10];
  
-	extern char* vehicle_sport_hash[40];
-	extern char* vehicle_sport_name[40];
+	extern char* vehicle_sport_hash[41];
+	extern char* vehicle_sport_name[41];
  
-	extern char* vehicle_sport_classic_hash[21];
-	extern char* vehicle_sport_classic_name[21];
+	extern char* vehicle_sport_classic_hash[23];
+	extern char* vehicle_sport_classic_name[23];
 
-	extern char* vehicle_super_hash[20];
-	extern char* vehicle_super_name[20];
+	extern char* vehicle_super_hash[21];
+	extern char* vehicle_super_name[21];
  
 	extern char* vehicle_suv_hash[27];
 	extern char* vehicle_suv_name[27];
