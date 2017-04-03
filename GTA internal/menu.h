@@ -52,6 +52,7 @@ enum featType
 	feat_action_value_str	= (1 << 8)	| feat_action_value,
 	feat_attach				= (1 << 9)	| feat_action,
 	feat_value_str			= (1 << 10)	| feat_value,
+	feat_anim				= (1 << 11)
 };
 
 enum teleType	{ tp_saved, tp_static };
@@ -182,6 +183,16 @@ class CFeatSpawn : public CFeat
 		void	toggle();
 };
 
+class CFeatAnim : public CFeat
+{
+	public:
+		std::string	m_szHash[2];
+		spwnType	m_spawnType;
+				CFeatAnim();
+				~CFeatAnim();
+		void	toggle();
+};
+
 class CFeatAttach : public CFeat
 {
 	public:
@@ -309,6 +320,7 @@ class CMenu
 
 		static int			addFeature(int cat, int parent, std::string name, featType type);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey);
+		static int			addFeature(int cat, int parent, std::string name, featType type, std::string str1, std::string str2);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, spwnType spawnType);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, int playerId);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max);

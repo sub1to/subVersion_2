@@ -31,13 +31,16 @@ typedef struct playerAttach
 	std::string hash;
 } playerAttach;
 
-typedef	std::vector<int>			vec_int;
-typedef	std::vector<std::string>	vec_str;
-typedef std::vector<playerAttach>	vec_attach;
+typedef	std::vector<int>					vec_int;
+typedef	std::vector<std::string>			vec_str;
+typedef std::vector<playerAttach>			vec_attach;
 
 class CHack
 {
 	public:
+		static std::string			m_szRequestedAnim;
+		static std::string			m_szRequestedAnimDict;
+
 		//structs
 		static CPlayers*			m_pCPlayers;
 		static CWorld*				m_pCWorld;

@@ -111,7 +111,7 @@ namespace script
 
 	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, v3 rot = {0.f, 0.f, 0.f}, Entity ent = NULL);
 
-	void	anti_afk(Ped p, char* anim, bool r);
+	void	ped_scenario(Ped p, char* anim, bool r);
 
 	bool	send_assasins_after_player(Player p, Ped ped);
 
@@ -125,6 +125,9 @@ namespace script
 
 	void	ped_money_drop(Ped playerPed, clock_t* tmr);
 	void	stealth_money(int mils);
+
+	bool	animate_player(Ped remotePed, char* dict, char* anim, bool freeze = false, bool restore = false);
+	bool	animate_local_player(Ped playerPed, char* dict, char* anim, bool restore = false);
 }
 
 #endif

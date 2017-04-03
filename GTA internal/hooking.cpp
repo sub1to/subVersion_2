@@ -180,6 +180,10 @@ void findPatterns()
 	CPattern pattern_playerList	("\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",	"xxx????x????xxxx????xxx");
 	CPattern pattern_entityPool	("\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",										"xxx????xxxxxxx");
 
+	        //    address = FindPattern("\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10", "xxx????xxxxxxxx");
+           // PedPoolAddress = reinterpret_cast<uintptr_t *>(*reinterpret_cast<int *>(address + 3) + address + 7);
+
+
 	char* ptr	= nullptr;
 
 	ptr	= pattern_gameState.find(0).get<char>(2);

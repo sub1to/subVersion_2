@@ -69,10 +69,10 @@ namespace feature
 			feature::map.emplace("FEATURE_P_MOBILE_RADIO",	 CMenu::addFeature(-1, *parent, "Mobile Radio", feat_toggle, "mobileRadio"));
 			feature::map.emplace("FEATURE_P_FREEZE_RADIO",	 CMenu::addFeature(-1, *parent, "Freeze Radio", feat_value_str, "freezeRadio", 0.f, 19.f, 1.f, hash::radio_station_name));
 			feature::map.emplace("FEATURE_P_CLEAR_REPORTS",	 CMenu::addFeature(-1, *parent, "Clear Reports", feat_action));
-			feature::map.emplace("FEATURE_P_MONEY_DROP",	 CMenu::addFeature(-1, *parent, "Money Drop", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
+			//feature::map.emplace("FEATURE_P_MONEY_DROP",	 CMenu::addFeature(-1, *parent, "Money Drop", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
 			feature::map.emplace("FEATURE_P_CLONE_BODYGUARD",	 CMenu::addFeature(-1, *parent, "Clone Bodyguard", feat_action));
 			//feature::map.emplace("FEATURE_P_CLEANUP_OBJECTS",	 CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
-			feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
+			//feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
 			feature::map.emplace("FEATURE_P_TINY",	 CMenu::addFeature(-1, *parent, "Tiny Player", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);
@@ -96,6 +96,7 @@ namespace feature
 			feature::map.emplace("FEATURE_V_TRACTION",	 CMenu::addFeature(-1, *parent, "Traction", feat_slider, "vehTraction", 1.f, 2.f));
 			feature::map.emplace("FEATURE_V_GRAVITY",	 CMenu::addFeature(-1, *parent, "Gravity", feat_slider, "vehGravity", 0.f, 25.f));
 			feature::map.emplace("FEATURE_V_SUSPENSION_FORCE",	 CMenu::addFeature(-1, *parent, "Suspension Force", feat_slider, "vehSuspensionForce", 0.f, 2.f));
+			feature::map.emplace("FEATURE_V_VOLTIC_BOOST",	 CMenu::addFeature(-1, *parent, "Infinite Voltic Boost", feat_toggle));
 			feature::map.emplace("FEATURE_V_INF_CAR_ALARM",	 CMenu::addFeature(-1, *parent, "Infinite Alarm", feat_toggle, "vehInfAlarm"));
 			feature::map.emplace("FEATURE_V_LICENSE",	 CMenu::addFeature(-1, *parent, "Change License", feat_action));
 
@@ -118,6 +119,11 @@ namespace feature
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Misc", feat_parent);
 			for(int i = 0; i < sizeof(hash::ped_misc_hash) / sizeof(hash::ped_misc_hash[0]); i++)
 				CMenu::addFeature(-1, *(parent + 1), hash::ped_misc_name[i], feat_spawn, hash::ped_misc_hash[i], spwn_model);
+
+		*parent		= CMenu::addFeature(0, -1, "Animations", feat_parent);
+			feature::map.emplace("FEATURE_U_STOP_ANIM",	 CMenu::addFeature(-1, *parent, "Stop", feat_action));
+			for(int i = 0; i < sizeof(hash::ped_anim_name) / sizeof(hash::ped_anim_name[0]); i++)
+				CMenu::addFeature(-1, *parent, hash::ped_anim_name[i], feat_anim, hash::ped_anim_dict[i * 2], hash::ped_anim_dict[i * 2 + 1]);
 
 		*parent	= CMenu::addFeature(0, -1, "Teleport", feat_parent);
 			feature::map.emplace("FEATURE_TP_WAYPOINT",	 CMenu::addFeature(-1, *parent, "Waypoint", feat_action));
@@ -192,7 +198,7 @@ namespace feature
 			feature::map.emplace("FEATURE_U_CHAOS_MODE",	 CMenu::addFeature(-1, *parent, "Chaos Mode", feat_value_str, "", 0.f, (float) (sizeof(hash::chaos_mode_type) / sizeof(*hash::chaos_mode_type)) - 1, 1.f, hash::chaos_mode_type));
 			feature::map.emplace("FEATURE_U_SMASH_VEHICLES",	 CMenu::addFeature(-1, *parent, "Smash Vehicles", feat_action));
 			feature::map.emplace("FEATURE_U_PED_DROP",	 CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
-			feature::map.emplace("FEATURE_U_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Money", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
+			feature::map.emplace("FEATURE_U_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Money (millions!)", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
 			feature::map.emplace("FEATURE_U_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
@@ -234,9 +240,11 @@ namespace feature
 				for(int j = 0; j < sizeof(hash::object_prop_attach_hash) / sizeof(hash::object_prop_attach_hash[0]); j++)
 					CMenu::addFeature(-1, map["PLRFEAT_ATTACH_OBJ_PARENT"], hash::object_prop_attach_name[j], feat_attach, hash::object_prop_attach_hash[j], i);
 				map.emplace("PLRFEAT_TRAP_IN_CAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Trap In Cage", feat_action));
-				map.emplace("PLRFEAT_CLEAR_TASKS", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Clear Tasks", feat_action));
-				map.emplace("PLRFEAT_SHOOT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Shoot", feat_action));
+				//map.emplace("PLRFEAT_SHOOT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Shoot", feat_action));
 				map.emplace("PLRFEAT_CHRISFORMAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Send Chris Formage", feat_action));
+				map.emplace("PLRFEAT_CLEAR_TASKS", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Clear Tasks", feat_action));
+				map.emplace("PLRFEAT_FREEZE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Freeze", feat_action));
+				map.emplace("PLRFEAT_ANIMATE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Animate", feat_action_value_str, "", 0.f, (float) (sizeof(hash::ped_anim_name) / sizeof(*hash::ped_anim_name)) - 1, 1.f, hash::ped_anim_name));
 			feature::player_map.emplace(i, map);
 		}
 	
@@ -250,6 +258,9 @@ namespace feature
 			feature::map.emplace("FEATURE_A_GIVE_WEAPONS",	 CMenu::addFeature(-1, *parent, "Give All Weapons", feat_action));
 			feature::map.emplace("FEATURE_A_REMOVE_WEAPONS",	 CMenu::addFeature(-1, *parent, "Remove All Weapons", feat_action));
 			feature::map.emplace("FEATURE_A_TRAP_IN_CAGE",	 CMenu::addFeature(-1, *parent, "Trap In Cage", feat_action));
+			feature::map.emplace("FEATURE_A_CLEAR_TASKS",	 CMenu::addFeature(-1, *parent, "Clear Tasks", feat_action));
+			feature::map.emplace("FEATURE_A_FREEZE",	 CMenu::addFeature(-1, *parent, "Freeze", feat_action));
+			feature::map.emplace("FEATURE_A_ANIMATE", CMenu::addFeature(-1, *parent, "Animate", feat_action_value_str, "", 0.f, (float) (sizeof(hash::ped_anim_name) / sizeof(*hash::ped_anim_name)) - 1, 1.f, hash::ped_anim_name));
 
 		*parent	= CMenu::addFeature(1, -1, "ESP Options", feat_parent);
 			feature::map.emplace("FEATURE_O_ESP_MAX_DIST",	 CMenu::addFeature(-1, *parent, "Max Distance", feat_action_value, "espMaxDist", 500.f, 10000.f, 500.f));

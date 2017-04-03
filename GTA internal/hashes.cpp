@@ -461,7 +461,7 @@ namespace hash
 	"FUTO", "JESTER", "JESTER2", "KHAMELION", "KURUMA",
 	"KURUMA2", "LYNX", "MASSACRO", "MASSACRO2", "NINEF",
 	"NINEF2", "OMNIS", "PENUMBRA", "RAPIDGT", "RAPIDGT2",
-	"RAPTOR", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER", "SEVEN70",
+	"RAPTOR", "RUSTON", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER", "SEVEN70",
 	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2"
 	};
 
@@ -472,36 +472,36 @@ namespace hash
 	"FUTO", "JESTER", "JESTER2", "KHAMELION", "KURUMA",
 	"KURUMA2", "LYNX", "MASSACRO", "MASSACRO2", "NINEF",
 	"NINEF2", "OMNIS", "PENUMBRA", "RAPIDGT", "RAPIDGT2",
-	"RAPTOR", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER", "SEVEN70",
+	"RAPTOR", "RUSTON", "SCHAFTER3", "SCHAFTER4", "SCHWARTZER",	"SEVEN70",
 	"SULTAN", "SURANO", "TAMPA2", "TROPOS", "VERLIERER2"
 	};
  
 	char* vehicle_sport_classic_hash[] = {
 	"BTYPE", "BTYPE2", "BTYPE3", "CASCO", "COQUETTE2",
-	"FELTZER3", "JB700", "MAMBA", "MANANA", "MONROE",
+	"FELTZER3", "INFERNUS2", "JB700", "MAMBA", "MANANA", "MONROE",
 	"PEYOTE", "PIGALLE", "STINGER", "STINGERGT", "TORNADO",
 	"TORNADO2", "TORNADO3", "TORNADO4", "TORNADO5", "TORNADO6",
-	"ZTYPE"
+	"TURISMO2", "ZTYPE"
 	};
 
 	char* vehicle_sport_classic_name[] = {
 	"BTYPE", "BTYPE2", "BTYPE3", "CASCO", "COQUETTE2",
-	"FELTZER3", "JB700", "MAMBA", "MANANA", "MONROE",
+	"FELTZER3", "INFERNUS2", "JB700", "MAMBA", "MANANA", "MONROE",
 	"PEYOTE", "PIGALLE", "STINGER", "STINGERGT", "TORNADO",
 	"TORNADO2", "TORNADO3", "TORNADO4", "TORNADO5", "TORNADO6",
-	"ZTYPE"
+	"TURISMO2", "ZTYPE"
 	};
  
 	char* vehicle_super_hash[] = {
 	"ADDER", "BANSHEE2", "BULLET", "CHEETAH", "ENTITYXF",
-	"FMJ", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
+	"FMJ", "GP1", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
 	"PFISTER811", "PROTOTIPO", "REAPER", "SULTANRS", "T20",
 	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO"
 	};
 
 	char* vehicle_super_name[] = {
 	"Adder", "Banshee Super", "Bullet", "Cheetah", "ENTITYXF",
-	"FMJ", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
+	"FMJ", "GP1", "SHEAVA", "INFERNUS", "OSIRIS", "LE7B",
 	"PFISTER811", "PROTOTIPO", "REAPER", "SULTANRS", "T20",
 	"TURISMOR", "TYRUS", "VACCA", "VOLTIC", "ZENTORNO"
 	};
@@ -644,12 +644,83 @@ namespace hash
 	};
 
 
-	char* anti_afk_hash[] = {
-	"world_human_smoking", "world_human_yoga"
+/*	char* anti_afk_hash[] = {
+	"world_human_smoking", "world_human_yoga", "world_human_sit_ups"
 	};
 
 	char* anti_afk_name[] = {
-	"Smoking", "Yoga"
+	"Smoking", "Yoga", "Sit-Ups"
+	};
+*/
+
+	char* ped_anim_dict[] = {
+	"priv_dance_p1", "mini@strip_club@private_dance@part1",
+	"priv_dance_p2", "mini@strip_club@private_dance@part2",
+	"priv_dance_p3", "mini@strip_club@private_dance@part3",
+	"pd_dance_01", "mini@strip_club@pole_dance@pole_dance1",
+	"pd_dance_02", "mini@strip_club@pole_dance@pole_dance2",
+	"pd_dance_03", "mini@strip_club@pole_dance@pole_dance3",
+	"ld_2g_intro_s2", "mini@strip_club@lap_dance_2g@ld_2g_intro",
+	"shag_loop_a", "rcmpaparazzo_2",
+	"shag_loop_poppy", "rcmpaparazzo_2",
+	"trev_jerking_off_loop", "switch@trevor@jerking_off",
+	"peeing_intro", "misscarsteal2peeing",
+	"middle_finger", "nm@hands",
+	"idle_2_hands_up", "random@getawaydriver",
+	"handsup", "ped",
+	"f_cower_01", "random@robbery", 
+	"m_cower_01", "mp_bank_heist_1",
+	"m_cower_02", "mp_bank_heist_1",
+	"base", "amb@world_human_push_ups@male@base",
+	"base", "amb@world_human_sit_ups@male@base",
+	"base", "amb@world_human_smoking@female@base",
+	"base", "amb@world_human_smoking@male@male_a@base",
+	"base", "amb@world_human_smoking@male@male_b@base",
+	"pistol", "mp_suicide",
+	"pill", "mp_suicide",
+	"toss_many_player", "mini@strip_club@leaning@toss_many",
+	"thanks_ps", "random@thanks",
+	"thanks_low_ps", "random@thanks",
+	"base_b", "amb@world_human_yoga@female@base",
+	"base_a", "amb@world_human_yoga@male@base",
+	"shots_player_a", "mini@drinking",
+	"shots_player_b", "mini@drinking",
+	"shots_player_c", "mini@drinking",
+	};
+
+	char* ped_anim_name[] = {
+	"Private Dance 1",
+	"Private Dance 2",
+	"Private Dance 3",
+	"Pole Dance 1",
+	"Pole Dance 2",
+	"Pole Dance 3",
+	"Wiggle",
+	"Shag Male",
+	"Shag Female",
+	"Jerk Off",
+	"Peeing",
+	"Middle Finger",
+	"Busted",
+	"Hands Up",
+	"Cower 1",
+	"Cower 2",
+	"Cower 3",
+	"Push Ups",
+	"Sit Ups",
+	"Smoking Female",
+	"Smoking Male 1",
+	"Smoking Male 2",
+	"Suicide Gun",
+	"Suicide Pill",
+	"Toss Money",
+	"Thanks",
+	"Thanks Low",
+	"Yoga Female",
+	"Yoga Male",
+	"Drinking 1",
+	"Drinking 2",
+	"Drinking 3",
 	};
 
 };

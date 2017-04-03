@@ -126,20 +126,21 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 	clock_t	c	= clock();
 
 	static bool			bKeyState[0x100][2]		= { false, false };
+	static BYTE			btKeyState[0x100]		= { 0 };	//1 << 0 = keystate; 1 << 1 = held down
 	static clock_t		clockKeyState[0x100]	= { c };
 
 	bool	r		= false;
-	bool	b		= (GetKeyState(key) & 0x8000) == 0x8000;
-	short	delay	= bKeyState[key][1] ? 0x50 : 0x200;
+	BYTE	btState	= (GetKeyState(key) & 0x8000U) >> 0xF;
+	short	wDelay	= btKeyState[key] & 2 ? 0x50 : 0x200;
 
-	if(b)
+	if(btState)
 	{
 		if(flag & 1)
 		{
-			if(!bKeyState[key][0] || c - clockKeyState[key] > delay)
+			if(!(btKeyState[key] & 1) || c - clockKeyState[key] > wDelay)
 			{
-				if(bKeyState[key][0] && delay == 0x200)
-					bKeyState[key][1]	= true;
+				if((btKeyState[key] & 3) == 1)
+					btKeyState[key]	|= 2;
 				r		= true;
 				clockKeyState[key]	= c;
 			}
@@ -148,8 +149,9 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 			r	= true;
 	}
 	else
-		bKeyState[key][1]	= false;
-	bKeyState[key][0]	= b;
+		btKeyState[key]	&= ~(2);
+	//btKeyState[key]		= (btKeyState[key] & ~(1)) | btState;
+	btKeyState[key]		^= (-btState ^ btKeyState[key]) & 1;
 	return r;
 }
 
@@ -429,6 +431,9 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type)
 		case feat_attach:
 			m_pFeature.push_back(new CFeatAttach);
 		break;
+		case feat_anim:
+			m_pFeature.push_back(new CFeatAnim);
+		break;
 	}
 	int id	= (int) m_pFeature.size() - 1;
 	m_pFeature[id]->m_iId		= id;
@@ -451,11 +456,23 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		static_cast<CFeatSpawn*>(m_pFeature[id])->m_szHash = iniKey;
 	else if(m_pFeature[id]->m_type == feat_attach)
 		static_cast<CFeatAttach*>(m_pFeature[id])->m_szHash = iniKey;
+	else if(m_pFeature[id]->m_type == feat_anim)
+		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
 		m_pFeature[id]->m_szIniKey	= iniKey;
 	m_pFeature[id]->m_bOn		= (bool) m_iniParser.getValue<bool>(m_pFeature[id]->m_szIniKey, "FeatureToggle");
 	m_pFeature[id]->m_bRestored	= (m_pFeature[id]->m_bOn) ? false : true;
 	m_pFeature[id]->m_bSet		= (m_pFeature[id]->m_bOn) ? false : true;
+	return id;
+}
+
+int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, std::string str2)
+{
+	int id = addFeature(cat, parent, name, type, iniKey);
+	if(id < 0)
+		return id;
+	if(m_pFeature[id]->m_type == feat_anim)
+		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[1]	= str2;
 	return id;
 }
 
@@ -829,10 +846,18 @@ void	CFeatSpawn::toggle()
 		case spwn_object:
 			CHack::m_requestedObject.push_back(m_szHash);
 			CFeat* feat = CMenu::getFeature(feature::map["FEATURE_E_EDITOR_MODE"]);
-			if(!feat->m_bOn)
-				feat->toggle();
+			feat->toggle(true);
 		break;
 	}
+}
+
+CFeatAnim::CFeatAnim() {}
+CFeatAnim::~CFeatAnim() {}
+
+void	CFeatAnim::toggle()
+{
+	CHack::m_szRequestedAnim		= m_szHash[0];
+	CHack::m_szRequestedAnimDict	= m_szHash[1];
 }
 
 CFeatAttach::CFeatAttach() {}

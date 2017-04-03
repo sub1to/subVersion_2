@@ -479,9 +479,6 @@ namespace script
 			vehicle_bypass(veh);	//mp bypass
 		if(upgrade)
 			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0);
-
-		
-		
 		return true;
 	}
 
@@ -763,7 +760,7 @@ namespace script
 	void teleport_player_on_foot(Ped ped, float X, float Y, float Z)
 	{
 		AI::CLEAR_PED_TASKS_IMMEDIATELY(ped);
-		int scene = NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(X, Y, Z, 0.0, 0.0, 0.0, 2, 0, 0, 0);
+		int scene = NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(X, Y, Z, 0.0, 0.0, 0.0, 2, 0, 0, 0, 0, 0);
 		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(ped, scene, "mini@strip_club@private_dance@part3", "priv_dance_p3", 8.0f, -8.0, 5, 0, 30, 0);
 		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
 	}
@@ -1208,7 +1205,7 @@ namespace script
 		return true;
 	}
 
-	void anti_afk(Ped p, char* anim, bool r)
+	void ped_scenario(Ped p, char* anim, bool r)
 	{
 		AI::CLEAR_PED_TASKS_IMMEDIATELY(p);
 		if(!r)
@@ -1341,5 +1338,32 @@ namespace script
 			if(UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&transactionID, 1474183246, 1982688246, 1445302971, amount, 4))
 				UNK3::_NETWORK_SHOP_CHECKOUT_START(transactionID);
 		}
+	}
+
+	bool	animate_player(Ped remotePed, char* dict, char* anim, bool freeze, bool restore)
+	{
+		AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
+		if(restore)
+			return true;
+		STREAMING::REQUEST_ANIM_DICT(dict);
+		if(!STREAMING::HAS_ANIM_DICT_LOADED(dict))
+			return false;
+		v3	remotePos	= ENTITY::GET_ENTITY_COORDS(remotePed, true);
+		int	scene		= NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(remotePos.x, remotePos.y, remotePos.z, 0, 0, 0, 2, 0, 1, 1, 0.f, freeze ? 0.f : 1.f);
+		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(remotePed, scene, dict, anim, 8.f, 1.f, -1, 1, 1.f, 1);
+		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
+		return true;
+	}
+
+	bool	animate_local_player(Ped playerPed, char* dict, char* anim, bool restore)
+	{
+		AI::CLEAR_PED_TASKS_IMMEDIATELY(playerPed);
+		if(restore)
+			return true;
+		STREAMING::REQUEST_ANIM_DICT(dict);
+		if(!STREAMING::HAS_ANIM_DICT_LOADED(dict))
+			return false;
+		AI::TASK_PLAY_ANIM(playerPed, dict, anim, 8.f, 1.f, -1, 1, 1.f, 0, 0, 0);
+		return true;
 	}
 };

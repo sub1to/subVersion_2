@@ -22,6 +22,9 @@
 /*
 	//Init static public members
 */
+std::string			CHack::m_szRequestedAnim;
+std::string			CHack::m_szRequestedAnimDict;
+
 CPlayers*			CHack::m_pCPlayers			= nullptr;
 CWorld*				CHack::m_pCWorld			= nullptr;
 CPed*				CHack::m_pCPedPlayer		= nullptr;
@@ -112,6 +115,7 @@ void	CHack::checkAllPlayerFeature(std::string feature, std::string plrFeature, i
 			if(!plrParent->m_bOn)
 				continue;
 			CFeat* plrFeat = CMenu::getFeature(feature::player_map[i][plrFeature]);
+			plrFeat->setValue(feat->getValue());
 			if(flag & 1)
 				plrFeat->toggle(feat->m_bOn ? true : false);
 			else
@@ -133,15 +137,31 @@ bool	CHack::refresh()
 		if(!PLAYER::IS_PLAYER_PLAYING(player))
 			return false;
 
-		/*int max = CHooking::m_replayIntf->ped_interface->number_of_peds;
+		/*int max = CHooking::m_replayIntf->ped_interface->max_peds;
 		for(int i = 0; i < max; i++)
 		{
 			CPed* ped = CHooking::m_replayIntf->ped_interface->get_ped(i);
-			if(ped != nullptr || ped != m_pCPedPlayer)
+			if(ped == nullptr || ped == m_pCPedPlayer)
 				continue;
 			Ped id = CHooking::m_replayIntf->ped_interface->get_ped_handle(i);
-			v3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, false);
-			script::teleport_entity_to_coords(id, playerPos, false);
+			char	buf[0xFF];
+			sprintf_s(buf, "Replay - Ped Handle %i: %i", i, id);
+			CLog::msg(buf);
+			//if(ENTITY::DOES_ENTITY_EXIST(id))
+			//	CLog::msg("Exists");
+			//v3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, false);
+			//script::teleport_entity_to_coords(id, playerPos, false);
+		}
+
+		script::update_nearby_ped(playerPed, 0x80);
+		int tmp = 0;
+		while(!m_nearbyPed.empty())
+		{
+			char	buf[0xFF];
+			sprintf_s(buf, "Native - Ped Handle %i: %i", tmp, m_nearbyPed[0]);
+			CLog::msg(buf);
+			m_nearbyPed.erase(m_nearbyPed.begin());
+			++tmp;
 		}*/
 
 		bool	playerInVeh	= PED::IS_PED_IN_ANY_VEHICLE(playerPed, true) > 0;
@@ -269,6 +289,21 @@ bool	CHack::refresh()
 		{
 			script::ped_weapon(playerPed, &m_requestedWeapon[0][0], m_bWeaponGive);
 			m_requestedWeapon.erase(m_requestedWeapon.begin());
+		}
+
+		//anim request
+		if(!m_szRequestedAnim.empty() && script::animate_local_player(playerPed, &m_szRequestedAnimDict[0], &m_szRequestedAnim[0]))
+		{
+			m_szRequestedAnim.clear();
+			m_szRequestedAnimDict.clear();
+		}
+
+		//stop anim
+		feat = CMenu::getFeature(feature::map["FEATURE_U_STOP_ANIM"]);
+		if(!feat->m_bSet && feat->m_bOn)
+		{
+			AI::CLEAR_PED_TASKS_IMMEDIATELY(playerPed);
+			feat->m_bSet = true;
 		}
 		
 		//model changer
@@ -421,14 +456,14 @@ bool	CHack::refresh()
 		}
 		
 		//anti afk
-		feat = CMenu::getFeature(feature::map["FEATURE_P_ANTI_AFK"]);
+		/*feat = CMenu::getFeature(feature::map["FEATURE_P_ANTI_AFK"]);
 		if(!feat->m_bSet && (feat->m_bOn || (!feat->m_bOn && !feat->m_bRestored)))
 		{
-			script::anti_afk(playerPed, hash::anti_afk_hash[(int) feat->getValue()], !feat->m_bOn);
+			script::ped_scenario(playerPed, hash::anti_afk_hash[(int) feat->getValue()], !feat->m_bOn);
 			feat->m_bSet		= true;
 			if(!feat->m_bOn)
 				feat->m_bRestored	= true;
-		}
+		}*/
 
 		//mobile radio
 		feat = CMenu::getFeature(feature::map["FEATURE_P_MOBILE_RADIO"]);
@@ -527,12 +562,12 @@ bool	CHack::refresh()
 				feat->m_bSet	= true;
 		
 		//money drop (sp only)
-		feat = CMenu::getFeature(feature::map["FEATURE_P_MONEY_DROP"]);
+		/*feat = CMenu::getFeature(feature::map["FEATURE_P_MONEY_DROP"]);
 		if(feat->m_bOn && clock() - feat->m_clockTick > 0x60)
 		{
 			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
 			feat->m_clockTick = clock();
-		}
+		}*/
 
 		//ped drop
 		feat = CMenu::getFeature(feature::map["FEATURE_U_PED_DROP"]);
@@ -931,15 +966,10 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_PIGGY_BACK"]);
 			if(!plrFeat->m_bSet)
 			{
-				if(plrFeat->m_bOn)
+				if(plrFeat->m_bOn && script::animate_local_player(playerPed, "veh@bike@dirt@front@base", "sit"))
 				{
-					STREAMING::REQUEST_ANIM_DICT("veh@bike@dirt@front@base");
-					if(STREAMING::HAS_ANIM_DICT_LOADED("veh@bike@dirt@front@base"))
-					{	
-						script::attach_entities(playerPed, remotePed, 0, {0.f, -.3f, .1f});
-						AI::TASK_PLAY_ANIM(playerPed, "veh@bike@dirt@front@base", "sit", 8.0f, -8.0f, -1, 1, 30, false, false, false);
-						plrFeat->m_bSet = true;
-					}
+					script::attach_entities(playerPed, remotePed, 0, {0.f, -.3f, .1f});
+					plrFeat->m_bSet = true;
 				}
 				else if(!plrFeat->m_bRestored)
 				{
@@ -953,15 +983,10 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_69"]);
 			if(!plrFeat->m_bSet)
 			{
-				if(plrFeat->m_bOn)
+				if(plrFeat->m_bOn && script::animate_local_player(playerPed, "veh@bike@dirt@front@base", "sit"))
 				{
-					STREAMING::REQUEST_ANIM_DICT("veh@bike@dirt@front@base");
-					if(STREAMING::HAS_ANIM_DICT_LOADED("veh@bike@dirt@front@base"))
-					{	
-						script::attach_entities(playerPed, remotePed, 0, {0.f, .3f, .6f}, {-10.f, 180.f, 180.f});
-						AI::TASK_PLAY_ANIM(playerPed, "veh@bike@dirt@front@base", "sit", 8.0f, -8.0f, -1, 1, 30, false, false, false);
-						plrFeat->m_bSet = true;
-					}
+					script::attach_entities(playerPed, remotePed, 0, {0.f, .3f, .6f}, {-10.f, 180.f, 180.f});
+					plrFeat->m_bSet = true;
 				}
 				else if(!plrFeat->m_bRestored)
 				{
@@ -975,19 +1000,16 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_VIOLATE"]);
 			if(!plrFeat->m_bSet)
 			{
-				if(plrFeat->m_bOn)
+				if(plrFeat->m_bOn && script::animate_local_player(playerPed, "rcmpaparazzo_2", "shag_loop_a"))
 				{
-					STREAMING::REQUEST_ANIM_DICT("rcmpaparazzo_2");
-					if(STREAMING::HAS_ANIM_DICT_LOADED("rcmpaparazzo_2"))
-					{
-						script::attach_entities(playerPed, remotePed, 0, { 0.f, -.35f, -.1f }, { 20.f, 0.f, 0.f });
-						AI::TASK_PLAY_ANIM(playerPed, "rcmpaparazzo_2", "shag_loop_a", 8.0f, -8.0f, -1, 1, 30, false, false, false);
+						script::animate_player(remotePed, "rcmpaparazzo_2", "shag_loop_poppy");
+						script::attach_entities(playerPed, remotePed, -1, { 0.f, -.37f, -.2f}, { 60.f, 0.f, 0.f});
 						plrFeat->m_bSet = true;
-					}
 				}
 				else if(!plrFeat->m_bRestored)
 				{
 					script::detach_entity(playerPed);
+					AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
 					plrFeat->m_bRestored = true;
 					plrFeat->m_bSet = true;
 				}
@@ -1026,13 +1048,10 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_CLONE_69"]);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
-				STREAMING::REQUEST_ANIM_DICT("veh@bike@dirt@front@base");
-				if(STREAMING::HAS_ANIM_DICT_LOADED("veh@bike@dirt@front@base"))
+				Ped bodyguard = script::clone_ped_bodyguard(remotePed);
+				m_remotePlayerAttach[i].push_back(bodyguard);
+				if(script::animate_local_player(bodyguard, "veh@bike@dirt@front@base", "sit"))
 				{
-					Ped bodyguard = script::clone_ped_bodyguard(remotePed);
-					m_remotePlayerAttach[i].push_back(bodyguard);
-					AI::CLEAR_PED_TASKS_IMMEDIATELY(bodyguard);
-					AI::TASK_PLAY_ANIM(bodyguard, "veh@bike@dirt@front@base", "sit", 8.0f, -8.0f, -1, 1, 30, false, false, false);
 					script::attach_entities(bodyguard, remotePed, 0, {0.f, .3f, .6f}, {-10.f, 180.f, 180.f});
 					plrFeat->m_bSet = true;
 				}
@@ -1071,11 +1090,28 @@ bool	CHack::refresh()
 			}
 			
 			//shoot
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_SHOOT"]);
+			/*plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_SHOOT"]);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				script::shoot_ped(remotePed);
 				plrFeat->m_bSet = true;
+			}*/
+
+			//Freeze
+			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_FREEZE"]);
+			if(!plrFeat->m_bSet && plrFeat->m_bOn)
+			{
+				if(script::animate_player(remotePed, "mini@strip_club@pole_dance@pole_a_2_stage", "pole_a_2_stage", true))
+					plrFeat->m_bSet			= true;
+			}
+
+			//Animate
+			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ANIMATE"]);
+			if(!plrFeat->m_bSet && (plrFeat->m_bOn || !plrFeat->m_bRestored))
+			{
+				plrFeat->m_bRestored	= plrFeat->m_bOn ? false : true;
+				if(script::animate_player(remotePed, hash::ped_anim_dict[(int) plrFeat->getValue() * 2 + 1], hash::ped_anim_dict[(int) plrFeat->getValue() * 2], false, !plrFeat->m_bOn))
+					plrFeat->m_bSet			= true;
 			}
 		}
 
@@ -1089,6 +1125,9 @@ bool	CHack::refresh()
 		checkAllPlayerFeature("FEATURE_A_REMOVE_WEAPONS", "PLRFEAT_REMOVE_WEAPONS");
 		checkAllPlayerFeature("FEATURE_A_TRAP_IN_CAGE", "PLRFEAT_TRAP_IN_CAGE");
 		checkAllPlayerFeature("FEATURE_A_EXPLODE", "PLRFEAT_EXPLODE");
+		checkAllPlayerFeature("FEATURE_A_FREEZE", "PLRFEAT_FREEZE");
+		checkAllPlayerFeature("FEATURE_A_CLEAR_TASKS", "PLRFEAT_CLEAR_TASKS");
+		checkAllPlayerFeature("FEATURE_A_ANIMATE", "PLRFEAT_ANIMATE");
 
 		//memory hack stuff
 		if(m_pCPedPlayer != m_pCWorld->CPedLocalPlayer)
@@ -1181,11 +1220,11 @@ bool	CHack::refresh()
 				m_CVehicle	= *m_pCVehicle;
 			}
 
-			if(m_pCVehicleHandling != m_pCWorld->CPedLocalPlayer->CVehicleLast->CVehicleHandling)
+			if(m_pCVehicleHandling != m_pCWorld->CPedLocalPlayer->CVehicleLast->pCVehicleHandling)
 			{
 				if(m_pCVehicleHandling != nullptr)		//restore previous vehicle handling
 					*m_pCVehicleHandling	= m_CVehicleHandling;
-				m_pCVehicleHandling = m_pCWorld->CPedLocalPlayer->CVehicleLast->CVehicleHandling;
+				m_pCVehicleHandling = m_pCWorld->CPedLocalPlayer->CVehicleLast->pCVehicleHandling;
 				m_CVehicleHandling	= *m_pCVehicleHandling;
 			}
 
@@ -1206,6 +1245,18 @@ bool	CHack::refresh()
 									m_CVehicle.btBulletproofTires,
 									m_CVehicle.btBulletproofTires | 0x20,
 									&m_pCVehicle->btBulletproofTires);
+
+			checkFeature<BYTE>	(	"FEATURE_V_VOLTIC_BOOST",
+									m_CVehicle.btVolticRocketState,
+									m_CVehicle.btVolticRocketState | 0x01,
+									&m_pCVehicle->btVolticRocketState,
+									false);
+
+			checkFeature<float>	(	"FEATURE_V_VOLTIC_BOOST",
+									m_CVehicle.fVolticRocketEnergy,
+									1.25f,
+									&m_pCVehicle->fVolticRocketEnergy,
+									false);
 
 			checkFeature<DWORD>	(	"FEATURE_V_INF_CAR_ALARM",
 									0,
