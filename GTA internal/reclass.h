@@ -58,7 +58,7 @@ public:
 	char pad_0x002D[0x1]; //0x002D
 	BYTE btFreezeMomentum; //0x002E 
 	char pad_0x002F[0x1]; //0x002F
-	CNavigation* CNavigation; //0x0030 
+	CNavigation* pCNavigation; //0x0030 
 	char pad_0x0038[0x58]; //0x0038
 	v3 v3VisualPos; //0x0090 
 	char pad_0x009C[0xED]; //0x009C
@@ -68,17 +68,17 @@ public:
 	char pad_0x0284[0x1C]; //0x0284
 	float fHealthMax; //0x02A0 
 	char pad_0x02A4[0x4]; //0x02A4
-	CAttacker* CAttacker; //0x02A8 
+	CAttacker* pCAttacker; //0x02A8 
 	char pad_0x02B0[0x70]; //0x02B0
 	v3 v3Velocity; //0x0320 
 	char pad_0x032C[0x9FC]; //0x032C
-	CVehicle* CVehicleLast; //0x0D28 
+	CVehicle* pCVehicleLast; //0x0D28 
 	char pad_0x0D30[0x378]; //0x0D30
 	BYTE btNoRagdoll; //0x10A8 
 	char pad_0x10A9[0xF]; //0x10A9
-	CPlayerInfo* CPlayerInfo; //0x10B8 
+	CPlayerInfo* pCPlayerInfo; //0x10B8 
 	char pad_0x10C0[0x8]; //0x10C0
-	CWeaponManager* CWeaponManager; //0x10C8 
+	CWeaponManager* pCWeaponManager; //0x10C8 
 	char pad_0x10D0[0x31C]; //0x10D0
 	BYTE btSeatbelt; //0x13EC 
 	char pad_0x13ED[0xB]; //0x13ED
@@ -87,14 +87,23 @@ public:
 	BYTE btIsInVehicle; //0x146B 
 	char pad_0x146C[0x44]; //0x146C
 	float fArmor; //0x14B0 
-	char pad_0x14B4[0x3C]; //0x14B4
-	CVehicle* CVehicleLast2; //0x14F0 
+	char pad_0x14B4[0x20]; //0x14B4
+	float fFatiguedHealthThreshold; //0x14D4 
+	float fInjuredHealthThreshold; //0x14D8 
+	float fDyingHealthThreshold; //0x14DC 
+	float fHurtHealthThreshold; //0x14E0 
+	char pad_0x14E4[0xC]; //0x14E4
+	CVehicle* pCVehicleLast2; //0x14F0 
 	char pad_0x14F8[0xDC]; //0x14F8
 	__int32 iCash; //0x15D4 
 
 	bool isGod()
 	{
-		return (btGodMode & 0x01) ? true : false;
+		return(	(btGodMode & 0x01)
+			||	fFatiguedHealthThreshold < 0.f
+			||	fInjuredHealthThreshold < 0.f
+			||	fDyingHealthThreshold < 0.f
+			||	fHurtHealthThreshold < 0.f		);
 	}
 
 	bool isInvisSP()
@@ -136,10 +145,23 @@ public:
 	}
 }; //Size=0x14F8
 
-class CNavigation
+/*class CNavigation
 {
 public:
 	char pad_0x0000[0x50]; //0x0000
+	v3 v3Pos; //0x0050 
+
+}; //Size=0x005C*/
+
+class CNavigation
+{
+public:
+	char pad_0x0000[0x20]; //0x0000
+	float fHeading; //0x0020 
+	float fHeading2; //0x0024 
+	char pad_0x0028[0x8]; //0x0028
+	v3 v3Rotation; //0x0030 
+	char pad_0x003C[0x14]; //0x003C
 	v3 v3Pos; //0x0050 
 
 }; //Size=0x005C
@@ -245,7 +267,16 @@ public:
 class CPlayerInfo
 {
 public:
-	char pad_0x0000[0x7C]; //0x0000
+	char pad_0x0000[0x34]; //0x0000
+	__int32 iInternalIP; //0x0034 
+	__int16 iInternalPort; //0x0038 
+	char pad_0x003A[0x2]; //0x003A
+	__int32 iRelayIP; //0x003C 
+	__int16 iRelayPort; //0x0040 
+	char pad_0x0042[0x2]; //0x0042
+	__int32 iExternalIP; //0x0044 
+	__int16 iExternalPort; //0x0048 
+	char pad_0x004A[0x32]; //0x004A
 	char sName[32]; //0x007C 
 	char pad_0x009C[0x48]; //0x009C
 	float fSwimSpeed; //0x00E4 
@@ -258,7 +289,7 @@ public:
 	CWantedData CWantedData; //0x06F0 
 	char pad_0x079C[0x464]; //0x079C
 	float fStamina; //0x0C00 
-	float fStaminaMax; //0x0C04 
+	float fStaminaMax; //0x0C04
 
 	void removeWanted()
 	{

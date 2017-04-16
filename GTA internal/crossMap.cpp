@@ -42,7 +42,9 @@ uint64_t __HASHMAPDATA[] = {
 	0x50FAC3A3E030A6E1, 0xD560851477A3D4CA, //player::get_player_ped_script_index
 	0x13EDE1A5DBF797C9, 0x41B9773A1CCDC74C, //player::get_player_target_entity
 	0xA5EDC40EF369B48D, 0x592069F95C314814, //player::get_player_index
-	0x997ABD671D25CA0B, 0xFD0FE723227D5AB6, //ped::is_ped_in_any_vehicle
+	0xE9B09589827545E7, 0xDEF3636CEB1A14E7, //player::report_crime
+	0xFDD179EAF45B556C, 0xFEBDFA40CE0D54BE, //player::get_wanted_level_threshold
+	//0x997ABD671D25CA0B, 0xFD0FE723227D5AB6, //ped::is_ped_in_any_vehicle
 	0x9A9112A0FE9A4713, 0x60604E51E30D25B8, //ped::get_vehicle_ped_is_in
 	0x6094AD011A2EA87D, 0xFD05A5AA90984873, //ped::get_vehicle_ped_is_using
 	0x8FE22675A5A45817, 0x266CE9B8FB237C77, //ped::clear_ped_blood_damage
@@ -70,9 +72,15 @@ uint64_t __HASHMAPDATA[] = {
 	0xAE99FB955581844A, 0xE9062A1E9EC059E7, //ped::set_ped_to_ragdoll
 	0x47E4E977581C5B55, 0x7F4AE93855973529, //ped::is_ped_ragdoll
 	0x17C07FC640E86B4E, 0x425DAA25CBB7EDE2, //ped::get_ped_bone_coords
-	0x4700A416E8324EF3, 0x5D709FE87FA3B4C5, //ped::get_ped_max_health
-	0x9483AF821605B1D8, 0x55C72967EFB9CECF, //ped::get_ped_armour
+	//0x4700A416E8324EF3, 0x5D709FE87FA3B4C5, //ped::get_ped_max_health
+	//0x9483AF821605B1D8, 0x55C72967EFB9CECF, //ped::get_ped_armour
 	0x1913FE4CBF41C463, 0x6018E338F7ABCE75, //ped::set_ped_config_flag
+	0x262B14F48D29DE80, 0x2F933BB106547968, //ped::set_ped_component_variation
+	0x67F3780DD425D4FC, 0xC72E4A160D2D5004, //ped::get_ped_drawable_variation
+	0x04A355E041E004E6, 0x9E9290608A6EFB37, //ped::get_ped_texture_variation
+	0xE3DD5F2A84B42281, 0x15D0CB3C99F0F8B0, //ped::get_ped_palette_variation
+	0xCD8A7537A9B52F06, 0x77DA108F7A79FB28, //ped::clear_all_ped_props
+	0x93376B65A266EB5F, 0xCAA97B7826076AFA, //ped::set_ped_prop_index
 	0x7239B21A38F536BA, 0x23E9113C762466ED, //entity::does_entity_exist
 	0x731EC8A916BD11A1, 0x2032470B7EE4912E, //entity::is_an_entity
 	0x524AC5ECEA15343E, 0x80E9CA64E9C8E070, //entity::is_entity_a_ped
@@ -82,7 +90,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x239A3351AC1DA385, 0x394AE1BE8F25AC5B, //entity::set_entity_coords_no_offset
 	0x428CA6DBD1094446, 0x98F0FA127445E343, //entity::freeze_entity_position
 	0x1A9205C1B9EE827F, 0xCEDF2A713644AEDA, //entity::set_entity_collision
-	0x3FEF770D40960D5A, 0x57240623C1BC6E88, //entity::get_entity_coords
+	//0x3FEF770D40960D5A, 0x57240623C1BC6E88, //entity::get_entity_coords
 	0xE83D4F9BA2A38914, 0x638527C9799F2AE4, //entity::get_entity_heading
 	0x8E2530AA8ADA980E, 0x0608D50823C6AA6D, //entity::set_entity_heading
 	0x8524A8B0171D5E07, 0x04A5FAE5B1EB8E28, //entity::set_entity_rotation
@@ -102,11 +110,13 @@ uint64_t __HASHMAPDATA[] = {
 	0x6B9BBD38AB0796DF, 0x593C85206F061E3E, //entity::attach_entity_to_entity
 	0x4A4722448F18EEF5, 0xEE71EA1985CE0622, //entity::set_entity_has_gravity
 	0x4805D2B1D8CF94A9, 0xACA666C39EA49E82, //entity::get_entity_velocity
-	0x6B76DC1F3AE6E6A3, 0x4B04B4FAE554FA03, //entity::set_entity_health
+	//0x6B76DC1F3AE6E6A3, 0x4B04B4FAE554FA03, //entity::set_entity_health
 	0xD5037BA82E12416F, 0x13B7ACE69D27E3E4, //entity::get_entity_speed
 	0x47D6F43D77935C75, 0xADA6DD2D53C59AF0, //entity::is_entity_visible
-	0xEEF059FAD016D209, 0xB5DF060B138CD2EA, //entity::get_entity_health
+	//0xEEF059FAD016D209, 0xB5DF060B138CD2EA, //entity::get_entity_health
 	0xAFBD61CC738D9EB9, 0xED13B51A133E020F, //entity::get_entity_rotation
+	0xB736A491E64A32CF, 0x47C2619E72CEAA4F, //entity::set_entity_as_no_longer_needed
+	0x9F47B058362C84B5, 0x324EEB10F81965F,  //entity::get_entity_model
 	0x4C241E39B23DF959, 0x45CD66F0A131E554, //vehicle::is_vehicle_driveable
 	0xBB40DD2270B65366, 0x17206B315923243C, //vehicle::get_ped_in_vehicle_seat
 	0xDCE4334788AF94EA, 0xC5082382D5482C0C, //vehicle::is_this_model_a_heli
@@ -177,7 +187,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x4899CB088EDF59B8, 0x9CA872E9BF4DF131, //weapon::remove_weapon_from_ped
 	0x7619364C82D3BF14, 0x1544E69732785146, //network::set_local_player_visible_locally
 	0xFAA10F1FAFB11AF2, 0xB7966FAEB0FF7270, //network::set_player_visible_locally
-	0xBDCD95FC216A8B3E, 0xDE2767751C03729D, //network::net_to_ped
+	//0xBDCD95FC216A8B3E, 0xDE2767751C03729D, //network::net_to_ped
 	0x9DE624D2FC4B603F, 0xC5930AF404BD7048, //network::network_is_session_started
 	0x8DB296B814EDDA07, 0xB07624F7A9F16680, //network::network_is_host
 	0x01BF60A500E28887, 0xC38F0FBE1914783C, //network::network_has_control_of_entity
@@ -187,14 +197,14 @@ uint64_t __HASHMAPDATA[] = {
 	0xA670B3662FAFFBD0, 0x4EDACF77CDD9CFEB, //network::network_request_control_of_network_id
 	0x299EEB23175895FC, 0x73E0878A3E31819C, //network::set_network_id_can_migrate
 	0xE679E3E06E363892, 0x8A2AB944595BC051, //network::network_override_clock_time
-	0x388EB2B86C73B6B3, 0xF3EE72618DF96AF7, //network::network_handle_from_player
-	0x24FB80D107371267, 0xD878F413B7BB4895, //network::network_get_player_index
+	//0x388EB2B86C73B6B3, 0xF3EE72618DF96AF7, //network::network_handle_from_player
+	//0x24FB80D107371267, 0xD878F413B7BB4895, //network::network_get_player_index
 	0x7A5487FE9FAA6B48, 0xCB150A8B81012128, //network::get_network_time
 	0x7CD6BC4C2BBDD526, 0xEFC1A93F65285B77, //network::network_create_synchronised_scene
 	0x742A637471BCECD9, 0x477EC31C5BA5FAD8, //network::network_add_ped_to_synchronised_scene
 	0x9A1B3FCDB36C8697, 0xD299F9D47AAE6209, //network_network_start_synchronised_scene
-	0x6C0E2E0125610278, 0xDE881A032F5BA110, //network::network_get_player_index_from_ped
-	0xBC1D768F2F5D6C05, 0x7081D1CF61F5A498, //network::_network_hash_from_player_handle
+	//0x6C0E2E0125610278, 0xDE881A032F5BA110, //network::network_get_player_index_from_ped
+	//0xBC1D768F2F5D6C05, 0x7081D1CF61F5A498, //network::_network_hash_from_player_handle
 	0x423DE3854BB50894, 0x858DD33AFD804F9F, //network::network_set_in_spectator_mode
 	0x837765A25378F0BB, 0xBEBA2DED4C4C66BD, //cam::get_gameplay_cam_rot
 	0x14D6F5678D8F1B37, 0x667FF09580838E25, //cam::get_gameplay_cam_coord
@@ -234,6 +244,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x2C29BFB64F4FCBE4, 0xC43DC246FFFC2C87, //stats::stat_set_date
 	0x3C5FD37B5499582E, 0x1EB4A371BFB0E524, //unk3::_network_shop_begin_service
 	0x39BE7CEA8D9CC8E6, 0xF0045367541BC90,  //unk3::_network_shop_checkout_start
+	0x2902843FCD2B2D79, 0x91015F07066D5841, //script::get_event_data
 };
 
 /*

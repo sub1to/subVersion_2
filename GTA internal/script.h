@@ -26,10 +26,21 @@ namespace util
 	float	deg_to_rad(float deg);
 	int		random_int(int start, int end);
 	CPed*	ped_handle_to_ptr(Ped ped);
+	bool	to_clipboard(char* str);
 }
 
 namespace script
 {
+	bool	is_ped_in_any_vehicle(Ped ped);
+	v3		get_entity_coords(Entity e);
+	bool	is_player_ped_female(Ped ped);
+
+	void	apply_clothing(Ped playerPed, int group, int var = -1, int texture = -1);
+	void	apply_outfit_santa();
+	void	apply_outfit_trashman_orange();
+	void	apply_outfit_trashman_green();
+	void	apply_outfit_police();
+
 	bool	apply_model(std::string skinName, bool random = false);
 	void	set_player_clothing(int group, int value, bool texture);
 
@@ -98,6 +109,7 @@ namespace script
 
 	void	chaos_mode(clock_t* tmr, int action = 0);
 	bool	smash_vehicles(clock_t* tmr);
+	bool	black_hole(int sec);
 
 	void	drop_money_on_entity(Entity e, int amount = 2000, char* prop = "prop_money_bag_01");
 
@@ -128,6 +140,12 @@ namespace script
 
 	bool	animate_player(Ped remotePed, char* dict, char* anim, bool freeze = false, bool restore = false);
 	bool	animate_local_player(Ped playerPed, char* dict, char* anim, bool restore = false);
+
+	bool	player_dead_clone(Player player, Ped p, bool erase = false);
+
+	bool	give_player_wanted_level(Player player, int reportCount);
+
+	bool	clean_session();
 }
 
 #endif

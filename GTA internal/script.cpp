@@ -28,7 +28,14 @@ namespace util
 
 	int random_int(int start, int end)
 	{
-		return GAMEPLAY::GET_RANDOM_INT_IN_RANGE(start, end);
+		static bool seed	= false;
+		if(!seed)
+		{
+			srand((unsigned int) time(0));
+			seed = true;
+		}
+		return rand() % end + start;
+		//return GAMEPLAY::GET_RANDOM_INT_IN_RANGE(start, end);
 	}
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle)
@@ -47,12 +54,175 @@ namespace util
 
 	CPed*	ped_handle_to_ptr(Ped ped)
 	{
-		return *reinterpret_cast<CPed**>(get_address_of_item_in_pool(*CHooking::m_entityPool, ped) + 8);
+		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, ped);
+		if(ptr == 0)
+			return nullptr;
+		return *reinterpret_cast<CPed**>(ptr + 8);
+	}
+
+	CVehicle*	vehicle_handle_to_ptr(Vehicle veh)
+	{
+		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, veh);
+		if(ptr == 0)
+			return nullptr;
+		return *reinterpret_cast<CVehicle**>(ptr + 8);
+	}
+
+	bool	to_clipboard(char* str)
+	{
+		size_t	len		= strlen(str) + 1;
+		HGLOBAL	hMem	= GlobalAlloc(GMEM_MOVEABLE, len);
+		if(hMem == nullptr)
+			return false;
+		memcpy(GlobalLock(hMem), &str[0], len);
+		GlobalUnlock(hMem);
+		OpenClipboard(0);
+		EmptyClipboard();
+		SetClipboardData(CF_TEXT, hMem);
+		CloseClipboard();
+		return true;
 	}
 }
 
 namespace script
 {
+	bool is_ped_in_any_vehicle(Ped ped)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		if(pPed == nullptr || !pPed->isInVehicle())
+			return false;
+		return true;
+	}
+
+	v3	get_entity_coords(Entity e)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(e);
+		if(pPed == nullptr || pPed->pCNavigation == nullptr)
+			return {};
+		return pPed->pCNavigation->v3Pos;
+	}
+
+	float	get_ped_health(Ped ped)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		if(pPed == nullptr)
+			return {};
+		return pPed->fHealth;
+	}
+
+	bool	set_ped_health(Ped ped, float value)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		if(pPed == nullptr)
+			return false;
+		pPed->fHealth	= value;
+		return true;
+	}
+
+	float	get_ped_max_health(Ped ped)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		if(pPed == nullptr)
+			return {};
+		return pPed->fHealthMax;
+	}
+
+	float	get_ped_armor(Ped ped)
+	{
+		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		if(pPed == nullptr)
+			return {};
+		return pPed->fArmor;
+	}
+
+	float	get_vehicle_health(Vehicle veh)
+	{
+		CVehicle* pVeh	= util::vehicle_handle_to_ptr(veh);
+		if(pVeh == nullptr)
+			return {};
+		return pVeh->fHealth;
+	}
+
+	bool is_player_ped_female(Ped ped)
+	{
+		return ENTITY::GET_ENTITY_MODEL(ped)	== 0x9C9EFFD8;
+	}
+
+	void apply_clothing(Ped playerPed, int group, int var, int texture)
+	{
+		PED::SET_PED_COMPONENT_VARIATION(playerPed, group, var == -1 ? PED::GET_PED_DRAWABLE_VARIATION(playerPed, group) : var, texture == -1 ? PED::GET_PED_TEXTURE_VARIATION(playerPed, group) : texture, PED::GET_PED_PALETTE_VARIATION(playerPed, group));
+	}
+
+	void	apply_outfit_santa()
+	{
+		Ped playerPed	= PLAYER::PLAYER_PED_ID();
+		bool female	= is_player_ped_female(playerPed);
+		PED::CLEAR_ALL_PED_PROPS(playerPed);
+		apply_clothing(playerPed,	0x01,	0x08,					0x00);
+		apply_clothing(playerPed,	0x03,	female ? 0x34 : 0x32,	0x00);
+		apply_clothing(playerPed,	0x04,	female ? 0x3B : 0x39,	0x00);
+		apply_clothing(playerPed,	0x05,	0x00,					0x00);
+		apply_clothing(playerPed,	0x06,	female ? 0x28 : 0x27,	0x00);
+		apply_clothing(playerPed,	0x07,	0x00,					0x00);
+		apply_clothing(playerPed,	0x08,	female ? 0x01 : 0x0F,	female ? 0x02 : 0x00);
+		apply_clothing(playerPed,	0x09,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0A,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0B,	female ? 0x6C : 0x74,	0x00);
+	}
+
+	void	apply_outfit_trashman_orange()
+	{
+		Ped playerPed	= PLAYER::PLAYER_PED_ID();
+		bool female	= is_player_ped_female(playerPed);
+		PED::CLEAR_ALL_PED_PROPS(playerPed);
+		apply_clothing(playerPed,	0x01,	0x00,					0x00);
+		apply_clothing(playerPed,	0x03,	female ? 0x0E : 0x00,	0x00);
+		apply_clothing(playerPed,	0x04,	female ? 0x23 : 0x24,	0x00);
+		apply_clothing(playerPed,	0x05,	0x00,					0x00);
+		apply_clothing(playerPed,	0x06,	0x19,					0x00);
+		apply_clothing(playerPed,	0x07,	0x00,					0x00);
+		apply_clothing(playerPed,	0x08,	female ? 0x24 : 0x3B,	0x01);
+		apply_clothing(playerPed,	0x09,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0A,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0B,	female ? 0x31 : 0x38,	0x00);
+	}
+
+	void	apply_outfit_trashman_green()
+	{
+		Ped playerPed	= PLAYER::PLAYER_PED_ID();
+		bool female	= is_player_ped_female(playerPed);
+		PED::CLEAR_ALL_PED_PROPS(playerPed);
+		apply_clothing(playerPed,	0x01,	0x00,					0x00);
+		apply_clothing(playerPed,	0x03,	female ? 0x03 : 0x04,	0x00);
+		apply_clothing(playerPed,	0x04,	female ? 0x23 : 0x24,	0x00);
+		apply_clothing(playerPed,	0x05,	0x00,					0x00);
+		apply_clothing(playerPed,	0x06,	0x19,					0x00);
+		apply_clothing(playerPed,	0x07,	0x00,					0x00);
+		apply_clothing(playerPed,	0x08,	female ? 0x24 : 0x3B,	0x00);
+		apply_clothing(playerPed,	0x09,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0A,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0B,	female ? 0x32 : 0x39,	0x00);
+	}
+
+	void	apply_outfit_police()
+	{
+		Ped playerPed	= PLAYER::PLAYER_PED_ID();
+		bool female	= is_player_ped_female(playerPed);
+		PED::CLEAR_ALL_PED_PROPS(playerPed);
+		PED::SET_PED_PROP_INDEX(playerPed,	0,	female ? 45 : 46,	0,	2);
+		PED::SET_PED_PROP_INDEX(playerPed,	1,	female ? 11 : 13,	0,	2);
+		apply_clothing(playerPed,	0x01,	0x00,					0x00);
+		apply_clothing(playerPed,	0x03,	female ? 0x0E : 0x00,	0x00);
+		apply_clothing(playerPed,	0x04,	female ? 0x22 : 0x23,	0x00);
+		apply_clothing(playerPed,	0x05,	0x00,					0x00);
+		apply_clothing(playerPed,	0x06,	0x19,					0x00);
+		apply_clothing(playerPed,	0x07,	0x00,					0x00);
+		apply_clothing(playerPed,	0x08,	female ? 0x23 : 0x3A,	0x00);
+		apply_clothing(playerPed,	0x09,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0A,	0x00,					0x00);
+		apply_clothing(playerPed,	0x0B,	female ? 0x30 : 0x37,	0x00);
+	}
+
 	bool apply_model(DWORD model, bool random)
 	{
 		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) && !STREAMING::IS_MODEL_VALID(model))
@@ -64,7 +234,7 @@ namespace script
 
 		Ped		playerPed = PLAYER::PLAYER_PED_ID();
 		Vehicle v	= NULL;
-		if(PED::IS_PED_IN_ANY_VEHICLE(playerPed, 0))
+		if(is_ped_in_any_vehicle(playerPed))
 			v = PED::GET_VEHICLE_PED_IS_USING(playerPed);
 
 		PLAYER::SET_PLAYER_MODEL(PLAYER::PLAYER_ID(), model);
@@ -107,10 +277,10 @@ namespace script
 	{
 		if(!NETWORK::NETWORK_IS_SESSION_STARTED())
 			return true;
-		if(ENTITY::IS_ENTITY_A_PED(entity))
-			for(int i = 0; i < MAX_PLAYERS; i++)
-				if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == entity)
-					return false;
+		//if(ENTITY::IS_ENTITY_A_PED(entity))
+		//	for(int i = 0; i < MAX_PLAYERS; i++)
+		//		if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == entity)
+		//			return false;
 
 		if(!NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity))
 			NETWORK::NETWORK_REQUEST_CONTROL_OF_ENTITY(entity);
@@ -119,6 +289,14 @@ namespace script
 		request_control_of_id(netID);
 		NETWORK::SET_NETWORK_ID_CAN_MIGRATE(netID, 1);
 		return true && NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity);
+	}
+
+	bool is_ped_a_player(Ped ped)
+	{
+		for(int i = 0; i < MAX_PLAYERS; i++)
+			if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == (ped))
+				return true;
+		return false;
 	}
 
 	void update_nearby_ped(Ped origin, int c)
@@ -130,7 +308,7 @@ namespace script
 		for(int i = 0; i < c; i++)
 		{
 			int	id	= i * 2 + 2;
-			if(!ENTITY::IS_AN_ENTITY(ped[id]) && !PED::IS_PED_DEAD_OR_DYING(ped[id], false))
+			if(!ENTITY::IS_AN_ENTITY(ped[id]) || PED::IS_PED_DEAD_OR_DYING(ped[id], false) || is_ped_a_player(ped[id]))
 				continue;
 			CHack::m_nearbyPed.push_back(ped[id]);
 		}
@@ -184,7 +362,7 @@ namespace script
 	void teleport_to_coords(v3 coords)
 	{
 		Entity e	= PLAYER::PLAYER_PED_ID();
-		if (PED::IS_PED_IN_ANY_VEHICLE(e, true))
+		if (is_ped_in_any_vehicle(e))
 			e = PED::GET_VEHICLE_PED_IS_USING(e);
 		teleport_entity_to_coords(e, coords);
 	}
@@ -263,7 +441,7 @@ namespace script
 
 	void teleport_to_entity(Entity e)
 	{
-		v3 remotePos = ENTITY::GET_ENTITY_COORDS(e, true);
+		v3 remotePos = get_entity_coords(e);
 		remotePos.z += 2.5f;
 		teleport_to_coords(remotePos);
 	}
@@ -271,7 +449,7 @@ namespace script
 	bool teleport_player_to_me(Ped ped)
 	{
 		v3 playerPos	= script::get_coords_infront_player(6.f);
-		v3 remotePos	= ENTITY::GET_ENTITY_COORDS(ped, false);
+		v3 remotePos	= get_entity_coords(ped);
 		playerPos.z += 1.f;
 		if(playerPos.getDist(remotePos) < 10.f)
 		{
@@ -284,8 +462,8 @@ namespace script
 
 	bool teleport_player_to_sea(Ped ped)
 	{
-		v3 seaPos		= {-2443.f, -1726.f, 10.f};
-		v3 remotePos	= ENTITY::GET_ENTITY_COORDS(ped, false);
+		v3 seaPos		= {-3735.f, -4400.f, 10.f};
+		v3 remotePos	= get_entity_coords(ped);
 		if(seaPos.getDist(remotePos) < 10.f)
 		{
 			clown_particle_effect_on_entity(ped);
@@ -297,7 +475,7 @@ namespace script
 
 	void teleport_player_to_air(Ped ped)
 	{
-		v3 remotePos = ENTITY::GET_ENTITY_COORDS(ped, 0);
+		v3 remotePos = get_entity_coords(ped);
 		script::teleport_player_on_foot(ped, remotePos.x, remotePos.y, remotePos.z + 100.f);
 		script::clown_particle_effect_on_entity(ped);
 	}
@@ -343,8 +521,8 @@ namespace script
 
 	void draw_esp_on_entity(Entity e, std::string text, bool bBox, bool bHealth, bool bDist, float fMaxDist)
 	{
-		v3 pos			= ENTITY::GET_ENTITY_COORDS(e, false);
-		v3 playerPos	= ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false);
+		v3 pos			= get_entity_coords(e);
+		v3 playerPos	= get_entity_coords(PLAYER::PLAYER_PED_ID());
 		float	dist		= pos.getDist(playerPos);
 		float	x, x2, y, y2;
 		if(dist < fMaxDist && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z -1.f, &x, &y) && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z + .8f, &x2, &y2))
@@ -378,8 +556,8 @@ namespace script
 
 				if(bHealth)
 				{
-					float maxHealth	= (float) PED::GET_PED_MAX_HEALTH(e) + 50.f;
-					float health	= (float) ENTITY::GET_ENTITY_HEALTH(e) + PED::GET_PED_ARMOUR(e);
+					float maxHealth	= (float) get_ped_max_health(e) + 50.f;
+					float health	= (float) get_ped_health(e) + get_ped_armor(e);
 					GRAPHICS::DRAW_RECT(x2 - (w / 2) - 0.006f,  y2 + (h / 2), .004f, h, 0, 255, 0, 255);
 					GRAPHICS::DRAW_RECT(x2 - (w / 2) - 0.006f,  y2 + (h / 2) + (h * (1 - (health / maxHealth)) / 2), .002f, h * (health / maxHealth) - 0.004f, 255, 0, 0, 255);
 				}
@@ -462,6 +640,7 @@ namespace script
 		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
 		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YO MOMMA");
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
+		VEHICLE::SET_VEHICLE_IS_STOLEN(veh, false);
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
 
 		if(bFly)
@@ -479,27 +658,25 @@ namespace script
 			vehicle_bypass(veh);	//mp bypass
 		if(upgrade)
 			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0);
+
+		ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);
 		return true;
 	}
 
 	void vehicle_bypass(Vehicle v)
 	{
-		int	i;
-		if(DECORATOR::DECOR_EXIST_ON(v, "MPBitset"))
-			i	= DECORATOR::DECOR_GET_INT(v, "MPBitset");
-		GAMEPLAY::SET_BIT(&i, 3);
-		GAMEPLAY::SET_BIT(&i, 1);
-		DECORATOR::DECOR_SET_INT(v, "MPBitset", i);
-		VEHICLE::SET_VEHICLE_IS_STOLEN(v, false);
+		DECORATOR::DECOR_SET_INT(v, "MPBitset", (1 << 10));
 	}
 
 	void vehicle_mp_bypass(bool b)
 	{
 		//GAMEPLAY::SET_BIT((int*)CHooking::getGlobalPtr(1591201 + (1 * (PLAYER::GET_PLAYER_INDEX() + 602)) + 258 + 13), 3);
 		if(b)
-			GAMEPLAY::SET_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
+			*(int*)	CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX())	|= (1 << 3);
+			//GAMEPLAY::SET_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
 		else
-			GAMEPLAY::CLEAR_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
+			*(int*)	CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX())	&= ~(1 << 3);
+			//GAMEPLAY::CLEAR_BIT((int*)CHooking::getGlobalPtr(0x184B0A + PLAYER::GET_PLAYER_INDEX()), 3);
 	}
 
 	void vehicle_sp_bypass(bool b)
@@ -576,7 +753,7 @@ namespace script
 
 	void get_in_closest_car()
 	{
-		v3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), 0);
+		v3 pos = get_entity_coords(PLAYER::PLAYER_PED_ID());
 		update_nearby_vehicle(PLAYER::PLAYER_PED_ID(), 0x1);
 		Vehicle veh = CHack::m_nearbyVehicle[0];
 		if(get_free_seat(veh) != -1)
@@ -591,12 +768,12 @@ namespace script
 	Ped clone_ped_bodyguard(Ped p)
 	{
 		int group = PED::GET_PED_GROUP_INDEX(p);
-		Ped	ped = PED::CLONE_PED(p, ENTITY::GET_ENTITY_HEADING(p), 0, 1);
+		Ped	ped = PED::CLONE_PED(p, ENTITY::GET_ENTITY_HEADING(p), 1, 1);
 		PED::SET_PED_AS_GROUP_MEMBER(ped, group);
 		PED::SET_PED_CAN_SWITCH_WEAPON(ped, false);
 		WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, $(hash::weapon_hash[0x8]), 9999, 0);
 		PED::SET_PED_COMBAT_ABILITY(ped, 2); //0 poor, 1 average, 2 prof
-		ENTITY::SET_ENTITY_INVINCIBLE(ped, false);
+		//ENTITY::SET_ENTITY_INVINCIBLE(ped, false);
 		return ped;
 	}
 
@@ -628,7 +805,7 @@ namespace script
 
 	void teleport_to_ped_car(Ped ped) 
 	{
-		if(!PED::IS_PED_IN_ANY_VEHICLE(ped, true))
+		if(!is_ped_in_any_vehicle(ped))
 			return;
 		Vehicle v	= PED::GET_VEHICLE_PED_IS_USING(ped);
 		int		s	= get_free_seat(v);
@@ -672,7 +849,7 @@ namespace script
 
 	Object trap_player_in_cage(Ped ped)
 	{
-		v3 remotePos	= ENTITY::GET_ENTITY_COORDS(ped, 0);
+		v3 remotePos	= get_entity_coords(ped);
 		Object obj	= OBJECT::CREATE_OBJECT($("prop_gold_cont_01"), remotePos.x, remotePos.y, remotePos.z -1.f, true, false, false);
 		return obj;
 	}
@@ -688,7 +865,7 @@ namespace script
 
 	void remove_nearby_objects()
 	{
-		v3 playerPosition = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false);
+		v3 playerPosition = get_entity_coords(PLAYER::PLAYER_PED_ID());
 		for(int j = 0; j < sizeof(hash::object_prop_spawn_hash) / sizeof(hash::object_prop_spawn_hash[0]); j++)
 		{
 			Object obj = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(playerPosition.x, playerPosition.y, playerPosition.z, 20.0f, $(hash::object_prop_spawn_hash[j]), false, false, false);
@@ -765,7 +942,7 @@ namespace script
 		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
 	}
 
-	void teleport_all_players_to_me()
+	/*void teleport_all_players_to_me()
 	{
 		v3 pos = get_coords_infront_player(6.f);
 		for (int i = 0; i < 32; i++)
@@ -774,11 +951,11 @@ namespace script
 			if (playerid > 0 && playerid != PLAYER::PLAYER_PED_ID())
 				teleport_player_on_foot(playerid, pos.x, pos.y, pos.z + 1.f);
 		}
-	}
+	}*/
 
 	v3 get_coords_infront_player(float dist)
 	{
-		v3 r = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), 0);
+		v3 r = get_entity_coords(PLAYER::PLAYER_PED_ID());
 		float	heading	= ENTITY::GET_ENTITY_HEADING(PLAYER::PLAYER_PED_ID());
 				r.x		+= dist * sin(util::deg_to_rad(heading)) * -1,
 				r.y		+= dist * cos(util::deg_to_rad(heading));
@@ -787,7 +964,7 @@ namespace script
 
 	v3 get_coords_above_player(float dist)
 	{
-		v3 r	= ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), 0);
+		v3 r	= get_entity_coords(PLAYER::PLAYER_PED_ID());
 				r.z	+= dist;
 		return r;
 	}
@@ -883,7 +1060,7 @@ namespace script
 
 		if(ent != NULL && ENTITY::IS_AN_ENTITY(ent))
 		{
-			v3 pos = ENTITY::GET_ENTITY_COORDS(ent, 0);
+			v3 pos = get_entity_coords(ent);
 			if(action == 0 && request_control_of_entity(ent))	//bounce
 				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, 0, 0, ENTITY::IS_ENTITY_A_PED(ent) ? 10.f : 5.f, 0, 0, 0, 0, 1, 1, 1, 0, 1);
 			else if(action == 1 && request_control_of_entity(ent))	//ascention
@@ -894,7 +1071,7 @@ namespace script
 				FIRE::ADD_EXPLOSION(pos.x, pos.y, pos.z, 29, 1, false, false, 0);
 			else if(action == 4 && request_control_of_entity(ent))	//forcefield
 			{
-				v3 playerPos		= ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false);
+				v3 playerPos		= get_entity_coords(PLAYER::PLAYER_PED_ID());
 				v3 playerPos_pos	= pos - playerPos;
 				float	x				= playerPos_pos.x < 0.f ? playerPos_pos.x * -1.f : playerPos_pos.x,
 						y				= playerPos_pos.y < 0.f ? playerPos_pos.y * -1.f : playerPos_pos.y;
@@ -917,7 +1094,8 @@ namespace script
 			{
 				teleport_entity_to_coords(ent, {pos.x, pos.y, pos.z + 10.f}, false);
 				if(ENTITY::IS_ENTITY_A_PED(ent))
-					ENTITY::SET_ENTITY_HEALTH(ent, 0);
+					set_ped_health(ent, 0);
+					//ENTITY::SET_ENTITY_HEALTH(ent, 0);
 				else
 					ENTITY::SET_ENTITY_ROTATION(ent, 0.f, 180.f, 0.f, 0, false);
 				ENTITY::SET_ENTITY_VELOCITY(ent, 0.f, 0.f, -150.f);
@@ -964,11 +1142,70 @@ namespace script
 		return smash_vehicle.empty();
 	}
 
+	bool	black_hole(int sec)
+	{
+		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
+		Entity	ent			= NULL;
+		static Object	bh	= NULL;
+		static clock_t	refreshTmr	= clock();
+		static clock_t	bhTmr	= NULL;
+		if(bh == NULL)
+			if(!spawn_object("prop_alien_egg_01", &bh))
+				return false;
+			else
+			{
+				bhTmr	= clock();
+				ENTITY::FREEZE_ENTITY_POSITION(bh, true);
+			}
+		if(clock() - refreshTmr > 0x100 && CHack::m_nearbyPed.empty() && CHack::m_nearbyVehicle.empty())
+		{
+			script::update_nearby_ped(playerPed, 0x80);
+			script::update_nearby_vehicle(playerPed, 0x80, false);
+			refreshTmr = clock();
+		}
+		else if(!CHack::m_nearbyPed.empty())
+		{
+			ent	= CHack::m_nearbyPed[CHack::m_nearbyPed.size() - 1];
+			CHack::m_nearbyPed.pop_back();
+		}
+		else if(!CHack::m_nearbyVehicle.empty())
+		{
+			ent	= CHack::m_nearbyVehicle[CHack::m_nearbyVehicle.size() - 1];
+			CHack::m_nearbyVehicle.pop_back();
+
+		}
+
+		if(ent != NULL && ENTITY::IS_AN_ENTITY(ent))
+		{
+			v3 pos		= get_entity_coords(ent);
+			v3 bhPos	= get_entity_coords(bh);
+
+			if(bhPos.getDist(pos) < 5.f)
+				teleport_entity_to_coords(ent, { -3735.f, -4400.f, 10.f }, false);
+			else
+			{
+				v3 pos_bhPos	= bhPos - pos;
+				float	x				= pos_bhPos.x < 0.f ? pos_bhPos.x * -1.f : pos_bhPos.x,
+						y				= pos_bhPos.y < 0.f ? pos_bhPos.y * -1.f : pos_bhPos.y;
+				float	ratio			= 20.f	/ (x > y ? x : y);
+				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, pos_bhPos.x * ratio, pos_bhPos.y * ratio, ENTITY::IS_ENTITY_A_PED(ent) ? 1.f : .5f, (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), 0, false, true, true, false, true);
+			}
+		}
+
+		if(clock() - bhTmr > sec * 1000)
+		{
+			CHack::m_entityCleanup.push_back(bh);
+			bh	= NULL;
+			return true;
+		}
+		return false;
+	}
+
 	void	drop_money_on_entity(Entity e, int amount, char* prop)
 	{
 		if(NETWORK::NETWORK_IS_SESSION_STARTED())
 			return;
-		v3 pos = ENTITY::GET_ENTITY_COORDS(e, true);
+		v3 pos = get_entity_coords(e);
 		Hash	modelHash = $(prop);
 		STREAMING::REQUEST_MODEL(modelHash);
 		if(!STREAMING::HAS_MODEL_LOADED(modelHash))
@@ -1039,9 +1276,9 @@ namespace script
 		if(!freeCam)
 		{
 			if(action & 0x01)	//forward
-				teleport_entity_to_coords(e, get_coords_infront_player(.25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), ENTITY::GET_ENTITY_ROTATION(e, 0), .25f * speed), false);
 			if(action & 0x02)	//back
-				teleport_entity_to_coords(e, get_coords_infront_player(-.25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), ENTITY::GET_ENTITY_ROTATION(e, 0), -.25f * speed), false);
 			if(action & 0x04)	//left
 				ENTITY::SET_ENTITY_HEADING(e, ENTITY::GET_ENTITY_HEADING(e) + 2.5f * turnSpeed);
 			if(action & 0x08)	//right
@@ -1052,18 +1289,18 @@ namespace script
 			v3	camRot	= CAM::GET_GAMEPLAY_CAM_ROT(0);
 			ENTITY::SET_ENTITY_ROTATION(e, camRot.x, camRot.y, camRot.z, 0, false);
 			if(action & 0x01)	//forward
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false), camRot, .25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			if(action & 0x02)	//back
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false), camRot, -.25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, -.25f * speed), false);
 			if(action & 0x04)	//left
 			{
 				camRot = { 0.f, 0.f, camRot.z + 90.f };
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false), camRot, .25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			}
 			if(action & 0x08)	//right
 			{
 				camRot = { 0.f, 0.f, camRot.z - 90.f };
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), false), camRot, .25f * speed), false);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			}
 		}
 		if(action & 0x10)	//up
@@ -1080,7 +1317,7 @@ namespace script
 		//if(PLAYER::IS_PLAYER_FREE_AIMING(player) && PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
 		if(PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
 		{
-			if(ENTITY::IS_ENTITY_A_PED(e) && PED::IS_PED_IN_ANY_VEHICLE(e, true))
+			if(ENTITY::IS_ENTITY_A_PED(e) && is_ped_in_any_vehicle(e))
 			{
 				Vehicle v = PED::GET_VEHICLE_PED_IS_IN(e, false);
 				if(ENTITY::IS_ENTITY_A_VEHICLE(v))
@@ -1115,10 +1352,9 @@ namespace script
 	{
 		if(editor_locked_entity	!= NULL && ENTITY::IS_AN_ENTITY(editor_locked_entity))
 		{
-			ENTITY::SET_ENTITY_COLLISION(editor_locked_entity, true, true);
 			if(flag & 0x10)
 			{
-				v3 dir	= get_coords_infront_of_cam(dist + 100.f) - ENTITY::GET_ENTITY_COORDS(editor_locked_entity, false);
+				v3 dir	= get_coords_infront_of_cam(dist + 100.f) - get_entity_coords(editor_locked_entity);
 				ENTITY::FREEZE_ENTITY_POSITION(editor_locked_entity, false);
 				ENTITY::APPLY_FORCE_TO_ENTITY(editor_locked_entity, 1, dir.x, dir.y, dir.z, 0.f, 0.f, 0.f, 0, false, true, true, false, true);
 			}
@@ -1177,7 +1413,7 @@ namespace script
 
 		if(flag & 0x02)
 		{
-			v3 pos		= ENTITY::GET_ENTITY_COORDS(e, false);
+			v3 pos		= get_entity_coords(e);
 			std::string	str		= std::to_string(pos.x);
 			str.append(", ");
 			str.append(std::to_string(pos.y));
@@ -1215,7 +1451,7 @@ namespace script
 	bool send_assasins_after_player(Player p, Ped remotePed)
 	{
 		static std::unordered_map<int, int>	count;
-		v3	pos			= ENTITY::GET_ENTITY_COORDS(remotePed, false);
+		v3	pos			= get_entity_coords(remotePed);
 		if(count.find(p) == count.end())
 			count.emplace(p, 0);
 		if(count[p] < 0xF)
@@ -1246,7 +1482,7 @@ namespace script
 
 	void	explode_ped(Ped ped, int type)
 	{
-		Vector3 remotePos = ENTITY::GET_ENTITY_COORDS(ped, 0);
+		Vector3 remotePos = get_entity_coords(ped);
 		FIRE::ADD_EXPLOSION(remotePos.x, remotePos.y, remotePos.z, type, 1, true, false, 0);
 	}
 
@@ -1271,7 +1507,7 @@ namespace script
 
 	void	ped_money_drop(Ped playerPed, clock_t* tmr)
 	{
-		v3 playerPos	= ENTITY::GET_ENTITY_COORDS(playerPed, false);
+		v3 playerPos	= get_entity_coords(playerPed);
 
 		if(clock() - *tmr > 0x60)
 		{
@@ -1281,7 +1517,8 @@ namespace script
 			{
 				if(CHack::m_nearbyPed[0] > 0 && ENTITY::DOES_ENTITY_EXIST(CHack::m_nearbyPed[0]))
 				{
-					request_control_of_entity(CHack::m_nearbyPed[0]);
+					if(!request_control_of_entity(CHack::m_nearbyPed[0]))
+						return;
 					CPed* cped = util::ped_handle_to_ptr(CHack::m_nearbyPed[0]);
 					if(cped != nullptr && cped != CHack::m_pCPedPlayer && cped->fHealth > 100.f && cped->fHealth < 250)
 					{
@@ -1302,7 +1539,7 @@ namespace script
 			for(int i = 0; i < max; ++i)
 			{
 				CPickup*	pickup	= CHooking::m_replayIntf->pickup_interface->get_pickup(i);
-				if(pickup == nullptr || pickup->Navigation == nullptr || pickup->iMoney < 100 || pickup->VisualPosition.getDist(playerPos) > 50.f)
+				if(pickup == nullptr || pickup->Navigation == nullptr || pickup->iMoney < 100)
 					continue;
 				pickup->Navigation->v3Pos	= playerPos;
 				pickup->VisualPosition		= playerPos;
@@ -1348,7 +1585,7 @@ namespace script
 		STREAMING::REQUEST_ANIM_DICT(dict);
 		if(!STREAMING::HAS_ANIM_DICT_LOADED(dict))
 			return false;
-		v3	remotePos	= ENTITY::GET_ENTITY_COORDS(remotePed, true);
+		v3	remotePos	= get_entity_coords(remotePed);
 		int	scene		= NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(remotePos.x, remotePos.y, remotePos.z, 0, 0, 0, 2, 0, 1, 1, 0.f, freeze ? 0.f : 1.f);
 		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(remotePed, scene, dict, anim, 8.f, 1.f, -1, 1, 1.f, 1);
 		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
@@ -1365,5 +1602,75 @@ namespace script
 			return false;
 		AI::TASK_PLAY_ANIM(playerPed, dict, anim, 8.f, 1.f, -1, 1, 1.f, 0, 0, 0);
 		return true;
+	}
+
+	bool player_dead_clone(Player player, Ped p, bool erase)
+	{
+		static Ped		tar[0x20]	= { 0 };
+		static Ped		ped[0x20]	= { 0 };
+		static vec_int	clones[0x20];
+		if(erase)
+		{
+			while(!clones[player].empty())
+			{
+				CHack::m_entityCleanup.push_back(clones[player][clones[player].size() - 1]);
+				clones[player].pop_back();
+			}
+			return true;
+		}
+		if(!ped[player] || !tar[player])
+		{
+			tar[player] = p;
+			ped[player]	= PED::CLONE_PED(tar[player], ENTITY::GET_ENTITY_HEADING(tar[player]), 1, 1);
+			if(clones[player].size() > 8)
+			{
+				CHack::m_entityCleanup.push_back(clones[player][0]);
+				clones[player].erase(clones[player].begin());
+			}
+			clones[player].push_back(ped[player]);
+		}
+		CPed*	cped	= util::ped_handle_to_ptr(ped[player]);
+		v3		pos		= cped->v3VisualPos;
+		teleport_entity_to_coords(ped[player], { pos.x, pos.y, pos.z + 2.f }, false);
+		cped->fHealth	= 0.f;
+		ped[player]		= 0;
+		tar[player]		= 0;
+		return true;
+	}
+
+	bool give_player_wanted_level(Player player, int reportCount)
+	{
+		static int		c[MAX_PLAYERS]	= { 0 };
+		static clock_t	t[MAX_PLAYERS]	= { 0 };
+
+		if(c[player] < reportCount)
+		{
+			if(clock() - t[player] > 0x400)
+			{
+				PLAYER::REPORT_CRIME(player, 14, PLAYER::GET_WANTED_LEVEL_THRESHOLD(5));
+				++c[player];
+				t[player]	= clock();
+			}
+			return false;
+		}
+		c[player]	= 0;
+		return true;
+	}
+
+	bool clean_session()
+	{
+		static clock_t    tmr    = { 0 };
+		if(!tmr)
+		{
+			ShellExecute(0, "open", "cmd.exe", "/C ipconfig -release", 0, SW_HIDE);
+			tmr    = clock();
+		}
+		else if(clock() - tmr > 0x2000)
+		{
+			ShellExecute(0, "open", "cmd.exe", "/C ipconfig -renew", 0, SW_HIDE);
+			tmr    = 0;
+			return true;
+		}
+		return false;
 	}
 };

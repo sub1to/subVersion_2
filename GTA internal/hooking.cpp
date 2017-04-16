@@ -30,6 +30,7 @@ CReplayInterface*							CHooking::m_replayIntf;
 std::unordered_map<uint64_t,NativeHandler>	CHooking::m_handlerCache;
 __int64**									CHooking::m_globalBase;
 MemoryPool**								CHooking::m_entityPool;
+bool										CHooking::m_bClearTasks	= false;
 
 /*
 	//Private function declarations
@@ -108,7 +109,7 @@ NativeHandler CHooking::getNativeHandler(uint64_t origHash)
 
 __int64* CHooking::getGlobalPtr(int index)
 {
-    return &m_globalBase[index >> 18 & 0x3F][index & 0x3FFFF];
+    return &m_globalBase[index >> 0x12 & 0x3F][index & 0x3FFFF];
 }
 
 /*
@@ -118,12 +119,12 @@ bool initHooks()
 {
 	if (MH_Initialize() != MH_OK)
 	{
-		CLog::error("MinHook failed to initialize");
+		CLog::fatal("MinHook failed to initialize");
 		return false;
 	}
 	if (!hookNatives())
 	{
-		CLog::error("Failed to initialize hooks");
+		CLog::fatal("Failed to initialize hooks");
  		return false;
  	}
 	return true;
@@ -145,7 +146,7 @@ bool hook(uint64_t hash, void* hkFn, T** trampoline)
 	return true;
 }
 
-NativeHandler ORIG_NATIVE = NULL;
+/*NativeHandler ORIG_NATIVE = nullptr;
 void* __cdecl HK_NATIVE(NativeContext* cxt)
 {
 	static int	last = 0;
@@ -157,14 +158,50 @@ void* __cdecl HK_NATIVE(NativeContext* cxt)
 	}
 	ORIG_NATIVE(cxt);
 	return cxt;
+}*/
+
+//static BOOL IS_PLAYER_ONLINE() { return invoke<BOOL>(0xF25D331DC2627BBC); } // 0xF25D331DC2627BBC 0x9FAB6729
+BOOL (__cdecl *OG_IS_PLAYER_ONLINE)(scrNativeCallContext* context)	= nullptr;
+BOOL __cdecl HK_IS_PLAYER_ONLINE(NativeContext* cxt)
+{
+	static int	last = 0;
+	int			cur = GAMEPLAY::GET_FRAME_COUNT();
+	if (last != cur)
+	{
+		last = cur;
+		CHooking::onTick();
+	}
+	return OG_IS_PLAYER_ONLINE(cxt);
+}
+
+//static BOOL GET_EVENT_DATA(BOOL p0, int p1, int* p2, int p3) { return invoke<BOOL>(0x2902843FCD2B2D79, p0, p1, p2, p3); } // 0x2902843FCD2B2D79 0x4280F92F
+BOOL (__cdecl *OG_GET_EVENT_DATA)(scrNativeCallContext* context)	= nullptr;
+BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
+{
+	int	p1	= cxt->GetArgument<int>(1);
+
+	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_MONEY"])->m_bOn		&& p1 == 0x127)
+	//	CLog::msg("Remote money attempt blocked.");
+	if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_RP"])->m_bOn		&& p1 == 0x124)
+		CLog::msg("Remote rp attempt blocked.");
+	else if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_FRAUD"])->m_bOn	&& p1 == 0x186)
+		CLog::msg("Remote fraud attempt blocked.");
+	else if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_KICK"])->m_bOn	&& p1 == 0x38)
+		CLog::msg("Remote kick attempt blocked.");
+	else
+		return OG_GET_EVENT_DATA(cxt);
+
+    return FALSE;
 }
 
 bool hookNatives()
 {
 	return true
-		&& hook(0xF25D331DC2627BBC, &HK_NATIVE, &ORIG_NATIVE);		//is_player_online
+		&& hook(0xF25D331DC2627BBC, &HK_IS_PLAYER_ONLINE, &OG_IS_PLAYER_ONLINE)		//is_player_online
 		//&& hook(0x5E9564D8246B909A, &HK_NATIVE, &ORIG_NATIVE);		//is_player_playing
 		//&& hook(0x4EDE34FBADD967A6, &HK_NATIVE, &ORIG_NATIVE);		//wait
+		&& hook(0x2902843FCD2B2D79, &HK_GET_EVENT_DATA, &OG_GET_EVENT_DATA)
+		;
 }
 
 void findPatterns()

@@ -32,7 +32,7 @@ Copyright 2017 sub1to
 	//Getting started:
 	//////////
 		1.	Start GTAV (windowed / borderless)
-		2.	Inject subVersion.dll using any injector
+		2.	Inject subVersion.dll using any injector (First injection in SP, you can unload and re-inject while in MP)
 			I prefer Xenos Injector (with manual map)
 		3.	GL HF
 
@@ -85,6 +85,8 @@ Copyright 2017 sub1to
 
 MikeRohsoft			Shared lots of information <3
 Gelox_				Weißwurscht
-BluhhBluhhTom			Is British
+BluhhBluhhTom			Destroys worlds
 Sheogorath			Is Sheo
 KingRain			Denies the existence of Lord Gaben.
+d3sk1ng				Better than burgerking.
+Dom				Mod

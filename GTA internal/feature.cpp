@@ -68,12 +68,13 @@ namespace feature
 			feature::map.emplace("FEATURE_P_STAMINA",	 CMenu::addFeature(-1, *parent, "Infinite Stamina", feat_toggle, "infStam"));
 			feature::map.emplace("FEATURE_P_MOBILE_RADIO",	 CMenu::addFeature(-1, *parent, "Mobile Radio", feat_toggle, "mobileRadio"));
 			feature::map.emplace("FEATURE_P_FREEZE_RADIO",	 CMenu::addFeature(-1, *parent, "Freeze Radio", feat_value_str, "freezeRadio", 0.f, 19.f, 1.f, hash::radio_station_name));
-			feature::map.emplace("FEATURE_P_CLEAR_REPORTS",	 CMenu::addFeature(-1, *parent, "Clear Reports", feat_action));
+			//feature::map.emplace("FEATURE_P_CLEAR_REPORTS",	 CMenu::addFeature(-1, *parent, "Clear Reports", feat_action));
 			//feature::map.emplace("FEATURE_P_MONEY_DROP",	 CMenu::addFeature(-1, *parent, "Money Drop", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
 			feature::map.emplace("FEATURE_P_CLONE_BODYGUARD",	 CMenu::addFeature(-1, *parent, "Clone Bodyguard", feat_action));
 			//feature::map.emplace("FEATURE_P_CLEANUP_OBJECTS",	 CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
 			//feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
 			feature::map.emplace("FEATURE_P_TINY",	 CMenu::addFeature(-1, *parent, "Tiny Player", feat_toggle));
+			//feature::map.emplace("FEATURE_P_TEST",	 CMenu::addFeature(-1, *parent, "TEST!!@", feat_action));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);
 			feature::map.emplace("FEATURE_V_TRUEGOD",	 CMenu::addFeature(-1, *parent, "God", feat_toggle, "vehTrueGodMode"));
@@ -120,6 +121,12 @@ namespace feature
 			for(int i = 0; i < sizeof(hash::ped_misc_hash) / sizeof(hash::ped_misc_hash[0]); i++)
 				CMenu::addFeature(-1, *(parent + 1), hash::ped_misc_name[i], feat_spawn, hash::ped_misc_hash[i], spwn_model);
 
+		*parent		= CMenu::addFeature(0, -1, "Outfits", feat_parent);
+			feature::map.emplace("FEATURE_C_SANTA",	 CMenu::addFeature(-1, *parent, "Santa", feat_action));
+			feature::map.emplace("FEATURE_C_TRASH_ORANGE",	 CMenu::addFeature(-1, *parent, "Trash Orange", feat_action));
+			feature::map.emplace("FEATURE_C_TRASH_GREEN",	 CMenu::addFeature(-1, *parent, "Trash Green", feat_action));
+			feature::map.emplace("FEATURE_C_POLICE",	 CMenu::addFeature(-1, *parent, "Police", feat_action));
+
 		*parent		= CMenu::addFeature(0, -1, "Animations", feat_parent);
 			feature::map.emplace("FEATURE_U_STOP_ANIM",	 CMenu::addFeature(-1, *parent, "Stop", feat_action));
 			for(int i = 0; i < sizeof(hash::ped_anim_name) / sizeof(hash::ped_anim_name[0]); i++)
@@ -161,6 +168,10 @@ namespace feature
 			CMenu::addFeature(-1, *parent, "LSIA Runway", feat_teleport, tp_static, -1336.f, -3044.f, 14.15f);
 			CMenu::addFeature(-1, *parent, "Sandy Shores Airfield", feat_teleport, tp_static, 1747.f, 3273.f, 41.35f);
 			CMenu::addFeature(-1, *parent, "Mount Chiliad", feat_teleport, tp_static, 489.979f, 5587.527f, 794.3f);
+			CMenu::addFeature(-1, *parent, "Maze Bank Top", feat_teleport, tp_static, -75.3923f, -819.27044f, 327.17520f);
+			CMenu::addFeature(-1, *parent, "Vinewood Sign", feat_teleport, tp_static, 735.02979f, 1195.03259f, 348.38156f);
+			CMenu::addFeature(-1, *parent, "Military Base", feat_teleport, tp_static, -2177.79102f, 3236.65381f, 33.81028f);
+			CMenu::addFeature(-1, *parent, "High in the air", feat_teleport, tp_static, 1273.44470f, 3084.96997f, 1845.83130f);
 
 		*parent	= CMenu::addFeature(0, -1, "Weapons", feat_parent);
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Weapon Modifiers", feat_parent);
@@ -197,9 +208,15 @@ namespace feature
 			feature::map.emplace("FEATURE_U_NOCLIP_SPEED",	 CMenu::addFeature(-1, *parent, "No Clip Speed", feat_action_value, "noclipSpeed", 1.f, 10.f, 1.f));
 			feature::map.emplace("FEATURE_U_CHAOS_MODE",	 CMenu::addFeature(-1, *parent, "Chaos Mode", feat_value_str, "", 0.f, (float) (sizeof(hash::chaos_mode_type) / sizeof(*hash::chaos_mode_type)) - 1, 1.f, hash::chaos_mode_type));
 			feature::map.emplace("FEATURE_U_SMASH_VEHICLES",	 CMenu::addFeature(-1, *parent, "Smash Vehicles", feat_action));
+			feature::map.emplace("FEATURE_U_BLACK_HOLE",	 CMenu::addFeature(-1, *parent, "Black Hole", feat_action_value, "blackHole", 30.f, 120.f, 10.f));
 			feature::map.emplace("FEATURE_U_PED_DROP",	 CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
 			feature::map.emplace("FEATURE_U_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Money (millions!)", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
 			feature::map.emplace("FEATURE_U_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
+			feature::map.emplace("FEATURE_U_CLEAN_SESSION",	 CMenu::addFeature(-1, *parent, "Clean Session (Lag switch)", feat_action));
+			//feature::map.emplace("FEATURE_U_REMOTE_PROT_MONEY",	 CMenu::addFeature(-1, *parent, "Remote Money Protection", feat_toggle));
+			feature::map.emplace("FEATURE_U_REMOTE_PROT_RP",	 CMenu::addFeature(-1, *parent, "Remote RP Protection", feat_toggle));
+			feature::map.emplace("FEATURE_U_REMOTE_PROT_FRAUD",	 CMenu::addFeature(-1, *parent, "Remote Bill Fraud Protection", feat_toggle));
+			feature::map.emplace("FEATURE_U_REMOTE_PROT_KICK",	 CMenu::addFeature(-1, *parent, "Remote Kick Protection", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			feature::map.emplace("FEATURE_I_FPS_COUNTER",	 CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));
@@ -216,6 +233,15 @@ namespace feature
 			featMap map;
 		
 			map.emplace("PLRFEAT_PARENT", CMenu::addFeature(-1, *parent, "!Invalid!", feat_parent));
+				map.emplace("PLRFEAT_INFO", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Player Info", feat_parent));
+					map.emplace("PLRFEAT_INFO_NAME", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Name: ", feat_action));
+					map.emplace("PLRFEAT_INFO_IP", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "IP: ", feat_action));
+					map.emplace("PLRFEAT_INFO_PORT", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Port: ", feat_action));
+					map.emplace("PLRFEAT_INFO_COORDS", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Coords: ", feat_action));
+					map.emplace("PLRFEAT_INFO_DISTANCE", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Distance: ", feat_action));
+					map.emplace("PLRFEAT_INFO_HEALTH", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Hp/Armor: ", feat_action));
+					map.emplace("PLRFEAT_INFO_IS_IN_VEH", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "In Vehicle: ", feat_action));
+					map.emplace("PLRFEAT_INFO_IS_GOD", CMenu::addFeature(-1, map["PLRFEAT_INFO"], "Is God: ", feat_action));
 				map.emplace("PLRFEAT_TRACK", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Track Player", feat_toggle));
 				map.emplace("PLRFEAT_SPECTATE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Spectate Player", feat_toggle));
 				map.emplace("PLRFEAT_PED_DROP", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Ped Drop", feat_toggle));
@@ -236,15 +262,17 @@ namespace feature
 				map.emplace("PLRFEAT_DETACH_ALL", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Detach All", feat_action));
 				map.emplace("PLRFEAT_ATTACH_CLONE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Attach Clone", feat_action_value, "", 1.f, 10.f, 1.f));
 				map.emplace("PLRFEAT_ATTACH_CLONE_69", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Attach Clone 69", feat_action));
-				map.emplace("PLRFEAT_ATTACH_OBJ_PARENT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Attach Object", feat_parent));
-				for(int j = 0; j < sizeof(hash::object_prop_attach_hash) / sizeof(hash::object_prop_attach_hash[0]); j++)
-					CMenu::addFeature(-1, map["PLRFEAT_ATTACH_OBJ_PARENT"], hash::object_prop_attach_name[j], feat_attach, hash::object_prop_attach_hash[j], i);
+				//map.emplace("PLRFEAT_ATTACH_OBJ_PARENT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Attach Object", feat_parent));
+				//for(int j = 0; j < sizeof(hash::object_prop_attach_hash) / sizeof(hash::object_prop_attach_hash[0]); j++)
+				//	CMenu::addFeature(-1, map["PLRFEAT_ATTACH_OBJ_PARENT"], hash::object_prop_attach_name[j], feat_attach, hash::object_prop_attach_hash[j], i);
 				map.emplace("PLRFEAT_TRAP_IN_CAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Trap In Cage", feat_action));
 				//map.emplace("PLRFEAT_SHOOT", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Shoot", feat_action));
 				map.emplace("PLRFEAT_CHRISFORMAGE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Send Chris Formage", feat_action));
 				map.emplace("PLRFEAT_CLEAR_TASKS", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Clear Tasks", feat_action));
 				map.emplace("PLRFEAT_FREEZE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Freeze", feat_action));
 				map.emplace("PLRFEAT_ANIMATE", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Animate", feat_action_value_str, "", 0.f, (float) (sizeof(hash::ped_anim_name) / sizeof(*hash::ped_anim_name)) - 1, 1.f, hash::ped_anim_name));
+				map.emplace("PLRFEAT_DEAD_CLONES", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Dead Clones", feat_toggle));
+				map.emplace("PLRFEAT_GIVE_WANTED", CMenu::addFeature(-1, map["PLRFEAT_PARENT"], "Give Wanted Level", feat_action));
 			feature::player_map.emplace(i, map);
 		}
 	

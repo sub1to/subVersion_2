@@ -316,6 +316,7 @@ class CMenu
 		static CFeatCat*	getFeatureCategory(int id);
 		static int			setActiveCat(int);
 		static int			getActiveCat();
+		static int			getActiveParent();
 		static bool			fillFeatureCurBuffer(int i, BYTE flags);
 
 		static int			addFeature(int cat, int parent, std::string name, featType type);
@@ -341,6 +342,7 @@ class CMenu
 	protected:
 		static std::vector<CFeatCat*>	m_pFeatureCat;
 		static int						m_iActiveCat;		//index for featureParent [should be the same as id]
+		static int						m_iActiveParent;
 		static std::vector<CFeat*>		m_pFeature;
 		static int						m_iActiveFeature;	//index for featureCur [DOES NOT HOLD ID!]
 		static std::vector<CFeat*>		m_pFeatureCur;

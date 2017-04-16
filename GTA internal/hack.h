@@ -91,9 +91,12 @@ class CHack
 		//teleport
 		static v3	m_v3Teleport;
 
+		//player info update timer
+		static clock_t	m_clockPlayerInfo;
+
 		//functions
 		static void	killNpc();
-		static void	fillAmmo();
+		//static void	fillAmmo();
 		static bool	refresh();
 
 	private:

@@ -33,6 +33,7 @@ keyMap				CMenu::m_keyMap;
 */
 std::vector<CFeatCat*>	CMenu::m_pFeatureCat;
 int						CMenu::m_iActiveCat					= 0;		//index for featureParent [should be the same as id]
+int						CMenu::m_iActiveParent				= -1;
 std::vector<CFeat*>		CMenu::m_pFeature;
 int						CMenu::m_iActiveFeature				= 0;		//index for featureCur [DOES NOT HOLD ID!]
 std::vector<CFeat*>		CMenu::m_pFeatureCur;
@@ -124,8 +125,6 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 		return false;
 
 	clock_t	c	= clock();
-
-	static bool			bKeyState[0x100][2]		= { false, false };
 	static BYTE			btKeyState[0x100]		= { 0 };	//1 << 0 = keystate; 1 << 1 = held down
 	static clock_t		clockKeyState[0x100]	= { c };
 
@@ -591,6 +590,11 @@ int			CMenu::getActiveCat()
 	return m_iActiveCat;
 }
 
+int			CMenu::getActiveParent()
+{
+	return m_iActiveParent;
+}
+
 int			CMenu::setActiveCat(int cat)
 {
 	if(cat > m_pFeatureCat.size() - 1)
@@ -609,6 +613,14 @@ bool		CMenu::fillFeatureCurBuffer(int id, BYTE flag)
 	m_iActiveFeature			= 0;
 	m_iFeatureCurDisplayOffset	= 0;
 	m_bCheckBox					= false;
+
+	if(flag & FFB_CATEGORY)
+		m_iActiveCat	= id;
+
+	if(flag & FFB_PARENT)
+		m_iActiveParent	= id;
+	else
+		m_iActiveParent	= -1;
 
 	for(int i = 0; i < m_pFeature.size(); i++)		//create a list of features from current category
 	{
