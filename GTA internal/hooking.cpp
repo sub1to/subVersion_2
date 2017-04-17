@@ -30,7 +30,7 @@ CReplayInterface*							CHooking::m_replayIntf;
 std::unordered_map<uint64_t,NativeHandler>	CHooking::m_handlerCache;
 __int64**									CHooking::m_globalBase;
 MemoryPool**								CHooking::m_entityPool;
-bool										CHooking::m_bClearTasks	= false;
+CRITICAL_SECTION							CHooking::m_critSec;
 
 /*
 	//Private function declarations
@@ -47,6 +47,7 @@ void CHooking::init()
 	CLog::msg("Initializing");
 	CCrossMap::init();
 	findPatterns();
+	InitializeCriticalSection(&m_critSec);
 
 	while(*CHooking::m_gameState != GameStatePlaying)
 		Sleep(100);
@@ -75,6 +76,7 @@ void CHooking::onTick()
 
 void CHooking::cleanup()
 {
+	DeleteCriticalSection(&m_critSec);
 	CLog::msg("Unloading");
 	for(int i = 0; i < m_hookedNative.size(); i++)
 		if(MH_DisableHook(m_hookedNative[i]) != MH_OK && MH_RemoveHook(m_hookedNative[i]) != MH_OK)
@@ -164,12 +166,16 @@ void* __cdecl HK_NATIVE(NativeContext* cxt)
 BOOL (__cdecl *OG_IS_PLAYER_ONLINE)(scrNativeCallContext* context)	= nullptr;
 BOOL __cdecl HK_IS_PLAYER_ONLINE(NativeContext* cxt)
 {
-	static int	last = 0;
-	int			cur = GAMEPLAY::GET_FRAME_COUNT();
-	if (last != cur)
+	if(TryEnterCriticalSection(&CHooking::m_critSec))
 	{
-		last = cur;
-		CHooking::onTick();
+		static int	last = 0;
+		int			cur = GAMEPLAY::GET_FRAME_COUNT();
+		if (last != cur)
+		{
+			last = cur;
+			CHooking::onTick();
+		}
+		LeaveCriticalSection(&CHooking::m_critSec);
 	}
 	return OG_IS_PLAYER_ONLINE(cxt);
 }

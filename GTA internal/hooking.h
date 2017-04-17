@@ -51,7 +51,7 @@ class CHooking
 		static std::unordered_map<uint64_t,NativeHandler>	m_handlerCache;
 		static __int64**									m_globalBase;
 		static MemoryPool**									m_entityPool;
-		static bool											m_bClearTasks;
+		static CRITICAL_SECTION								m_critSec;
 
 		static void				init();
 		static void				cleanup();
