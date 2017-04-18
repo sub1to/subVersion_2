@@ -204,8 +204,10 @@ bool	CHack::refresh()
 				float heading2	= cp->pCNavigation->fHeading2;
 				//heading += 1.f;
 				//heading *= 180.f;
-				//sprintf_s(msg, "Memory Heading2: %.4f", heading);
-				//CLog::msg(msg);
+				sprintf_s(msg, "Memory Heading: %.4f", heading);
+				CLog::msg(msg);
+				sprintf_s(msg, "Memory Heading2: %.4f", heading2);
+				CLog::msg(msg);
 
 				v3	nativeRot	= ENTITY::GET_ENTITY_ROTATION(playerPed, 0);
 				v3	memoryRot	= cp->pCNavigation->v3Rotation;
@@ -217,12 +219,12 @@ bool	CHack::refresh()
 				sprintf_s(msg, "Native Rot Z: %.4f", nativeRot.z);
 				CLog::msg(msg);
 
-				//sprintf_s(msg, "Memory Rot X: %.4f", memoryRot.x);
-				//CLog::msg(msg);
-				//sprintf_s(msg, "Memory Rot Y: %.4f", memoryRot.y);
-				//CLog::msg(msg);
-				//sprintf_s(msg, "Memory Rot Z: %.4f", memoryRot.z);
-				//CLog::msg(msg);
+				sprintf_s(msg, "Memory Rot X: %.4f", memoryRot.x);
+				CLog::msg(msg);
+				sprintf_s(msg, "Memory Rot Y: %.4f", memoryRot.y);
+				CLog::msg(msg);
+				sprintf_s(msg, "Memory Rot Z: %.4f", memoryRot.z);
+				CLog::msg(msg);
 			}
 			feat->m_bSet	= true;
 		}*/
@@ -1363,8 +1365,9 @@ bool	CHack::refresh()
 				m_CVehicleHandling	= *m_pCVehicleHandling;
 			}
 
-			if(	CMenu::getFeature(feature::map["FEATURE_V_GOD"]) ||
-				CMenu::getFeature(feature::map["FEATURE_V_TRUEGOD"]))		m_pCVehicle->giveHealth();
+			if(	CMenu::getFeature(feature::map["FEATURE_V_GOD"])->m_bOn ||
+				CMenu::getFeature(feature::map["FEATURE_V_TRUEGOD"])->m_bOn)
+				m_pCVehicle->giveHealth();
 
 			checkFeature<BYTE>	(	"FEATURE_V_TRUEGOD",
 									(m_CVehicle.btGodMode | 0x01) ^ 0x01,
