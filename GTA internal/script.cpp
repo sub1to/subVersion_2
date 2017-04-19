@@ -659,7 +659,7 @@ namespace script
 		if(upgrade)
 			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0);
 
-		ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);
+		//ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);
 		return true;
 	}
 
@@ -977,6 +977,12 @@ namespace script
 	v3	get_coords_infront_of_coords(v3 pos, v3 rot, float dist)
 	{
 		return pos + (rot.transformRotToDir() * dist);
+	}
+
+	v3 get_coords_above_coords(v3 pos, float dist)
+	{
+		pos.z	+= dist;
+		return pos;
 	}
 
 	void set_radio_station(std::string station)
@@ -1304,9 +1310,9 @@ namespace script
 			}
 		}
 		if(action & 0x10)	//up
-			teleport_entity_to_coords(e, get_coords_above_player(.2f * speed), false);
+			teleport_entity_to_coords(e, get_coords_above_coords(get_entity_coords(e), .2f * speed), false);
 		if(action & 0x20)	//down
-			teleport_entity_to_coords(e, get_coords_above_player(-.2f * speed), false);
+			teleport_entity_to_coords(e, get_coords_above_coords(get_entity_coords(e), -.2f * speed), false);
 	}
 
 
