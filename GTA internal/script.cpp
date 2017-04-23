@@ -622,7 +622,14 @@ namespace script
 		return true;
 	}
 
-	bool spawn_vehicle(const char* model, Vehicle* vehOut, bool warp, bool bypass, bool upgrade)
+	/*
+		flags
+			1 << 0	warp
+			1 << 1	mp bitset bypass
+			1 << 2	upgrade
+			1 << 3	license
+	*/
+	bool spawn_vehicle(const char* model, Vehicle* vehOut, BYTE flags, int colours)//bool warp, bool bypass, bool upgrade)
 	{
 		v3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
@@ -634,11 +641,10 @@ namespace script
 		if(!STREAMING::HAS_MODEL_LOADED(vehHash))
 			return false;
 
-		bool	bFly	= warp && (VEHICLE::IS_THIS_MODEL_A_HELI(vehHash) || VEHICLE::IS_THIS_MODEL_A_PLANE(vehHash)) ? true : false;
+		bool	bFly	= (flags & 0x01) && (VEHICLE::IS_THIS_MODEL_A_HELI(vehHash) || VEHICLE::IS_THIS_MODEL_A_PLANE(vehHash)) ? true : false;
 		if(bFly)
 			pos.z += 100.f;
 		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
-		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YO MOMMA");
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
 		VEHICLE::SET_VEHICLE_IS_STOLEN(veh, false);
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
@@ -650,14 +656,16 @@ namespace script
 		}
 		else
 			VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(veh);
-		if(warp)
+		if(flags & 0x01)
 			PED::SET_PED_INTO_VEHICLE(playerPed, veh, -1);
+		if(flags & 0x08)
+			VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YO MOMMA");
 		if(vehOut != nullptr)
 			*vehOut = veh;
-		if(bypass)
+		if(flags & 0x04)
+			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0, colours);
+		else if(flags & 0x02)
 			vehicle_bypass(veh);	//mp bypass
-		if(upgrade)
-			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0);
 
 		//ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);
 		return true;
@@ -684,12 +692,13 @@ namespace script
 		*CHooking::getGlobalPtr(0x2794B2) = b;
 	}
 
-	bool	upgrade_car(Vehicle v, bool wheels)
+	bool	upgrade_car(Vehicle v, bool wheels, int colours)
 	{
 		if(!request_control_of_entity(v))
 			return false;
 
-		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(v, "YO MOMMA");
+		vehicle_bypass(v);
+
 		VEHICLE::SET_VEHICLE_MOD_KIT(v, 0);
 		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT_INDEX(v, PLATE_YELLOWONBLACK);
 		VEHICLE::SET_VEHICLE_WHEEL_TYPE(v, WHEEL_TYPE_HIGHEND);
@@ -697,7 +706,8 @@ namespace script
 		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_XENONLIGHTS, 1);
 		VEHICLE::SET_VEHICLE_MOD(v, 0, VEHICLE::GET_NUM_VEHICLE_MODS(v, 0) - 2, false);		//biggest spoiler = ugly
 		VEHICLE::SET_VEHICLE_WINDOW_TINT(v, 1);
-		VEHICLE::SET_VEHICLE_COLOURS(v, VehicleColorChrome, VehicleColorChrome);
+		if(colours != -1)
+			VEHICLE::SET_VEHICLE_COLOURS(v, colours & 0xFF, (colours >> 0x08) & 0xFF);
 		for(int i = 1; i < 0x30; ++i)
 		{
 			if(!wheels && i > 22 && i < 25)
@@ -1501,9 +1511,10 @@ namespace script
 
 	void	lester_offradar_add(int ms)
 	{
-		int	time	= NETWORK::GET_NETWORK_TIME();
-		if(*CHooking::getGlobalPtr(0x2520AA) < time + (ms / 2))
-			*CHooking::getGlobalPtr(0x2520AA) = time + ms;
+		ULONGLONG	time	= NETWORK::GET_NETWORK_TIME(); //GetTickCount64(); //synced from host
+		ULONGLONG*	ptr		= reinterpret_cast<ULONGLONG*>(CHooking::getGlobalPtr(0x2520AA));
+		if(*ptr < time + (ms / 2))
+			*ptr = time + ms;
 	}
 
 	void	spectate_player(Ped p, bool b)
@@ -1553,18 +1564,22 @@ namespace script
 		}
 	}
 
-	void	stealth_money(int mils)
+	void	stealth_money(int mils, bool remove)
 	{
-		int	max		= 0;
+		if(!NETWORK::NETWORK_IS_SESSION_STARTED())
+			return;
+
+		int	max		= remove ? 2000 : 90;
+		int	loops	= 0;
 		int	rest	= mils;
-		if(mils > 90)
+		if(mils > max)
 		{
-			max		= mils / 90;
-			rest	= mils - (90 * max);
+			loops	= mils / max;
+			rest	= mils - (max * loops);
 		}
 		rest	*= 1000000;
 		
-		while(max > 0 || rest > 0)
+		while(loops > 0 || rest > 0)
 		{
 			int	amount;
 			if(rest > 0)
@@ -1575,10 +1590,10 @@ namespace script
 			else
 			{
 				amount	= 90000000;
-				--max;
+				--loops;
 			}
 			Any transactionID	= INT_MAX;
-			if(UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&transactionID, 1474183246, 1982688246, 1445302971, amount, 4))
+			if(UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&transactionID, 1474183246, remove	? -1359375127 : 1982688246, remove ? 537254313 : 1445302971, amount, 4))
 				UNK3::_NETWORK_SHOP_CHECKOUT_START(transactionID);
 		}
 	}

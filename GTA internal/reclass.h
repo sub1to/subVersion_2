@@ -100,9 +100,9 @@ public:
 	bool isGod()
 	{
 		return(	(btGodMode & 0x01)
-			||	fFatiguedHealthThreshold < 0.f
-			||	fInjuredHealthThreshold < 0.f
-			||	fDyingHealthThreshold < 0.f
+			//||	fFatiguedHealthThreshold < 0.f
+			//||	fInjuredHealthThreshold < 0.f
+			//||	fDyingHealthThreshold < 0.f
 			||	fHurtHealthThreshold < 0.f		);
 	}
 

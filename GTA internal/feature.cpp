@@ -46,6 +46,7 @@ namespace feature
 		I	Interface
 		U	Misc
 		E	Editor
+		R	Recovery
 		*/
 
 		*parent	= CMenu::addFeature(0, -1, "Player Options", feat_parent);
@@ -203,6 +204,10 @@ namespace feature
 			feature::map.emplace("FEATURE_T_SET_MIN",	 CMenu::addFeature(-1, *parent, "Set Minute", feat_action_value, "timeMin", 0.f, 55.f, 5.f));
 			feature::map.emplace("FEATURE_T_WEATHER",	 CMenu::addFeature(-1, *parent, "Weather", feat_action_value_str, "", 0.f, 11.f, 1.f, hash::weather_enum));
 
+		*parent	= CMenu::addFeature(0, -1, "Recovery", feat_parent);
+			feature::map.emplace("FEATURE_R_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Give Money", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
+			feature::map.emplace("FEATURE_R_STEALTH_MONEY_REMOVE",	 CMenu::addFeature(-1, *parent, "Stealth Remove Money", feat_action_value, "stealthMoneyRemove", 10.f, 200.f, 10.f));
+
 		*parent	= CMenu::addFeature(0, -1, "Misc", feat_parent);
 			feature::map.emplace("FEATURE_U_NOCLIP",	 CMenu::addFeature(-1, *parent, "No Clip", feat_value_str, "noclip", 0.f, 1.f, 1.f, hash::noclip_type));
 			feature::map.emplace("FEATURE_U_NOCLIP_SPEED",	 CMenu::addFeature(-1, *parent, "No Clip Speed", feat_action_value, "noclipSpeed", 1.f, 10.f, 1.f));
@@ -214,9 +219,9 @@ namespace feature
 			feature::map.emplace("FEATURE_U_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
 			feature::map.emplace("FEATURE_U_CLEAN_SESSION",	 CMenu::addFeature(-1, *parent, "Clean Session (Lag switch)", feat_action));
 			//feature::map.emplace("FEATURE_U_REMOTE_PROT_MONEY",	 CMenu::addFeature(-1, *parent, "Remote Money Protection", feat_toggle));
-			feature::map.emplace("FEATURE_U_REMOTE_PROT_RP",	 CMenu::addFeature(-1, *parent, "Remote RP Protection", feat_toggle));
-			feature::map.emplace("FEATURE_U_REMOTE_PROT_FRAUD",	 CMenu::addFeature(-1, *parent, "Remote Bill Fraud Protection", feat_toggle));
-			feature::map.emplace("FEATURE_U_REMOTE_PROT_KICK",	 CMenu::addFeature(-1, *parent, "Remote Kick Protection", feat_toggle));
+			//feature::map.emplace("FEATURE_U_REMOTE_PROT_RP",	 CMenu::addFeature(-1, *parent, "Remote RP Protection", feat_toggle));
+			feature::map.emplace("FEATURE_U_REMOTE_PROT_FRAUD",	 CMenu::addFeature(-1, *parent, "Remote Bill Fraud Protection", feat_toggle, "protFraud"));
+			feature::map.emplace("FEATURE_U_REMOTE_PROT_KICK",	 CMenu::addFeature(-1, *parent, "Remote Kick Protection", feat_toggle, "protKick"));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			feature::map.emplace("FEATURE_I_FPS_COUNTER",	 CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));
@@ -299,10 +304,15 @@ namespace feature
 		feature::map.emplace("FEATURE_O_ATTACH_BONE", CMenu::addFeature(1, -1, "Attach Bone Index", feat_value_str, "boneAttach", 0.f, (float) (sizeof(hash::ped_bone_name) / sizeof(*hash::ped_bone_name)) - 1, 1.f, hash::ped_bone_name));
 	
 		*parent		= CMenu::addFeature(2, -1, "Vehicles", feat_parent);
-			feature::map.emplace("FEATURE_S_VEH_MOD",	 CMenu::addFeature(-1, *parent, "Spawn Upgraded", feat_toggle, "spawnVehUpgrade"));
-			feature::map.emplace("FEATURE_S_IN_VEHICLE",	 CMenu::addFeature(-1, *parent, "Spawn in Vehicle", feat_toggle, "spawnInVeh"));
-			feature::map.emplace("FEATURE_S_SP_BYPASS",	 CMenu::addFeature(-1, *parent, "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
-			feature::map.emplace("FEATURE_S_MP_BYPASS",	 CMenu::addFeature(-1, *parent, "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));
+			*(parent + 1)		= CMenu::addFeature(-1, *parent, "Options", feat_parent);
+				feature::map.emplace("FEATURE_S_VEH_MOD",	 CMenu::addFeature(-1, *(parent + 1), "Spawn Upgraded", feat_toggle, "spawnVehUpgrade"));
+				feature::map.emplace("FEATURE_S_IN_VEHICLE",	 CMenu::addFeature(-1, *(parent + 1), "Spawn in Vehicle", feat_toggle, "spawnInVeh"));
+				feature::map.emplace("FEATURE_S_SP_BYPASS",	 CMenu::addFeature(-1, *(parent + 1), "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
+				feature::map.emplace("FEATURE_S_MP_BYPASS",	 CMenu::addFeature(-1, *(parent + 1), "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));
+				feature::map.emplace("FEATURE_S_LICENSE",	 CMenu::addFeature(-1, *(parent + 1), "Custom License", feat_toggle, "spawnLicense"));
+				feature::map.emplace("FEATURE_S_COLOR_1",	 CMenu::addFeature(-1, *(parent + 1), "Primary Color", feat_value, "spawnColor", 0.f, 160.f, 1.f));
+				feature::map.emplace("FEATURE_S_COLOR_2",	 CMenu::addFeature(-1, *(parent + 1), "Secondary Color", feat_value, "spawnColor2", 0.f, 160.f, 1.f));
+
 			*(parent + 1)		= CMenu::addFeature(-1, *parent, "Sports", feat_parent);
 			for(int i = 0; i < sizeof(hash::vehicle_sport_hash) / sizeof(hash::vehicle_sport_hash[0]); i++)
 				CMenu::addFeature(-1, *(parent + 1), hash::vehicle_sport_name[i], feat_spawn, hash::vehicle_sport_hash[i], spwn_vehicle);

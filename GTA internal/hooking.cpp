@@ -186,11 +186,11 @@ BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 {
 	int	p1	= cxt->GetArgument<int>(1);
 
-	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_MONEY"])->m_bOn		&& p1 == 0x127)
+	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_MONEY"])->m_bOn		&& (p1 == 0x127 || p1 == 0x230))
 	//	CLog::msg("Remote money attempt blocked.");
-	if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_RP"])->m_bOn		&& p1 == 0x124)
-		CLog::msg("Remote rp attempt blocked.");
-	else if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_FRAUD"])->m_bOn	&& p1 == 0x186)
+	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_RP"])->m_bOn		&& p1 == 0x124)
+	//	CLog::msg("Remote rp attempt blocked.");
+	if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_FRAUD"])->m_bOn		&& p1 == 0x186)
 		CLog::msg("Remote fraud attempt blocked.");
 	else if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_KICK"])->m_bOn	&& p1 == 0x38)
 		CLog::msg("Remote kick attempt blocked.");

@@ -154,6 +154,8 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 	while(!g_bKillProcess)
 	{
 		CFeat* feat;
+
+		//set scale
 		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_SCALE"]);
 		if(feat->m_bOn && (CRender::m_screen.w != LAYOUT_WIDTH * feat->getValue() || CRender::m_screen.h != LAYOUT_HEIGHT * feat->getValue()))
 		{
@@ -161,14 +163,15 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 			CRender::m_screen.h	= (int) (LAYOUT_HEIGHT * feat->getValue());
 		}
 
+		//set padding
 		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_X"]);
 		if(feat->m_bOn && CRender::m_screen.x != (int) feat->getValue())
 			CRender::m_screen.x = (int) feat->getValue();
-
 		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_Y"]);
 		if(feat->m_bOn && CRender::m_screen.y != (int) feat->getValue())
 			CRender::m_screen.y = (int) feat->getValue();
 
+		//save settings
 		feat = CMenu::getFeature(feature::map["FEATURE_I_SAVE_INI"]);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
@@ -176,11 +179,17 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 			feat->m_bSet = true;
 		}
 
+		//disable parents queue
 		if(CMenu::m_disableParent.size() > 0)
 		{
 			CMenu::getFeature(CMenu::m_disableParent[0])->disableChildren();
 			CMenu::m_disableParent.erase(CMenu::m_disableParent.begin());
 		}
+
+		//check if parent of active feature is disabled
+		while(CMenu::getActiveParent() != -1 && !CMenu::getFeature(CMenu::getActiveParent())->m_bOn)
+			CMenu::menuBack();
+
 		CMenu::checkKeys();
 		CRender::render();
 		Sleep(0x10);

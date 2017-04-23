@@ -318,8 +318,33 @@ bool	CHack::refresh()
 		}
 		
 		//vehicle spawn
-		if(!m_requestedVehicle.empty() && script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn, CMenu::getFeature(feature::map["FEATURE_S_VEH_MOD"])->m_bOn))
-			m_requestedVehicle.erase(m_requestedVehicle.begin());
+		if(!m_requestedVehicle.empty())
+		{
+			BYTE	flags	= 0;
+			int		colours	= -1;
+
+			if(CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn)
+				flags	|= 0x01;
+			if(CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn)
+				flags	|=	0x02;
+			if(CMenu::getFeature(feature::map["FEATURE_S_VEH_MOD"])->m_bOn)
+				flags	|= 0x04;
+			if(CMenu::getFeature(feature::map["FEATURE_S_LICENSE"])->m_bOn)
+				flags	|= 0x08;
+
+			CFeat* feat		= CMenu::getFeature(feature::map["FEATURE_S_COLOR_1"]);
+			CFeat* feat2	= CMenu::getFeature(feature::map["FEATURE_S_COLOR_2"]);
+			if(feat->m_bOn || feat2->m_bOn)
+				colours	= 0;
+			if(feat->m_bOn)
+				colours	|=	(int) feat->getValue();
+			if(feat2->m_bOn)
+				colours	|=	((int) feat2->getValue()) << 0x08;
+
+			if(script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, flags, colours))
+				m_requestedVehicle.erase(m_requestedVehicle.begin());
+		}
+			
 		
 		//ped spawn
 		if(!m_requestedPed.empty())
@@ -578,15 +603,10 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_P_OFFRADAR"]);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
-			if(!feat->m_bSet)
-			{
-				script::lester_offradar_toggle(feat->m_bOn);
-				if(feat->m_bOn)
-					script::lester_offradar_add(60);
-				feat->m_bSet = true;
-			}
+			script::lester_offradar_toggle(feat->m_bOn);
 			if(feat->m_bOn)
 				script::lester_offradar_add(60000);
+			feat->m_bSet = true;
 		}
 		
 		//clean player
@@ -660,11 +680,19 @@ bool	CHack::refresh()
 			feat->m_bSet		= true;
 		}
 		
-		//stealth money
-		feat = CMenu::getFeature(feature::map["FEATURE_U_STEALTH_MONEY"]);
+		//stealth give money
+		feat = CMenu::getFeature(feature::map["FEATURE_R_STEALTH_MONEY"]);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::stealth_money((int) feat->getValue());
+			feat->m_bSet		= true;
+		}
+
+		//stealth remove money
+		feat = CMenu::getFeature(feature::map["FEATURE_R_STEALTH_MONEY_REMOVE"]);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::stealth_money((int) feat->getValue(), true);
 			feat->m_bSet		= true;
 		}
 

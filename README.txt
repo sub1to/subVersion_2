@@ -45,8 +45,8 @@ Copyright 2017 sub1to
 	//////////
 	//Default keybinds:
 	//////////
-		Numpad -	Open menu
-		F9		Save settings and close hack
+		Numpad -	Toggle menu (show/hide)
+		F9		Save settings and close hack (unload)
 
 		Numpad 5	Toggle feature
 		Numpad 0	Back

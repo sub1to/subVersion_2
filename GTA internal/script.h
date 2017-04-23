@@ -88,12 +88,12 @@ namespace script
 	void	ped_weapon(Ped p, std::string weapon, bool give = true);
 
 	bool	spawn_ped(char* model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
-	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, bool warp = false, bool bypass = false, bool upgrade = false);
+	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
 	void	vehicle_bypass(Vehicle vehicle);
 	bool	spawn_object(const char* model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
 	void	vehicle_mp_bypass(bool b);
-	bool	upgrade_car(Vehicle v, bool car);
+	bool	upgrade_car(Vehicle v, bool car = true, int colours = -1);
 
 	void	teleport_player_on_foot(Ped p, float X, float Y, float Z);
 
@@ -136,7 +136,7 @@ namespace script
 	void	spectate_player(Ped p, bool b = false);
 
 	void	ped_money_drop(Ped playerPed, clock_t* tmr);
-	void	stealth_money(int mils);
+	void	stealth_money(int mils, bool remove = false);
 
 	bool	animate_player(Ped remotePed, char* dict, char* anim, bool freeze = false, bool restore = false);
 	bool	animate_local_player(Ped playerPed, char* dict, char* anim, bool restore = false);
