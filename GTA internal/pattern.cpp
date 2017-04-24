@@ -78,12 +78,20 @@ CPattern::CPattern(char* szByte, char* szMask)	:
 {}
 CPattern::~CPattern() {}
 
-CPatternResult	CPattern::find(int i)
+CPattern&	CPattern::find(int i)
 {
 	match(i);
 	if(m_result.size() <= i)
 		m_result.push_back(nullptr);
-	return m_result[0];
+	return *this;
+	//return m_result[0];
+}
+
+CPatternResult	CPattern::get(int i)
+{
+	if(m_result.size() > i)
+		return m_result[i];
+	return nullptr;
 }
 
 /*

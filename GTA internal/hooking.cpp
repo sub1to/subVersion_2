@@ -229,33 +229,33 @@ void findPatterns()
 
 	char* ptr	= nullptr;
 
-	ptr	= pattern_gameState.find(0).get<char>(2);
+	ptr	= pattern_gameState.find(0).get(0).get<char>(2);
 	ptr == nullptr ?	killProcess("Failed find game state pattern")				: CHooking::m_gameState		= (eGameState*)				(ptr + *(uint32_t*) ptr + 5);
 
-	ptr	= pattern_native.find(0).get<char>(9);
+	ptr	= pattern_native.find(0).get(0).get<char>(9);
 	ptr == nullptr ?	killProcess("Failed to find native registration pattern")	: CHooking::m_regTable		= (NativeRegistration**)	(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_world.find(0).get<char>(3);
+	ptr	= pattern_world.find(0).get(0).get<char>(3);
 	ptr == nullptr ?	killProcess("Failed to find world pattern")					: CHack::m_pCWorld			= ((CWorld_Wrap*)			(ptr + *(uint32_t*) ptr + 4))->CWorld;
 	
-	ptr	= pattern_blip.find(0).get<char>(3);
+	ptr	= pattern_blip.find(0).get(0).get<char>(3);
 	ptr == nullptr ?	killProcess("Failed to find blip pattern")					: CHooking::m_blipList		= (CBlipList*)				(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_replay.find(0).get<char>(3);
+	ptr	= pattern_replay.find(0).get(0).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find replay interface pattern")		: CHooking::m_replayIntf	= *(CReplayInterface**)		(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_global.find(0).get<char>(3);
+	ptr	= pattern_global.find(0).get(0).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find global pattern")				: CHooking::m_globalBase	= (__int64**)				(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_playerList.find(1).get<char>(3);
+	ptr	= pattern_playerList.find(1).get(0).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find player list pattern")			: CHack::m_pCPlayers		= (CPlayers*)				(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_entityPool.find(1).get<char>(3);
+	ptr	= pattern_entityPool.find(1).get(0).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find entity pool pattern")			: CHooking::m_entityPool	= (MemoryPool**)			(ptr + *(uint32_t*) ptr + 4);
 
-	ptr	= pattern_modelCheck.find(0).get<char>(0);
+	ptr	= pattern_modelCheck.find(0).get(0).get<char>(0);
 	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern") : mem_nop(ptr, 24);
 
-	ptr	= pattern_modelSpawn.find(0).get<char>(8);
+	ptr	= pattern_modelSpawn.find(0).get(0).get<char>(8);
 	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern") : mem_nop(ptr, 2);
 }

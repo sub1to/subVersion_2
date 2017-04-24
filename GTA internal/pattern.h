@@ -69,7 +69,8 @@ class CPattern
 		CPattern(char* szByte, char* szMask);
 		~CPattern();
 		
-		CPatternResult	find(int i = 0);		//returns result i
+		CPattern&		find(int i = 0);		//scans for i patterns
+		CPatternResult	get(int i);				//returns result i
 
 	protected:
 		char*			m_szByte;
