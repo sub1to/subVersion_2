@@ -142,6 +142,22 @@ namespace hash
 
 	extern char* ped_anim_dict[0x40];
 	extern char* ped_anim_name[0x20];
+
+
+	/*
+		//outfits
+	*/
+	extern BYTE	outfit_santa_female[0xA][0x3];
+	extern BYTE	outfit_santa_male[0xA][0x3];
+
+	extern BYTE	outfit_trash_orange_female[0xA][0x3];
+	extern BYTE	outfit_trash_orange_male[0xA][0x3];
+
+	extern BYTE	outfit_trash_green_female[0xA][0x3];
+	extern BYTE	outfit_trash_green_male[0xA][0x3];
+
+	extern BYTE	outfit_police_female[0xA][0x3];
+	extern BYTE	outfit_police_male[0xA][0x3];
 };
 
 #endif

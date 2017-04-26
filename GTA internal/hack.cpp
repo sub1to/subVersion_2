@@ -536,7 +536,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_C_SANTA"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
-			script::apply_outfit_santa();
+			script::apply_outfit(OUTFIT_SANTA);
 			feat->m_bSet		= true;
 		}
 
@@ -544,7 +544,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_C_TRASH_ORANGE"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
-			script::apply_outfit_trashman_orange();
+			script::apply_outfit(OUTFIT_TRASH_ORANGE);
 			feat->m_bSet		= true;
 		}
 
@@ -552,7 +552,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_C_TRASH_GREEN"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
-			script::apply_outfit_trashman_green();
+			script::apply_outfit(OUTFIT_TRASH_GREEN);
 			feat->m_bSet		= true;
 		}
 
@@ -560,7 +560,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_C_POLICE"]);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
-			script::apply_outfit_police();
+			script::apply_outfit(OUTFIT_POLICE);
 			feat->m_bSet		= true;
 		}
 
@@ -697,8 +697,8 @@ bool	CHack::refresh()
 		}
 
 		//rp loop
-		feat = CMenu::getFeature(feature::map["FEATURE_U_RP_LOOP"]);
-		if(feat->m_bOn && clock() - feat->m_clockTick > 0x6F)
+		feat = CMenu::getFeature(feature::map["FEATURE_R_RP_LOOP"]);
+		if((feat->m_bOn && clock() - feat->m_clockTick > 0x6F) || !feat->m_bSet)
 		{
 			if(!feat->m_bSet)
 			{
@@ -706,7 +706,7 @@ bool	CHack::refresh()
 				CMenu::getFeature(feature::map["FEATURE_P_NEVERWANTED"])->toggle(false);
 				feat->m_bSet	= true;
 			}
-			m_pCPedPlayer->pCPlayerInfo->CWantedData.dwWantedLevel	= feat->m_bRestored ? 5 : 0;
+			m_pCPedPlayer->pCPlayerInfo->CWantedData.dwWantedLevel	= feat->m_bOn && feat->m_bRestored ? 5 : 0;
 			feat->m_bRestored	= !feat->m_bRestored;
 			feat->m_clockTick	= clock();
 		}
@@ -763,6 +763,61 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(feature::map["FEATURE_U_CLEAN_SESSION"]);
 		if(!feat->m_bSet && feat->m_bOn && script::clean_session())
 			feat->m_bSet = true;
+
+		//Unlocks
+		const char* const unlockFeat[]	= {
+			"FEATURE_R_UNLOCK_STAT",
+			"FEATURE_R_UNLOCK_TATTOO",
+			"FEATURE_R_UNLOCK_PARACHUTE",
+			"FEATURE_R_UNLOCK_RIMS",
+			"FEATURE_R_UNLOCK_VEHICLE",
+			"FEATURE_R_UNLOCK_TROPHY",
+			"FEATURE_R_UNLOCK_HAIRSTYLE",
+			"FEATURE_R_UNLOCK_WEAPON",
+			"FEATURE_R_UNLOCK_CLOTHING",
+		};
+		void (*unlockFunc[])() = {
+			&script::unlocks_stats,
+			&script::unlocks_tattoos,
+			&script::unlocks_parachutes,
+			&script::unlocks_chrome_rims,
+			&script::unlocks_vehicles,
+			&script::unlocks_trophies,
+			&script::unlocks_hairstyles,
+			&script::unlocks_weapons,
+			&script::unlocks_clothes,
+		};
+
+		for(int i = 0; i < sizeof(unlockFeat) / sizeof(*unlockFeat); ++i)
+		{
+			feat = CMenu::getFeature(feature::map[unlockFeat[i]]);
+			if(feat->m_bOn && !feat->m_bSet)
+			{
+				unlockFunc[i]();
+				feat->m_bSet = true;
+			}
+		}
+
+		//Event protections
+		const char* const protexFeat[]	= {
+			"FEATURE_D_TELEPORT",
+			"FEATURE_D_KICK",
+		};
+
+		const eRockstarEvent protexEnum[]	= {
+			REVENT_NETWORK_START_SYNCED_SCENE_EVENT,
+			REVENT_KICK_VOTES_EVENT,
+		};
+
+		for(int i = 0; i < sizeof(protexFeat) / sizeof(*protexFeat); ++i)
+		{
+			feat = CMenu::getFeature(feature::map[protexFeat[i]]);
+			if(!feat->m_bSet)
+			{
+				CHooking::defuseEvent(protexEnum[i], feat->m_bOn);
+				feat->m_bSet	= true;
+			}
+		}
 		
 		//vehicle stuff
 		if(playerVeh != NULL)
@@ -1026,7 +1081,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_ME"]);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
 			{
-				if(script::teleport_player_to_me(remotePed))
+				if(script::teleport_player_to_me(remotePed, i))
 					plrFeat->m_bSet = true;
 				plrFeat->m_clockTick = clock();
 			}
@@ -1035,7 +1090,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_SEA"]);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
 			{
-				if(script::teleport_player_to_sea(remotePed))
+				if(script::teleport_player_to_sea(remotePed, i))
 					plrFeat->m_bSet = true;
 				plrFeat->m_clockTick = clock();
 			}

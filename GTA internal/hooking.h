@@ -58,6 +58,7 @@ class CHooking
 		static void				onTick();
 		static NativeHandler	getNativeHandler(uint64_t origHash);
 		static __int64*			getGlobalPtr(int index);
+		static void				defuseEvent(eRockstarEvent e, bool toggle);
 };
 
 #endif

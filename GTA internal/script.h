@@ -36,10 +36,7 @@ namespace script
 	bool	is_player_ped_female(Ped ped);
 
 	void	apply_clothing(Ped playerPed, int group, int var = -1, int texture = -1);
-	void	apply_outfit_santa();
-	void	apply_outfit_trashman_orange();
-	void	apply_outfit_trashman_green();
-	void	apply_outfit_police();
+	void	apply_outfit(eCustomOutfit type);
 
 	bool	apply_model(std::string skinName, bool random = false);
 	void	set_player_clothing(int group, int value, bool texture);
@@ -59,8 +56,8 @@ namespace script
 	void	teleport_to_ped_car(Ped p);
 	void	get_in_closest_car();
 	void	teleport_to_entity(Entity e);
-	bool	teleport_player_to_me(Ped p);
-	bool	teleport_player_to_sea(Ped p);
+	bool	teleport_player_to_me(Ped p, Player player);
+	bool	teleport_player_to_sea(Ped p, Player player);
 	void	teleport_player_to_air(Ped p);
 	v3		get_coords_infront_player(float dist);
 	v3		get_coords_above_player(float dist);
@@ -146,6 +143,17 @@ namespace script
 	bool	give_player_wanted_level(Player player, int reportCount);
 
 	bool	clean_session();
+
+	int		get_online_player_index();
+	void	unlocks_stats();
+	void	unlocks_tattoos();
+	void	unlocks_parachutes();
+	void	unlocks_chrome_rims();
+	void	unlocks_vehicles();
+	void	unlocks_trophies();
+	void	unlocks_hairstyles();
+	void	unlocks_weapons();
+	void	unlocks_clothes();
 }
 
 #endif

@@ -242,6 +242,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x4851997F37FE9B3C, 0x098CDAAE6268B0D0, //stats::stat_set_float
 	0x4B33C4243DE0C432, 0xCE46AC18A4A47E2D, //stats::stat_set_bool
 	0x2C29BFB64F4FCBE4, 0xC43DC246FFFC2C87, //stats::stat_set_date
+	0x767FBC2AC802EF3D, 0x7FE4F330D3D74809, //stats::stat_get_int
 	0x3C5FD37B5499582E, 0x1EB4A371BFB0E524, //unk3::_network_shop_begin_service
 	0x39BE7CEA8D9CC8E6, 0xF0045367541BC90,  //unk3::_network_shop_checkout_start
 	0x2902843FCD2B2D79, 0x91015F07066D5841, //script::get_event_data

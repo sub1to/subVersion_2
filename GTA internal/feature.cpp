@@ -47,6 +47,7 @@ namespace feature
 		U	Misc
 		E	Editor
 		R	Recovery
+		D	Protection (defense)
 		*/
 
 		*parent	= CMenu::addFeature(0, -1, "Player Options", feat_parent);
@@ -76,6 +77,7 @@ namespace feature
 			//feature::map.emplace("FEATURE_P_ANTI_AFK",	 CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
 			feature::map.emplace("FEATURE_P_TINY",	 CMenu::addFeature(-1, *parent, "Tiny Player", feat_toggle));
 			//feature::map.emplace("FEATURE_P_TEST",	 CMenu::addFeature(-1, *parent, "TEST!!@", feat_action));
+			//feature::map.emplace("FEATURE_P_TEST2",	 CMenu::addFeature(-1, *parent, "TEST2!!@", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);
 			feature::map.emplace("FEATURE_V_TRUEGOD",	 CMenu::addFeature(-1, *parent, "God", feat_toggle, "vehTrueGodMode"));
@@ -205,8 +207,23 @@ namespace feature
 			feature::map.emplace("FEATURE_T_WEATHER",	 CMenu::addFeature(-1, *parent, "Weather", feat_action_value_str, "", 0.f, 11.f, 1.f, hash::weather_enum));
 
 		*parent	= CMenu::addFeature(0, -1, "Recovery", feat_parent);
-			feature::map.emplace("FEATURE_R_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Give Money", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
-			feature::map.emplace("FEATURE_R_STEALTH_MONEY_REMOVE",	 CMenu::addFeature(-1, *parent, "Stealth Remove Money", feat_action_value, "stealthMoneyRemove", 10.f, 200.f, 10.f));
+			feature::map.emplace("FEATURE_R_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
+			feature::map.emplace("FEATURE_R_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Give Money", feat_action_value, "stealthMoney", 5.f, 50.f, 5.f));
+			feature::map.emplace("FEATURE_R_STEALTH_MONEY_REMOVE",	 CMenu::addFeature(-1, *parent, "Stealth Remove Money", feat_action_value, "stealthMoneyRemove", 5.f, 50.f, 5.f));
+			feature::map.emplace("FEATURE_R_UNLOCK_STAT",	 CMenu::addFeature(-1, *parent, "Stat Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_TATTOO",	 CMenu::addFeature(-1, *parent, "Tattoo Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_PARACHUTE",	 CMenu::addFeature(-1, *parent, "Parachute Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_RIMS",	 CMenu::addFeature(-1, *parent, "Rims Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_VEHICLE",	 CMenu::addFeature(-1, *parent, "Vehicle Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_TROPHY",	 CMenu::addFeature(-1, *parent, "Trophy Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_HAIRSTYLE",	 CMenu::addFeature(-1, *parent, "Hairstyle Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_WEAPON",	 CMenu::addFeature(-1, *parent, "Weapon Unlocks", feat_action));
+			feature::map.emplace("FEATURE_R_UNLOCK_CLOTHING",	 CMenu::addFeature(-1, *parent, "Clothing Unlocks", feat_action));
+
+		*parent	= CMenu::addFeature(0, -1, "Protections", feat_parent);
+			//feature::map.emplace("FEATURE_D_FRAUD",	 CMenu::addFeature(-1, *parent, "Bill Fraud", feat_toggle, "protFraud"));
+			feature::map.emplace("FEATURE_D_KICK",	 CMenu::addFeature(-1, *parent, "Kick", feat_toggle, "protKick"));
+			feature::map.emplace("FEATURE_D_TELEPORT",	 CMenu::addFeature(-1, *parent, "Teleport", feat_toggle, "protTele"));
 
 		*parent	= CMenu::addFeature(0, -1, "Misc", feat_parent);
 			feature::map.emplace("FEATURE_U_NOCLIP",	 CMenu::addFeature(-1, *parent, "No Clip", feat_value_str, "noclip", 0.f, 1.f, 1.f, hash::noclip_type));
@@ -215,13 +232,7 @@ namespace feature
 			feature::map.emplace("FEATURE_U_SMASH_VEHICLES",	 CMenu::addFeature(-1, *parent, "Smash Vehicles", feat_action));
 			feature::map.emplace("FEATURE_U_BLACK_HOLE",	 CMenu::addFeature(-1, *parent, "Black Hole", feat_action_value, "blackHole", 30.f, 120.f, 10.f));
 			feature::map.emplace("FEATURE_U_PED_DROP",	 CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
-			feature::map.emplace("FEATURE_U_STEALTH_MONEY",	 CMenu::addFeature(-1, *parent, "Stealth Money (millions!)", feat_action_value, "stealthMoney", 10.f, 200.f, 10.f));
-			feature::map.emplace("FEATURE_U_RP_LOOP",	 CMenu::addFeature(-1, *parent, "RP Loop", feat_toggle));
 			feature::map.emplace("FEATURE_U_CLEAN_SESSION",	 CMenu::addFeature(-1, *parent, "Clean Session (Lag switch)", feat_action));
-			//feature::map.emplace("FEATURE_U_REMOTE_PROT_MONEY",	 CMenu::addFeature(-1, *parent, "Remote Money Protection", feat_toggle));
-			//feature::map.emplace("FEATURE_U_REMOTE_PROT_RP",	 CMenu::addFeature(-1, *parent, "Remote RP Protection", feat_toggle));
-			feature::map.emplace("FEATURE_U_REMOTE_PROT_FRAUD",	 CMenu::addFeature(-1, *parent, "Remote Bill Fraud Protection", feat_toggle, "protFraud"));
-			feature::map.emplace("FEATURE_U_REMOTE_PROT_KICK",	 CMenu::addFeature(-1, *parent, "Remote Kick Protection", feat_toggle, "protKick"));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			feature::map.emplace("FEATURE_I_FPS_COUNTER",	 CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));

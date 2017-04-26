@@ -33,11 +33,15 @@ MemoryPool**								CHooking::m_entityPool;
 CRITICAL_SECTION							CHooking::m_critSec;
 
 /*
-	//Private function declarations
+	//Private declarations
 */
 bool			initHooks();
 bool			hookNatives();
 void			findPatterns();
+
+const	int					EVENT_COUNT		= 78;
+static	std::vector<void*>	g_eventPtrs;
+static	unsigned char		g_eventRestore[EVENT_COUNT]	= { 0 };
 
 /*
 	//Hooking public functions
@@ -112,6 +116,20 @@ NativeHandler CHooking::getNativeHandler(uint64_t origHash)
 __int64* CHooking::getGlobalPtr(int index)
 {
     return &m_globalBase[index >> 0x12 & 0x3F][index & 0x3FFFF];
+}
+
+void CHooking::defuseEvent(eRockstarEvent e, bool b)
+{
+	static const BYTE	retn	= 0xC3;
+	BYTE*				ptr		= (BYTE*) g_eventPtrs[e];
+	if(b)
+	{
+		if (g_eventRestore[e] == 0)
+			g_eventRestore[e] = ptr[0];
+		*ptr = retn;
+	}
+	else if (g_eventRestore[e] != 0)
+		*ptr = g_eventRestore[e];
 }
 
 /*
@@ -190,9 +208,9 @@ BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 	//	CLog::msg("Remote money attempt blocked.");
 	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_RP"])->m_bOn		&& p1 == 0x124)
 	//	CLog::msg("Remote rp attempt blocked.");
-	if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_FRAUD"])->m_bOn		&& p1 == 0x186)
-		CLog::msg("Remote fraud attempt blocked.");
-	else if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_KICK"])->m_bOn	&& p1 == 0x38)
+	//if(CMenu::getFeature(feature::map["FEATURE_D_FRAUD"])->m_bOn		&& p1 == 0x186)
+	//	CLog::msg("Remote fraud attempt blocked.");
+	if(CMenu::getFeature(feature::map["FEATURE_D_KICK"])->m_bOn	&& p1 == 0x38)
 		CLog::msg("Remote kick attempt blocked.");
 	else
 		return OG_GET_EVENT_DATA(cxt);
@@ -222,6 +240,7 @@ void findPatterns()
 	CPattern pattern_global		("\x4C\x8D\x05\x00\x00\x00\x00\x4D\x8B\x08\x4D\x85\xC9\x74\x11",									"xxx????xxxxxxxx");
 	CPattern pattern_playerList	("\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",	"xxx????x????xxxx????xxx");
 	CPattern pattern_entityPool	("\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",										"xxx????xxxxxxx");
+	CPattern pattern_eventHook	("\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xBA\x03",	"xxxxx????xxx????xxx????xxx????xx");
 
 	        //    address = FindPattern("\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10", "xxx????xxxxxxxx");
            // PedPoolAddress = reinterpret_cast<uintptr_t *>(*reinterpret_cast<int *>(address + 3) + address + 7);
@@ -258,4 +277,34 @@ void findPatterns()
 
 	ptr	= pattern_modelSpawn.find(0).get(0).get<char>(8);
 	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern") : mem_nop(ptr, 2);
+
+	ptr	= pattern_eventHook.find(0).get(0).get<char>(0);
+	if(ptr != nullptr)
+	{
+		int	j		= 0,
+			match	= 0,
+			found	= 0;
+
+		const char* const	pat	= "\x4C\x8D\x05";
+
+		while(found < EVENT_COUNT)
+		{
+			if(*ptr == pat[j])
+			{
+				if(++match == 3)
+				{
+					g_eventPtrs.push_back((void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7));
+					++found;
+					j	= match	= 0;
+				}
+				++j;
+			}
+			else
+				j	= match	= 0;
+
+			++ptr;
+		}
+	}
+	else
+		killProcess("Failed to find event hook pattern");
 }
