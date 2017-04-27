@@ -78,7 +78,7 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	feature::populate();	//add the features
 
 	//init renderer and create thread
-	CRender::initialze(g_hModule, "subVersion 2.0.4 | by sub1to");
+	CRender::initialze(g_hModule, "subVersion 2.0.5 | by sub1to");
 	g_hThreadRender	= CreateThread(	NULL,
 									0,
 									threadRender,

@@ -403,14 +403,11 @@ namespace script
 
 	bool teleport_player_to_me(Ped ped, Player player)
 	{
-		static std::unordered_map<Player, int>	count;
+		static int	count[MAX_PLAYERS]	= { 0 };
 		v3 playerPos	= script::get_coords_infront_player(6.f);
 		v3 remotePos	= get_entity_coords(ped);
 		playerPos.z += 1.f;
-		if(count.find(player) != count.end())
-			++count[player];
-		else
-			count.emplace(player, 1);
+		++count[player];
 		if(playerPos.getDist(remotePos) < 5.f || count[player] > 0x40)
 		{
 			clown_particle_effect_on_entity(ped);
@@ -423,13 +420,10 @@ namespace script
 
 	bool teleport_player_to_sea(Ped ped, Player player)
 	{
-		static std::unordered_map<Player, int>	count;
+		static int	count[MAX_PLAYERS]	= { 0 };
 		v3 seaPos		= {-3735.f, -4400.f, 10.f};
 		v3 remotePos	= get_entity_coords(ped);
-		if(count.find(player) != count.end())
-			++count[player];
-		else
-			count.emplace(player, 1);
+		++count[player];
 		if(seaPos.getDist(remotePos) < 5.f || count[player] > 0x40)
 		{
 			clown_particle_effect_on_entity(ped);
