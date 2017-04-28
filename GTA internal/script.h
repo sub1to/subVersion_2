@@ -102,7 +102,7 @@ namespace script
 
 	void	set_entity_invisible(Entity e, bool invis, bool local = false);
 
-	int		super_run(float force, bool stop = false);
+	int		super_run(float force, bool stop = false, bool keyState = false);
 
 	void	chaos_mode(clock_t* tmr, int action = 0);
 	bool	smash_vehicles(clock_t* tmr);

@@ -421,7 +421,7 @@ namespace script
 	bool teleport_player_to_sea(Ped ped, Player player)
 	{
 		static int	count[MAX_PLAYERS]	= { 0 };
-		v3 seaPos		= {-3735.f, -4400.f, 10.f};
+		v3 seaPos		= { -3735.f, -4400.f, 10.f };
 		v3 remotePos	= get_entity_coords(ped);
 		++count[player];
 		if(seaPos.getDist(remotePos) < 5.f || count[player] > 0x40)
@@ -973,10 +973,10 @@ namespace script
 		}
 	}
 
-	int super_run(float force, bool stop)
+	int super_run(float force, bool stop, bool keyState)
 	{
 		Ped playerPed = PLAYER::PLAYER_PED_ID();
-		if(CMenu::checkKeyState(CMenu::m_keyMap["SuperRun"]))
+		if(keyState)
 		{
 			ENTITY::APPLY_FORCE_TO_ENTITY(playerPed, 1, 0, force, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1);
 			return 1;
@@ -1427,10 +1427,8 @@ namespace script
 
 	bool send_assasins_after_player(Player p, Ped remotePed)
 	{
-		static std::unordered_map<int, int>	count;
+		static int	count[MAX_PLAYERS]	= { 0 };
 		v3	pos			= get_entity_coords(remotePed);
-		if(count.find(p) == count.end())
-			count.emplace(p, 0);
 		if(count[p] < 0xF)
 		{
 			Ped ped;
@@ -1445,7 +1443,7 @@ namespace script
 			return false;
 		}
 
-		count.erase(count.find(p));
+		count[p]	= 0;
 		return true;
 	}
 

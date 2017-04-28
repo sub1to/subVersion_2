@@ -24,14 +24,8 @@
 #include <map>
 #include <vector>
 
-typedef std::map<std::string, int>	featMap;
-typedef std::map<int, featMap>		plrMap;
-
 namespace feature
 {
-	extern featMap	map;
-	extern plrMap	player_map;
-
 	void	populate();
 };
 

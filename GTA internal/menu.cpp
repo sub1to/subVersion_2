@@ -26,7 +26,7 @@
 std::vector<int>	CMenu::m_disableParent;
 CIniParser			CMenu::m_iniParser;
 bool				CMenu::m_bFgWnd	= true;
-keyMap				CMenu::m_keyMap;
+keyIndex			CMenu::m_keyIndex;
 
 /*
 	//CMenu static private members
@@ -40,7 +40,8 @@ std::vector<CFeat*>		CMenu::m_pFeatureCur;
 bool					CMenu::m_bMenuActive				= false;
 bool					CMenu::m_bCheckBox					= false;	//is there a checkbox feature in featureCur?
 int						CMenu::m_iFeatureCurDisplayOffset	= 0;
-
+featIndex				CMenu::m_featIndex					= { };
+plrFeatIndex			CMenu::m_plrFeatIndex[MAX_PLAYERS]	= { };
 
 /*
 	//CMenu functions
@@ -73,29 +74,30 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 	m_iniParser.read();
 
 	//keys
-	m_keyMap.emplace("Exit", strToVk(m_iniParser.getValue<std::string>("Exit", "Keys")));
-	m_keyMap.emplace("Menu", strToVk(m_iniParser.getValue<std::string>("Menu", "Keys")));
-	m_keyMap.emplace("MenuUp", strToVk(m_iniParser.getValue<std::string>("MenuUp", "Keys")));
-	m_keyMap.emplace("MenuDown", strToVk(m_iniParser.getValue<std::string>("MenuDown", "Keys")));
-	m_keyMap.emplace("MenuLeft", strToVk(m_iniParser.getValue<std::string>("MenuLeft", "Keys")));
-	m_keyMap.emplace("MenuRight", strToVk(m_iniParser.getValue<std::string>("MenuRight", "Keys")));
-	m_keyMap.emplace("MenuSelect", strToVk(m_iniParser.getValue<std::string>("MenuSelect", "Keys")));
-	m_keyMap.emplace("MenuBack", strToVk(m_iniParser.getValue<std::string>("MenuBack", "Keys")));
-	m_keyMap.emplace("MenuTabNext", strToVk(m_iniParser.getValue<std::string>("MenuTabNext", "Keys")));
-	m_keyMap.emplace("MenuTabPrev", strToVk(m_iniParser.getValue<std::string>("MenuTabPrev", "Keys")));
-	m_keyMap.emplace("MenuSave", strToVk(m_iniParser.getValue<std::string>("MenuSave", "Keys")));
-	m_keyMap.emplace("HotTeleport", strToVk(m_iniParser.getValue<std::string>("HotTeleport", "Keys")));
-	m_keyMap.emplace("HotNoclip", strToVk(m_iniParser.getValue<std::string>("HotNoclip", "Keys")));
-	m_keyMap.emplace("HotEditor", strToVk(m_iniParser.getValue<std::string>("HotEditor", "Keys")));
-	m_keyMap.emplace("SuperRun", strToVk(m_iniParser.getValue<std::string>("SuperRun", "Keys")));
-	m_keyMap.emplace("NoClipForward", strToVk(m_iniParser.getValue<std::string>("NoClipForward", "Keys")));
-	m_keyMap.emplace("NoClipBack", strToVk(m_iniParser.getValue<std::string>("NoClipBack", "Keys")));
-	m_keyMap.emplace("NoClipLeft", strToVk(m_iniParser.getValue<std::string>("NoClipLeft", "Keys")));
-	m_keyMap.emplace("NoClipRight", strToVk(m_iniParser.getValue<std::string>("NoClipRight", "Keys")));
-	m_keyMap.emplace("NoClipUp", strToVk(m_iniParser.getValue<std::string>("NoClipUp", "Keys")));
-	m_keyMap.emplace("NoClipDown", strToVk(m_iniParser.getValue<std::string>("NoClipDown", "Keys")));
-	m_keyMap.emplace("EditorAction", strToVk(m_iniParser.getValue<std::string>("EditorAction", "Keys")));
-	m_keyMap.emplace("EditorDelete", strToVk(m_iniParser.getValue<std::string>("EditorDelete", "Keys")));
+	m_keyIndex[KEY_EXIT]			= strToVk(m_iniParser.getValue<std::string>("Exit", "Keys"));
+	m_keyIndex[KEY_EXIT]			= strToVk(m_iniParser.getValue<std::string>("Exit", "Keys"));
+	m_keyIndex[KEY_MENU]			= strToVk(m_iniParser.getValue<std::string>("Menu", "Keys"));
+	m_keyIndex[KEY_MENU_UP]			= strToVk(m_iniParser.getValue<std::string>("MenuUp", "Keys"));
+	m_keyIndex[KEY_MENU_DOWN]		= strToVk(m_iniParser.getValue<std::string>("MenuDown", "Keys"));
+	m_keyIndex[KEY_MENU_LEFT]		= strToVk(m_iniParser.getValue<std::string>("MenuLeft", "Keys"));
+	m_keyIndex[KEY_MENU_RIGHT]		= strToVk(m_iniParser.getValue<std::string>("MenuRight", "Keys"));
+	m_keyIndex[KEY_MENU_SELECT]		= strToVk(m_iniParser.getValue<std::string>("MenuSelect", "Keys"));
+	m_keyIndex[KEY_MENU_BACK]		= strToVk(m_iniParser.getValue<std::string>("MenuBack", "Keys"));
+	m_keyIndex[KEY_MENU_TAB_NEXT]	= strToVk(m_iniParser.getValue<std::string>("MenuTabNext", "Keys"));
+	m_keyIndex[KEY_MENU_TAB_PREV]	= strToVk(m_iniParser.getValue<std::string>("MenuTabPrev", "Keys"));
+	m_keyIndex[KEY_MENU_SAVE]		= strToVk(m_iniParser.getValue<std::string>("MenuSave", "Keys"));
+	m_keyIndex[KEY_HOT_TELEPORT]	= strToVk(m_iniParser.getValue<std::string>("HotTeleport", "Keys"));
+	m_keyIndex[KEY_HOT_NOCLIP]		= strToVk(m_iniParser.getValue<std::string>("HotNoclip", "Keys"));
+	m_keyIndex[KEY_HOT_EDITOR]		= strToVk(m_iniParser.getValue<std::string>("HotEditor", "Keys"));
+	m_keyIndex[KEY_SUPERRUN]		= strToVk(m_iniParser.getValue<std::string>("SuperRun", "Keys"));
+	m_keyIndex[KEY_NOCLIP_FORWARD]	= strToVk(m_iniParser.getValue<std::string>("NoClipForward", "Keys"));
+	m_keyIndex[KEY_NOCLIP_BACK]		= strToVk(m_iniParser.getValue<std::string>("NoClipBack", "Keys"));
+	m_keyIndex[KEY_NOCLIP_LEFT]		= strToVk(m_iniParser.getValue<std::string>("NoClipLeft", "Keys"));
+	m_keyIndex[KEY_NOCLIP_RIGHT]	= strToVk(m_iniParser.getValue<std::string>("NoClipRight", "Keys"));
+	m_keyIndex[KEY_NOCLIP_UP]		= strToVk(m_iniParser.getValue<std::string>("NoClipUp", "Keys"));
+	m_keyIndex[KEY_NOCLIP_DOWN]		= strToVk(m_iniParser.getValue<std::string>("NoClipDown", "Keys"));
+	m_keyIndex[KEY_EDITOR_ACTION]	= strToVk(m_iniParser.getValue<std::string>("EditorAction", "Keys"));
+	m_keyIndex[KEY_EDITOR_DELETE]	= strToVk(m_iniParser.getValue<std::string>("EditorDelete", "Keys"));
 
 	return true;
 }
@@ -156,31 +158,31 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 
 void CMenu::checkKeys()
 {
-	if(checkKeyState(m_keyMap["Menu"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU], 1))
 	{
 		toggleMenu();
 		return;
 	}
 	
 	//hotkeys
-	if(checkKeyState(m_keyMap["HotTeleport"], 1))
+	if(checkKeyState(m_keyIndex[KEY_HOT_TELEPORT], 1))
 	{
-		getFeature(feature::map["FEATURE_TP_WAYPOINT"])->toggle();
+		getFeature(FEATURE_TP_WAYPOINT)->toggle();
 		return;
 	}
-	if(checkKeyState(m_keyMap["HotNoclip"], 1))
+	if(checkKeyState(m_keyIndex[KEY_HOT_NOCLIP], 1))
 	{
-		getFeature(feature::map["FEATURE_U_NOCLIP"])->toggle();
+		getFeature(FEATURE_U_NOCLIP)->toggle();
 		return;
 	}
-	if(checkKeyState(m_keyMap["HotEditor"], 1))
+	if(checkKeyState(m_keyIndex[KEY_HOT_EDITOR], 1))
 	{
-		getFeature(feature::map["FEATURE_E_EDITOR_MODE"])->toggle();
+		getFeature(FEATURE_E_EDITOR_MODE)->toggle();
 		return;
 	}
-	if(checkKeyState(m_keyMap["EditorDelete"], 1))
+	if(checkKeyState(m_keyIndex[KEY_EDITOR_DELETE], 1))
 	{
-		getFeature(feature::map["FEATURE_E_DELETE"])->toggle();
+		getFeature(FEATURE_E_DELETE)->toggle();
 		return;
 	}
 
@@ -192,37 +194,37 @@ void CMenu::checkKeys()
 	}
 
 	//menu navigation
-	if(checkKeyState(m_keyMap["MenuDown"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_DOWN], 1))
 	{
 		menuDown();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuUp"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_UP], 1))
 	{
 		menuUp();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuRight"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_RIGHT], 1))
 	{
 		menuRight();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuLeft"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_LEFT], 1))
 	{
 		menuLeft();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuTabNext"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_TAB_NEXT], 1))
 	{
 		menuTabRight();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuTabPrev"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_TAB_PREV], 1))
 	{
 		menuTabLeft();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuSave"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_SAVE], 1))
 	{
 		CFeatTeleport* tp	= dynamic_cast<CFeatTeleport*>(CMenu::getFeatureCur(CMenu::getActiveFeature()));
 		if(tp == nullptr || tp->m_tpType != tp_saved)
@@ -235,12 +237,12 @@ void CMenu::checkKeys()
 		m_iniParser.setValue<float>(tp->m_szIniKey + "_z", tp->m_v3Pos.z, "Teleport");
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuSelect"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_SELECT], 1))
 	{
 		CMenu::menuSelect();
 		return;
 	}
-	if(checkKeyState(m_keyMap["MenuBack"], 1))
+	if(checkKeyState(m_keyIndex[KEY_MENU_BACK], 1))
 	{
 		CMenu::menuBack();
 		return;
@@ -659,9 +661,45 @@ int		CMenu::getFeatureCount()
 
 CFeat*	CMenu::getFeature(int id)
 {
-	if(id > m_pFeature.size() - 1)
-		return 0;
-	return m_pFeature[id];
+	if(id < m_pFeature.size())
+		return m_pFeature[id];
+	return nullptr;
+}
+
+CFeat*	CMenu::getFeature(eFeatures feat)
+{
+	CFeat* r	= nullptr;
+	if(IS_FEATURE_VALID(feat))
+		r = getFeature(m_featIndex[feat]);
+	return r;
+}
+
+bool	CMenu::indexFeature(eFeatures feat, int value)
+{
+	if(IS_FEATURE_VALID(feat))
+	{
+		m_featIndex[feat]	= value;
+		return true;
+	}
+	return false;
+}
+
+CFeat*	CMenu::getPlrFeature(ePlrFeats feat, int player)
+{
+	CFeat* r	= nullptr;
+	if(IS_PLRFEAT_VALID(feat) && player < MAX_PLAYERS)
+		r = getFeature(m_plrFeatIndex[player][feat]);
+	return r;
+}
+
+bool	CMenu::indexPlrFeature(ePlrFeats feat, int player, int value)
+{
+	if(IS_PLRFEAT_VALID(feat) && player < MAX_PLAYERS)
+	{
+		m_plrFeatIndex[player][feat]	= value;
+		return true;
+	}
+	return false;
 }
 
 int		CMenu::getActiveFeature()
@@ -857,7 +895,7 @@ void	CFeatSpawn::toggle()
 		break;
 		case spwn_object:
 			CHack::m_requestedObject.push_back(m_szHash);
-			CFeat* feat = CMenu::getFeature(feature::map["FEATURE_E_EDITOR_MODE"]);
+			CFeat* feat = CMenu::getFeature(FEATURE_E_EDITOR_MODE);
 			feat->toggle(true);
 		break;
 	}
@@ -877,7 +915,7 @@ CFeatAttach::~CFeatAttach() {}
 
 void	CFeatAttach::toggle()
 {
-	CFeat* feat = CMenu::getFeature(feature::map["FEATURE_O_ATTACH_BONE"]);
+	CFeat* feat = CMenu::getFeature(FEATURE_O_ATTACH_BONE);
 	int	iAttachBone = -1;
 	if(feat->m_bOn)
 		iAttachBone = (int) feat->getValue();

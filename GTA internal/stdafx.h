@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <map>
 #include <unordered_map>
+#include <array>
 
 #include <Dwmapi.h>
 #pragma comment(lib,"Dwmapi.lib")
@@ -43,6 +44,9 @@
 
 #pragma comment(lib, "minhook/lib/libMinHook.x64.md.140_xp.lib")
 #include "minhook/include/MinHook.h"
+
+#define MAX_PLAYERS					0x20
+#define MAX_SPAWNED_PEDS			0x10
 
 #include "vector.h"
 #include "hashes.h"

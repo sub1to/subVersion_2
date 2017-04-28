@@ -21,9 +21,6 @@
 #ifndef HACK_H
 #define HACK_H
 
-#define MAX_PLAYERS					0x20
-#define MAX_SPAWNED_PEDS			0x10
-
 typedef struct playerAttach
 {
 	int			player,
@@ -105,9 +102,9 @@ class CHack
 
 
 		template <typename T>
-		static bool	checkFeature(std::string szFeature, T TDefault, T TValue, T* TOut, bool bRestore = true)
+		static bool	checkFeature(eFeatures feat, T TDefault, T TValue, T* TOut, bool bRestore = true)
 		{
-			CFeat* CFeature	= CMenu::getFeature(feature::map[szFeature]);
+			CFeat* CFeature	= CMenu::getFeature(feat);
 			if(!CFeature->m_bOn)
 			{
 				if(!CFeature->m_bRestored)
@@ -123,7 +120,7 @@ class CHack
 			return 1;
 		}
 
-		static void	checkAllPlayerFeature(std::string feature, std::string plrFeature, int flag);
+		static void	checkAllPlayerFeature(eFeatures feature, ePlrFeats plrFeature, int flag);
 };
 
 #endif

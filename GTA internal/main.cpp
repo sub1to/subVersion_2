@@ -106,7 +106,7 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 			break;
 
 		//exit
-		if(CMenu::checkKeyState(CMenu::m_keyMap["Exit"]) || !CLog::m_fatal.empty())
+		if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_EXIT]) || !CLog::m_fatal.empty())
 		{
 			killProcess();
 			break;
@@ -156,7 +156,7 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 		CFeat* feat;
 
 		//set scale
-		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_SCALE"]);
+		feat = CMenu::getFeature(FEATURE_I_MENU_SCALE);
 		if(feat->m_bOn && (CRender::m_screen.w != LAYOUT_WIDTH * feat->getValue() || CRender::m_screen.h != LAYOUT_HEIGHT * feat->getValue()))
 		{
 			CRender::m_screen.w	= (int) (LAYOUT_WIDTH * feat->getValue());
@@ -164,15 +164,15 @@ DWORD __stdcall threadRender(LPVOID lpParam)
 		}
 
 		//set padding
-		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_X"]);
+		feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_X);
 		if(feat->m_bOn && CRender::m_screen.x != (int) feat->getValue())
 			CRender::m_screen.x = (int) feat->getValue();
-		feat = CMenu::getFeature(feature::map["FEATURE_I_MENU_PADDING_Y"]);
+		feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_Y);
 		if(feat->m_bOn && CRender::m_screen.y != (int) feat->getValue())
 			CRender::m_screen.y = (int) feat->getValue();
 
 		//save settings
-		feat = CMenu::getFeature(feature::map["FEATURE_I_SAVE_INI"]);
+		feat = CMenu::getFeature(FEATURE_I_SAVE_INI);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			CMenu::m_iniParser.write();

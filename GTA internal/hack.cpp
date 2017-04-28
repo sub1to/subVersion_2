@@ -104,17 +104,17 @@ void	CHack::killNpc()
 		1 << 0	sync toggle state
 		1 << 1	restore
 */
-void	CHack::checkAllPlayerFeature(std::string feature, std::string plrFeature, int flag = 0)
+void	CHack::checkAllPlayerFeature(eFeatures feature, ePlrFeats plrFeature, int flag = 0)
 {
-	CFeat* feat	= CMenu::getFeature(feature::map[feature]);
+	CFeat* feat	= CMenu::getFeature(feature);
 	if((feat->m_bOn || flag & 2) && !feat->m_bSet)
 	{
 		for(int i = 0; i < MAX_PLAYERS; i++)
 		{
-			CFeat* plrParent = CMenu::getFeature(feature::player_map[i]["PLRFEAT_PARENT"]);
+			CFeat* plrParent = CMenu::getPlrFeature(PLRFEAT_PARENT, i);
 			if(!plrParent->m_bOn)
 				continue;
-			CFeat* plrFeat = CMenu::getFeature(feature::player_map[i][plrFeature]);
+			CFeat* plrFeat = CMenu::getPlrFeature(plrFeature, i);
 			plrFeat->setValue(feat->getValue());
 			if(flag & 1)
 				plrFeat->toggle(feat->m_bOn ? true : false);
@@ -173,8 +173,8 @@ bool	CHack::refresh()
 			playerVeh		= PED::GET_VEHICLE_PED_IS_USING(playerPed);
 			if(m_lastVehicle != playerVeh)
 			{
-				CMenu::getFeature(feature::map["FEATURE_V_LICENSE"])->m_bSet		= true;		//disable the keyboard for license
-				CMenu::getFeature(feature::map["FEATURE_V_LICENSE"])->m_bRestored	= true;		//so if it was triggered, we don't get a popup as soon as we get in the car
+				CMenu::getFeature(FEATURE_V_LICENSE)->m_bSet		= true;		//disable the keyboard for license
+				CMenu::getFeature(FEATURE_V_LICENSE)->m_bRestored	= true;		//so if it was triggered, we don't get a popup as soon as we get in the car
 				m_lastVehicle	= playerVeh;
 			}
 			if(VEHICLE::GET_PED_IN_VEHICLE_SEAT(playerVeh, -1) == playerPed)
@@ -189,7 +189,7 @@ bool	CHack::refresh()
 		CFeat* feat;
 
 		//TEST
-		/*feat = CMenu::getFeature(feature::map["FEATURE_P_TEST"]);
+		/*feat = CMenu::getFeature(FEATURE_P_TEST);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			CPed* cp	= util::ped_handle_to_ptr(playerPed);
@@ -230,12 +230,12 @@ bool	CHack::refresh()
 		}*/
 
 		//Fps counter
-		feat = CMenu::getFeature(feature::map["FEATURE_I_FPS_COUNTER"]);
+		feat = CMenu::getFeature(FEATURE_I_FPS_COUNTER);
 		if(feat->m_bOn)
 			script::draw_fps();
 		
 		//spawned ped cleanup
-		feat = CMenu::getFeature(feature::map["FEATURE_S_PED_CLEANUP"]);
+		feat = CMenu::getFeature(FEATURE_S_PED_CLEANUP);
 		if(!m_pedCleanup.empty() && clock() - m_pedCleanupClock > 0xFF)
 		{
 			if(feat->m_bOn)
@@ -302,7 +302,7 @@ bool	CHack::refresh()
 		}
 		
 		//mp vehicles in sp
-		feat = CMenu::getFeature(feature::map["FEATURE_S_SP_BYPASS"]);
+		feat = CMenu::getFeature(FEATURE_S_SP_BYPASS);
 		if(!feat->m_bSet)
 		{
 			script::vehicle_sp_bypass(feat->m_bOn);
@@ -310,7 +310,7 @@ bool	CHack::refresh()
 		}
 
 		//global mp kick bypass
-		feat = CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"]);
+		feat = CMenu::getFeature(FEATURE_S_MP_BYPASS);
 		if(!feat->m_bSet)
 		{
 			script::vehicle_mp_bypass(feat->m_bOn);
@@ -323,17 +323,17 @@ bool	CHack::refresh()
 			BYTE	flags	= 0;
 			int		colours	= -1;
 
-			if(CMenu::getFeature(feature::map["FEATURE_S_IN_VEHICLE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_S_IN_VEHICLE)->m_bOn)
 				flags	|= 0x01;
-			if(CMenu::getFeature(feature::map["FEATURE_S_MP_BYPASS"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_S_MP_BYPASS)->m_bOn)
 				flags	|=	0x02;
-			if(CMenu::getFeature(feature::map["FEATURE_S_VEH_MOD"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_S_VEH_MOD)->m_bOn)
 				flags	|= 0x04;
-			if(CMenu::getFeature(feature::map["FEATURE_S_LICENSE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_S_LICENSE)->m_bOn)
 				flags	|= 0x08;
 
-			CFeat* feat		= CMenu::getFeature(feature::map["FEATURE_S_COLOR_1"]);
-			CFeat* feat2	= CMenu::getFeature(feature::map["FEATURE_S_COLOR_2"]);
+			CFeat* feat		= CMenu::getFeature(FEATURE_S_COLOR_1);
+			CFeat* feat2	= CMenu::getFeature(FEATURE_S_COLOR_2);
 			if(feat->m_bOn || feat2->m_bOn)
 				colours	= 0;
 			if(feat->m_bOn)
@@ -348,7 +348,7 @@ bool	CHack::refresh()
 		
 		//ped spawn
 		if(!m_requestedPed.empty())
-			if(script::spawn_ped(&m_requestedPed[0][0], PedTypeHuman, {}, nullptr, CMenu::getFeature(feature::map["FEATURE_S_PED_RANDOMIZE"])->m_bOn, (int) CMenu::getFeature(feature::map["FEATURE_S_PED_TYPE"])->getValue()))
+			if(script::spawn_ped(&m_requestedPed[0][0], PedTypeHuman, {}, nullptr, CMenu::getFeature(FEATURE_S_PED_RANDOMIZE)->m_bOn, (int) CMenu::getFeature(FEATURE_S_PED_TYPE)->getValue()))
 				m_requestedPed.erase(m_requestedPed.begin());
 		
 		//weapon spawn
@@ -366,7 +366,7 @@ bool	CHack::refresh()
 		}
 
 		//stop anim
-		feat = CMenu::getFeature(feature::map["FEATURE_U_STOP_ANIM"]);
+		feat = CMenu::getFeature(FEATURE_U_STOP_ANIM);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			AI::CLEAR_PED_TASKS_IMMEDIATELY(playerPed);
@@ -374,7 +374,7 @@ bool	CHack::refresh()
 		}
 		
 		//model changer
-		//feat = CMenu::getFeature(feature::map["FEATURE_M_RANDOMIZE_PED"]);
+		//feat = CMenu::getFeature(FEATURE_M_RANDOMIZE_PED);
 		static int tmpVeh;
 		if(!m_bModelSet)
 		{
@@ -413,7 +413,7 @@ bool	CHack::refresh()
 		}
 		
 		//tp to waypoint
-		feat = CMenu::getFeature(feature::map["FEATURE_TP_WAYPOINT"]);
+		feat = CMenu::getFeature(FEATURE_TP_WAYPOINT);
 		if(feat->m_bOn && !feat->m_bSet && clock() - feat->m_clockTick > 0x20)
 		{
 			if(script::teleport_to_waypoint())
@@ -423,7 +423,7 @@ bool	CHack::refresh()
 		}
 		
 		//tp to waypoint
-		feat = CMenu::getFeature(feature::map["FEATURE_TP_OBJECTIVE"]);
+		feat = CMenu::getFeature(FEATURE_TP_OBJECTIVE);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::teleport_to_objective();
@@ -431,7 +431,7 @@ bool	CHack::refresh()
 		}
 		
 		//tp to nearby car
-		feat = CMenu::getFeature(feature::map["FEATURE_TP_NEARBY_CAR"]);
+		feat = CMenu::getFeature(FEATURE_TP_NEARBY_CAR);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::get_in_closest_car();
@@ -439,71 +439,71 @@ bool	CHack::refresh()
 		}
 
 		//noclip
-		feat = CMenu::getFeature(feature::map["FEATURE_U_NOCLIP"]);
+		feat = CMenu::getFeature(FEATURE_U_NOCLIP);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			int flags	= 0;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipForward"]))	//w
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_FORWARD]))	//w
 				flags	|= 0x01;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipBack"]))	//s
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_BACK]))	//s
 				flags	|= 0x02;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipLeft"]))	//a
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_LEFT]))	//a
 				flags	|= 0x04;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipRight"]))	//d
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_RIGHT]))	//d
 				flags	|= 0x08;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipUp"]))	//l shift
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_UP]))	//l shift
 				flags	|= 0x10;
-			if(CMenu::checkKeyState(CMenu::m_keyMap["NoClipDown"]))	//l ctrl
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_DOWN]))	//l ctrl
 				flags	|= 0x20;
-			script::noclip(playerInVeh ? playerVeh : playerPed, flags, CMenu::getFeature(feature::map["FEATURE_U_NOCLIP_SPEED"])->getValue(), feat->getValue() > 0.f, !feat->m_bOn);
+			script::noclip(playerInVeh ? playerVeh : playerPed, flags, CMenu::getFeature(FEATURE_U_NOCLIP_SPEED)->getValue(), feat->getValue() > 0.f, !feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
 		//Editor mode
-		feat = CMenu::getFeature(feature::map["FEATURE_E_EDITOR_MODE"]);
+		feat = CMenu::getFeature(FEATURE_E_EDITOR_MODE);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			int	a	= 0,
 				f	= 0;
 
 			//action
-			if(CMenu::checkKeyState(CMenu::m_keyMap["EditorAction"], 1))	//e
+			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_EDITOR_ACTION], 1))	//e
 			{
 				if(!feat->m_bRestored)
 					a	|=	0x02;	//lock
 				else
 					a	|=	0x01;	//reset
 			}
-			if(!CMenu::getFeature(feature::map["FEATURE_E_DELETE"])->m_bSet)
+			if(!CMenu::getFeature(FEATURE_E_DELETE)->m_bSet)
 			{
 				a	|=	0x04;
-				CMenu::getFeature(feature::map["FEATURE_E_DELETE"])->m_bSet = true;
+				CMenu::getFeature(FEATURE_E_DELETE)->m_bSet = true;
 			}
 			if(!feat->m_bOn)
 				a	|= 0x01;
 
 			//flags
-			if(CMenu::getFeature(feature::map["FEATURE_E_TEXT_TYPE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_TEXT_TYPE)->m_bOn)
 				f	|=	0x01;
-			if(CMenu::getFeature(feature::map["FEATURE_E_TEXT_POS"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_TEXT_POS)->m_bOn)
 				f	|=	0x02;
-			if(CMenu::getFeature(feature::map["FEATURE_E_COLLISION"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_COLLISION)->m_bOn)
 				f	|=	0x04;
-			if(CMenu::getFeature(feature::map["FEATURE_E_FREEZE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_FREEZE)->m_bOn)
 				f	|=	0x08;
-			if(CMenu::getFeature(feature::map["FEATURE_E_THROW_MODE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_THROW_MODE)->m_bOn)
 				f	|=	0x10;
-			if(CMenu::getFeature(feature::map["FEATURE_E_ROTATION_RELATIVE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_ROTATION_RELATIVE)->m_bOn)
 				f	|=	0x20;
-			if(CMenu::getFeature(feature::map["FEATURE_E_INVISIBLE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_INVISIBLE)->m_bOn)
 				f	|=	0x40;
 
 			v3		rot;
-			if(CMenu::getFeature(feature::map["FEATURE_E_ROTATION_ENABLE"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_E_ROTATION_ENABLE)->m_bOn)
 			{
-				rot		= {	CMenu::getFeature(feature::map["FEATURE_E_ROTATION_X"])->getValue(),
-							CMenu::getFeature(feature::map["FEATURE_E_ROTATION_Y"])->getValue(),
-							CMenu::getFeature(feature::map["FEATURE_E_ROTATION_Z"])->getValue(),};
+				rot		= {	CMenu::getFeature(FEATURE_E_ROTATION_X)->getValue(),
+							CMenu::getFeature(FEATURE_E_ROTATION_Y)->getValue(),
+							CMenu::getFeature(FEATURE_E_ROTATION_Z)->getValue(),};
 				f	|=	0x80;
 			}
 
@@ -515,7 +515,7 @@ bool	CHack::refresh()
 			}
 
 			feat->m_bRestored = script::entity_editor(	a,
-														CMenu::getFeature(feature::map["FEATURE_E_DISTANCE"])->getValue(),
+														CMenu::getFeature(FEATURE_E_DISTANCE)->getValue(),
 														f,
 														rot,
 														e);
@@ -523,7 +523,7 @@ bool	CHack::refresh()
 		}
 		
 		//anti afk
-		/*feat = CMenu::getFeature(feature::map["FEATURE_P_ANTI_AFK"]);
+		/*feat = CMenu::getFeature(FEATURE_P_ANTI_AFK);
 		if(!feat->m_bSet && (feat->m_bOn || (!feat->m_bOn && !feat->m_bRestored)))
 		{
 			script::ped_scenario(playerPed, hash::anti_afk_hash[(int) feat->getValue()], !feat->m_bOn);
@@ -533,7 +533,7 @@ bool	CHack::refresh()
 		}*/
 
 		//santa outfit
-		feat = CMenu::getFeature(feature::map["FEATURE_C_SANTA"]);
+		feat = CMenu::getFeature(FEATURE_C_SANTA);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::apply_outfit(OUTFIT_SANTA);
@@ -541,7 +541,7 @@ bool	CHack::refresh()
 		}
 
 		//trash orange outfit
-		feat = CMenu::getFeature(feature::map["FEATURE_C_TRASH_ORANGE"]);
+		feat = CMenu::getFeature(FEATURE_C_TRASH_ORANGE);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::apply_outfit(OUTFIT_TRASH_ORANGE);
@@ -549,7 +549,7 @@ bool	CHack::refresh()
 		}
 
 		//trash green outfit
-		feat = CMenu::getFeature(feature::map["FEATURE_C_TRASH_GREEN"]);
+		feat = CMenu::getFeature(FEATURE_C_TRASH_GREEN);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::apply_outfit(OUTFIT_TRASH_GREEN);
@@ -557,7 +557,7 @@ bool	CHack::refresh()
 		}
 
 		//police outfit
-		feat = CMenu::getFeature(feature::map["FEATURE_C_POLICE"]);
+		feat = CMenu::getFeature(FEATURE_C_POLICE);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::apply_outfit(OUTFIT_POLICE);
@@ -566,7 +566,7 @@ bool	CHack::refresh()
 
 
 		//mobile radio
-		feat = CMenu::getFeature(feature::map["FEATURE_P_MOBILE_RADIO"]);
+		feat = CMenu::getFeature(FEATURE_P_MOBILE_RADIO);
 		if(!feat->m_bSet || feat->m_bOn && clock() - feat->m_clockTick > 0xFF)
 		{
 			AUDIO::SET_MOBILE_RADIO_ENABLED_DURING_GAMEPLAY(feat->m_bOn);
@@ -575,7 +575,7 @@ bool	CHack::refresh()
 		}
 
 		//freeze radio
-		feat = CMenu::getFeature(feature::map["FEATURE_P_FREEZE_RADIO"]);
+		feat = CMenu::getFeature(FEATURE_P_FREEZE_RADIO);
 		if(feat->m_bOn && clock() - feat->m_clockTick > 0xFF)
 		{
 			script::set_radio_station(hash::radio_station_hash[(int) feat->getValue()]);
@@ -583,7 +583,7 @@ bool	CHack::refresh()
 		}
 		
 		//inf ammo
-		feat = CMenu::getFeature(feature::map["FEATURE_W_AMMO"]);
+		feat = CMenu::getFeature(FEATURE_W_AMMO);
 		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
 		{
 			WEAPON::SET_PED_INFINITE_AMMO_CLIP(playerPed, feat->m_bOn);
@@ -592,15 +592,15 @@ bool	CHack::refresh()
 		}
 		
 		//player invis
-		feat = CMenu::getFeature(feature::map["FEATURE_P_INVISIBLE"]);
+		feat = CMenu::getFeature(FEATURE_P_INVISIBLE);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
-			script::set_entity_invisible(playerPed, !feat->m_bOn, CMenu::getFeature(feature::map["FEATURE_P_VISIBLE_LOCAL"])->m_bOn);
+			script::set_entity_invisible(playerPed, !feat->m_bOn, CMenu::getFeature(FEATURE_P_VISIBLE_LOCAL)->m_bOn);
 			feat->m_bSet = true;
 		}
 		
 		//player offradar
-		feat = CMenu::getFeature(feature::map["FEATURE_P_OFFRADAR"]);
+		feat = CMenu::getFeature(FEATURE_P_OFFRADAR);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			script::lester_offradar_toggle(feat->m_bOn);
@@ -610,7 +610,7 @@ bool	CHack::refresh()
 		}
 		
 		//clean player
-		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEAN_PLAYER"]);
+		feat = CMenu::getFeature(FEATURE_P_CLEAN_PLAYER);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::clean_ped(playerPed);
@@ -618,7 +618,7 @@ bool	CHack::refresh()
 		}
 		
 		//clone ped
-		feat = CMenu::getFeature(feature::map["FEATURE_P_CLONE_BODYGUARD"]);
+		feat = CMenu::getFeature(FEATURE_P_CLONE_BODYGUARD);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			m_pedCleanup.push_back(script::clone_ped_bodyguard(playerPed));
@@ -626,7 +626,7 @@ bool	CHack::refresh()
 		}
 		
 		/*/clean objects
-		feat = CMenu::getFeature(feature::map["FEATURE_P_CLEANUP_OBJECTS"]);
+		feat = CMenu::getFeature(FEATURE_P_CLEANUP_OBJECTS);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::remove_nearby_objects();
@@ -634,11 +634,11 @@ bool	CHack::refresh()
 		}//*/
 		
 		//Super run
-		feat = CMenu::getFeature(feature::map["FEATURE_P_SUPER_RUN"]);
+		feat = CMenu::getFeature(FEATURE_P_SUPER_RUN);
 		if(feat->m_bOn && !playerInVeh)
 		{
 			
-			int i	= script::super_run(feat->getValue(), !feat->m_bRestored);
+			int i	= script::super_run(feat->getValue(), !feat->m_bRestored, CMenu::checkKeyState(CMenu::m_keyIndex[KEY_SUPERRUN]));
 			if(i == 1)
 				feat->m_bRestored = false;
 			if(i == 0)
@@ -646,23 +646,23 @@ bool	CHack::refresh()
 		}
 		
 		//Chaos mode
-		feat = CMenu::getFeature(feature::map["FEATURE_U_CHAOS_MODE"]);
+		feat = CMenu::getFeature(FEATURE_U_CHAOS_MODE);
 		if(feat->m_bOn)
 			script::chaos_mode(&feat->m_clockTick, (int) feat->getValue());
 		
 		//Smash Vehicles
-		feat = CMenu::getFeature(feature::map["FEATURE_U_SMASH_VEHICLES"]);
+		feat = CMenu::getFeature(FEATURE_U_SMASH_VEHICLES);
 		if(feat->m_bOn && !feat->m_bSet)
 			if(script::smash_vehicles(&feat->m_clockTick))
 				feat->m_bSet	= true;
 
 		//black hole
-		feat = CMenu::getFeature(feature::map["FEATURE_U_BLACK_HOLE"]);
+		feat = CMenu::getFeature(FEATURE_U_BLACK_HOLE);
 		if(feat->m_bOn && !feat->m_bSet && script::black_hole((int) feat->getValue()))
 			feat->m_bSet	= true;
 		
 		//money drop (sp only)
-		/*feat = CMenu::getFeature(feature::map["FEATURE_P_MONEY_DROP"]);
+		/*feat = CMenu::getFeature(FEATURE_P_MONEY_DROP);
 		if(feat->m_bOn && clock() - feat->m_clockTick > 0x60)
 		{
 			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
@@ -670,7 +670,7 @@ bool	CHack::refresh()
 		}*/
 
 		//ped drop
-		feat = CMenu::getFeature(feature::map["FEATURE_U_PED_DROP"]);
+		feat = CMenu::getFeature(FEATURE_U_PED_DROP);
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			if(feat->m_bOn)
@@ -681,7 +681,7 @@ bool	CHack::refresh()
 		}
 		
 		//stealth give money
-		feat = CMenu::getFeature(feature::map["FEATURE_R_STEALTH_MONEY"]);
+		feat = CMenu::getFeature(FEATURE_R_STEALTH_MONEY);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::stealth_money((int) feat->getValue());
@@ -689,7 +689,7 @@ bool	CHack::refresh()
 		}
 
 		//stealth remove money
-		feat = CMenu::getFeature(feature::map["FEATURE_R_STEALTH_MONEY_REMOVE"]);
+		feat = CMenu::getFeature(FEATURE_R_STEALTH_MONEY_REMOVE);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::stealth_money((int) feat->getValue(), true);
@@ -697,13 +697,13 @@ bool	CHack::refresh()
 		}
 
 		//rp loop
-		feat = CMenu::getFeature(feature::map["FEATURE_R_RP_LOOP"]);
+		feat = CMenu::getFeature(FEATURE_R_RP_LOOP);
 		if((feat->m_bOn && clock() - feat->m_clockTick > 0x6F) || !feat->m_bSet)
 		{
 			if(!feat->m_bSet)
 			{
-				CMenu::getFeature(feature::map["FEATURE_P_WANTED"])->toggle(false);
-				CMenu::getFeature(feature::map["FEATURE_P_NEVERWANTED"])->toggle(false);
+				CMenu::getFeature(FEATURE_P_WANTED)->toggle(false);
+				CMenu::getFeature(FEATURE_P_NEVERWANTED)->toggle(false);
 				feat->m_bSet	= true;
 			}
 			m_pCPedPlayer->pCPlayerInfo->CWantedData.dwWantedLevel	= feat->m_bOn && feat->m_bRestored ? 5 : 0;
@@ -712,7 +712,7 @@ bool	CHack::refresh()
 		}
 
 		//clear reports
-		/*feat = CMenu::getFeature(feature::map["FEATURE_P_CLEAR_REPORTS"]);
+		/*feat = CMenu::getFeature(FEATURE_P_CLEAR_REPORTS);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::clear_badsports();
@@ -720,7 +720,7 @@ bool	CHack::refresh()
 		}*/
 
 		//tiny player
-		feat = CMenu::getFeature(feature::map["FEATURE_P_TINY"]);
+		feat = CMenu::getFeature(FEATURE_P_TINY);
 		if(!feat->m_bSet)
 		{
 			PED::SET_PED_CONFIG_FLAG(playerPed, 223, feat->m_bOn);
@@ -728,7 +728,7 @@ bool	CHack::refresh()
 		}
 		
 		//Time Freeze
-		feat = CMenu::getFeature(feature::map["FEATURE_T_PAUSE_CLOCK"]);
+		feat = CMenu::getFeature(FEATURE_T_PAUSE_CLOCK);
 		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
 		{
 			TIME::PAUSE_CLOCK(feat->m_bOn);
@@ -736,7 +736,7 @@ bool	CHack::refresh()
 		}
 		
 		//Time Hour
-		feat = CMenu::getFeature(feature::map["FEATURE_T_SET_HOUR"]);
+		feat = CMenu::getFeature(FEATURE_T_SET_HOUR);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::set_time((int) feat->getValue(), -1);
@@ -744,7 +744,7 @@ bool	CHack::refresh()
 		}
 
 		//Time Mins
-		feat = CMenu::getFeature(feature::map["FEATURE_T_SET_MIN"]);
+		feat = CMenu::getFeature(FEATURE_T_SET_MIN);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::set_time(-1, (int) feat->getValue());
@@ -752,7 +752,7 @@ bool	CHack::refresh()
 		}
 
 		//Time Weather
-		feat = CMenu::getFeature(feature::map["FEATURE_T_WEATHER"]);
+		feat = CMenu::getFeature(FEATURE_T_WEATHER);
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::set_weather(feat->getCharArray()[(int) feat->getValue()]);
@@ -760,21 +760,21 @@ bool	CHack::refresh()
 		}
 
 		//Clean session
-		feat = CMenu::getFeature(feature::map["FEATURE_U_CLEAN_SESSION"]);
+		feat = CMenu::getFeature(FEATURE_U_CLEAN_SESSION);
 		if(!feat->m_bSet && feat->m_bOn && script::clean_session())
 			feat->m_bSet = true;
 
 		//Unlocks
-		const char* const unlockFeat[]	= {
-			"FEATURE_R_UNLOCK_STAT",
-			"FEATURE_R_UNLOCK_TATTOO",
-			"FEATURE_R_UNLOCK_PARACHUTE",
-			"FEATURE_R_UNLOCK_RIMS",
-			"FEATURE_R_UNLOCK_VEHICLE",
-			"FEATURE_R_UNLOCK_TROPHY",
-			"FEATURE_R_UNLOCK_HAIRSTYLE",
-			"FEATURE_R_UNLOCK_WEAPON",
-			"FEATURE_R_UNLOCK_CLOTHING",
+		const eFeatures unlockFeat[]	= {
+			FEATURE_R_UNLOCK_STAT,
+			FEATURE_R_UNLOCK_TATTOO,
+			FEATURE_R_UNLOCK_PARACHUTE,
+			FEATURE_R_UNLOCK_RIMS,
+			FEATURE_R_UNLOCK_VEHICLE,
+			FEATURE_R_UNLOCK_TROPHY,
+			FEATURE_R_UNLOCK_HAIRSTYLE,
+			FEATURE_R_UNLOCK_WEAPON,
+			FEATURE_R_UNLOCK_CLOTHING,
 		};
 		void (*unlockFunc[])() = {
 			&script::unlocks_stats,
@@ -790,7 +790,7 @@ bool	CHack::refresh()
 
 		for(int i = 0; i < sizeof(unlockFeat) / sizeof(*unlockFeat); ++i)
 		{
-			feat = CMenu::getFeature(feature::map[unlockFeat[i]]);
+			feat = CMenu::getFeature(unlockFeat[i]);
 			if(feat->m_bOn && !feat->m_bSet)
 			{
 				unlockFunc[i]();
@@ -799,9 +799,9 @@ bool	CHack::refresh()
 		}
 
 		//Event protections
-		const char* const protexFeat[]	= {
-			"FEATURE_D_TELEPORT",
-			"FEATURE_D_KICK",
+		const eFeatures protexFeat[]	= {
+			FEATURE_D_TELEPORT,
+			FEATURE_D_KICK,
 		};
 
 		const eRockstarEvent protexEnum[]	= {
@@ -811,7 +811,7 @@ bool	CHack::refresh()
 
 		for(int i = 0; i < sizeof(protexFeat) / sizeof(*protexFeat); ++i)
 		{
-			feat = CMenu::getFeature(feature::map[protexFeat[i]]);
+			feat = CMenu::getFeature(protexFeat[i]);
 			if(!feat->m_bSet)
 			{
 				CHooking::defuseEvent(protexEnum[i], feat->m_bOn);
@@ -827,12 +827,12 @@ bool	CHack::refresh()
 				script::request_control_of_entity(playerVeh);
 
 			//Speed-O-Meter
-			feat = CMenu::getFeature(feature::map["FEATURE_I_SPEED_O_METER"]);
+			feat = CMenu::getFeature(FEATURE_I_SPEED_O_METER);
 			if(feat->m_bOn && playerInVeh)
 				script::draw_speedometer(playerVeh);
 			
 			//vehicle invis
-			feat = CMenu::getFeature(feature::map["FEATURE_V_INVISIBLE"]);
+			feat = CMenu::getFeature(FEATURE_V_INVISIBLE);
 			if(feat->m_bOn || !feat->m_bSet)
 			{
 				ENTITY::SET_ENTITY_VISIBLE(playerVeh, !feat->m_bOn, false);
@@ -840,7 +840,7 @@ bool	CHack::refresh()
 			}
 
 			//repair vehicle
-			feat = CMenu::getFeature(feature::map["FEATURE_V_REPAIR"]);
+			feat = CMenu::getFeature(FEATURE_V_REPAIR);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				script::fix_vehicle(playerVeh);
@@ -848,12 +848,12 @@ bool	CHack::refresh()
 			}
 
 			//upgrade
-			feat = CMenu::getFeature(feature::map["FEATURE_V_UPGRADE"]);
+			feat = CMenu::getFeature(FEATURE_V_UPGRADE);
 			if(playerInVeh && !feat->m_bSet && feat->m_bOn && script::upgrade_car(playerVeh, true))
 				feat->m_bSet = true;
 
 			//Flip vehicle
-			feat = CMenu::getFeature(feature::map["FEATURE_V_FLIP"]);
+			feat = CMenu::getFeature(FEATURE_V_FLIP);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(playerVeh);
@@ -861,12 +861,12 @@ bool	CHack::refresh()
 			}
 
 			//stick to ground
-			feat = CMenu::getFeature(feature::map["FEATURE_V_STICK_TO_GROUND"]);
+			feat = CMenu::getFeature(FEATURE_V_STICK_TO_GROUND);
 			if(feat->m_bOn)
 				VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(playerVeh);
 			
 			//Boost
-			feat = CMenu::getFeature(feature::map["FEATURE_V_BOOST"]);
+			feat = CMenu::getFeature(FEATURE_V_BOOST);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				VEHICLE::SET_VEHICLE_FORWARD_SPEED(playerVeh, feat->getValue());
@@ -874,7 +874,7 @@ bool	CHack::refresh()
 			}
 
 			//Stop
-			feat = CMenu::getFeature(feature::map["FEATURE_V_STOP"]);
+			feat = CMenu::getFeature(FEATURE_V_STOP);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				VEHICLE::SET_VEHICLE_FORWARD_SPEED(playerVeh, 0.f);
@@ -882,7 +882,7 @@ bool	CHack::refresh()
 			}
 			
 			//License
-			feat = CMenu::getFeature(feature::map["FEATURE_V_LICENSE"]);
+			feat = CMenu::getFeature(FEATURE_V_LICENSE);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				if(feat->m_bRestored)
@@ -903,7 +903,7 @@ bool	CHack::refresh()
 			}
 			
 			//rainbow car
-			feat = CMenu::getFeature(feature::map["FEATURE_V_RAINBOW"]);
+			feat = CMenu::getFeature(FEATURE_V_RAINBOW);
 			if(feat->m_bOn && clock() - feat->m_clockTick > 200)
 			{
 				VEHICLE::SET_VEHICLE_COLOURS(playerVeh, util::random_int(1, 120), util::random_int(1, 120));
@@ -911,7 +911,7 @@ bool	CHack::refresh()
 			}
 
 			//preset vehicle colors
-			feat = CMenu::getFeature(feature::map["FEATURE_V_COLOR_PRESET"]);
+			feat = CMenu::getFeature(FEATURE_V_COLOR_PRESET);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				int p, s;
@@ -919,7 +919,7 @@ bool	CHack::refresh()
 				VEHICLE::SET_VEHICLE_COLOURS(playerVeh, (int) feat->getValue(), s);
 				feat->m_bSet = true;
 			}
-			feat = CMenu::getFeature(feature::map["FEATURE_V_COLOR_PRESET2"]);
+			feat = CMenu::getFeature(FEATURE_V_COLOR_PRESET2);
 			if(!feat->m_bSet && feat->m_bOn)
 			{
 				int p, s;
@@ -932,21 +932,21 @@ bool	CHack::refresh()
 
 		
 		//Bone index for attach
-		feat = CMenu::getFeature(feature::map["FEATURE_O_ATTACH_BONE"]);
+		feat = CMenu::getFeature(FEATURE_O_ATTACH_BONE);
 		int	iAttachBone = -1;
 		if(feat->m_bOn)
 			iAttachBone = hash::ped_bone_hash[(int) feat->getValue()];
 
 		//esp settings
-		bool	bEspDist	= CMenu::getFeature(feature::map["FEATURE_O_ESP_DIST"])->m_bOn;
-		bool	bEspHealth	= CMenu::getFeature(feature::map["FEATURE_O_ESP_HEALTH"])->m_bOn;
-		bool	bEspBox		= CMenu::getFeature(feature::map["FEATURE_O_ESP_BOX"])->m_bOn;
-		float	fEspMaxDist	= CMenu::getFeature(feature::map["FEATURE_O_ESP_MAX_DIST"])->getValue();
+		bool	bEspDist	= CMenu::getFeature(FEATURE_O_ESP_DIST)->m_bOn;
+		bool	bEspHealth	= CMenu::getFeature(FEATURE_O_ESP_HEALTH)->m_bOn;
+		bool	bEspBox		= CMenu::getFeature(FEATURE_O_ESP_BOX)->m_bOn;
+		float	fEspMaxDist	= CMenu::getFeature(FEATURE_O_ESP_MAX_DIST)->getValue();
 		
 		//online players
 		for(int i = 0; i < MAX_PLAYERS; i++)
 		{
-			CFeat* feat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_PARENT"]);
+			CFeat* feat = CMenu::getPlrFeature(PLRFEAT_PARENT, i);
 
 			//update players
 			std::string szName = "!Invalid!";
@@ -983,7 +983,7 @@ bool	CHack::refresh()
 			CFeat*	plrFeat;
 
 			//update player info features, if the screen is active for this player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_INFO, i);
 			if(clock() - m_clockPlayerInfo > 0x400 && CMenu::getActiveParent() == plrFeat->m_iId)
 			{
 				char	msg[0xFF];
@@ -992,36 +992,36 @@ bool	CHack::refresh()
 				{
 					//name
 					sprintf_s(msg, "Name: %s", &szName[0]);
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_NAME"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_NAME, i)->m_szName = msg;
 
 					//ip
 					BYTE*	btIP	= reinterpret_cast<BYTE*>(&cp->pCPlayerInfo->iExternalIP);
 					sprintf_s(msg, "IP: %i.%i.%i.%i", *(btIP + 3), *(btIP + 2), *(btIP + 1), *btIP);
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_IP"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_IP, i)->m_szName = msg;
 
 					//port
 					sprintf_s(msg, "Port: %i", cp->pCPlayerInfo->iExternalPort);
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_PORT"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_PORT, i)->m_szName = msg;
 
 					//coords
 					sprintf_s(msg, "Coords: %.3f, %.3f, %.3f", cp->v3VisualPos.x, cp->v3VisualPos.y, cp->v3VisualPos.z);
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_COORDS"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_COORDS, i)->m_szName = msg;
 
 					//dist
 					sprintf_s(msg, "Distance: %.3f", cp->v3VisualPos.getDist(script::get_entity_coords(playerPed)));
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_DISTANCE"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_DISTANCE, i)->m_szName = msg;
 
 					//health/armor
 					sprintf_s(msg, "Hp/Armor: %i/%i, %i/50", (int) cp->fHealth, (int) cp->fHealthMax, (int) cp->fArmor);
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_HEALTH"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_HEALTH, i)->m_szName = msg;
 
 					//is in veh
 					sprintf_s(msg, "In Vehicle: %s", cp->isInVehicle() ? "Yes" : "No");
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_IS_IN_VEH"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_IS_IN_VEH, i)->m_szName = msg;
 
 					//is god
 					sprintf_s(msg, "Is God: %s", cp->isGod() ? "Yes" : "No");
-					CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_IS_GOD"])->m_szName = msg;
+					CMenu::getPlrFeature(PLRFEAT_INFO_IS_GOD, i)->m_szName = msg;
 				}
 				m_clockPlayerInfo	= clock();
 			}
@@ -1030,7 +1030,7 @@ bool	CHack::refresh()
 				NETWORK::SET_PLAYER_VISIBLE_LOCALLY(i, true);
 
 			//copy ip to clipboard
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_INFO_IP"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_INFO_IP, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				util::to_clipboard(&plrFeat->m_szName[0] + 4);
@@ -1038,7 +1038,7 @@ bool	CHack::refresh()
 			}
 
 			//ped drop
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_PED_DROP"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_PED_DROP, i);
 			if(plrFeat->m_bOn || !plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
@@ -1049,12 +1049,12 @@ bool	CHack::refresh()
 			}
 
 			//Track player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TRACK"]);
-			if(plrFeat->m_bOn || CMenu::getFeature(feature::map["FEATURE_A_TRACK"])->m_bOn)
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TRACK, i);
+			if(plrFeat->m_bOn || CMenu::getFeature(FEATURE_A_TRACK)->m_bOn)
 				script::draw_esp_on_entity(remotePed, szName, bEspBox, bEspHealth, bEspDist, fEspMaxDist);
 
 			//Specate player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_SPECTATE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_SPECTATE, i);
 			if(!plrFeat->m_bSet)
 			{
 				script::spectate_player(remotePed, plrFeat->m_bOn);
@@ -1062,7 +1062,7 @@ bool	CHack::refresh()
 			}
 			
 			//teleport to player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::teleport_to_entity(remotePed);
@@ -1070,7 +1070,7 @@ bool	CHack::refresh()
 			}
 			
 			//teleport to player vehicle
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_CAR"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_CAR, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::teleport_to_ped_car(remotePed);
@@ -1078,7 +1078,7 @@ bool	CHack::refresh()
 			}
 			
 			//teleport player to me
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_ME"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_ME, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
 			{
 				if(script::teleport_player_to_me(remotePed, i))
@@ -1087,7 +1087,7 @@ bool	CHack::refresh()
 			}
 			
 			//teleport player to sea
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_SEA"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_SEA, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
 			{
 				if(script::teleport_player_to_sea(remotePed, i))
@@ -1096,7 +1096,7 @@ bool	CHack::refresh()
 			}
 			
 			//teleport player in the air
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TP_TO_AIR"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_AIR, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::teleport_player_to_air(remotePed);
@@ -1104,7 +1104,7 @@ bool	CHack::refresh()
 			}
 			
 			//explode
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_EXPLODE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_EXPLODE, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::explode_ped(remotePed, (int) plrFeat->getValue());
@@ -1112,7 +1112,7 @@ bool	CHack::refresh()
 			}
 			
 			//Give weapon
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_GIVE_WEAPON"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_GIVE_WEAPON, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::ped_weapon(remotePed, hash::weapon_hash[(int) plrFeat->getValue()], true);
@@ -1120,7 +1120,7 @@ bool	CHack::refresh()
 			}
 			
 			//Give all weapons
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_GIVE_WEAPONS"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_GIVE_WEAPONS, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::ped_give_all_weapons(remotePed);
@@ -1128,7 +1128,7 @@ bool	CHack::refresh()
 			}
 			
 			//Remove all weapons
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_REMOVE_WEAPONS"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_REMOVE_WEAPONS, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				script::ped_weapon(remotePed, "ALL", false);
@@ -1136,7 +1136,7 @@ bool	CHack::refresh()
 			}
 			
 			//Clone Ped Bodyguard
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_CLONE_BODYGUARD"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_CLONE_BODYGUARD, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				m_pedCleanup.push_back(script::clone_ped_bodyguard(remotePed));
@@ -1144,7 +1144,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach to player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_TO"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_TO, i);
 			if(!plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
@@ -1158,7 +1158,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach Piggy Back
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_PIGGY_BACK"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_PIGGY_BACK, i);
 			if(!plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
@@ -1178,7 +1178,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach 69
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_69"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_69, i);
 			if(!plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
@@ -1198,7 +1198,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach Violate
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_VIOLATE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_VIOLATE, i);
 			if(!plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
@@ -1220,7 +1220,7 @@ bool	CHack::refresh()
 			}
 			
 			//Detach everything from the player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_DETACH_ALL"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_DETACH_ALL, i);
 			if(!plrFeat->m_bSet)	//without m_bOn check, this will also be run when the hack is unloaded
 			{
 				for(int j = 0; j < m_remotePlayerAttach[i].size(); j++)
@@ -1234,7 +1234,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach clone to player
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_CLONE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_CLONE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				Ped ped = remotePed;
@@ -1249,7 +1249,7 @@ bool	CHack::refresh()
 			}
 			
 			//Attach clone 69
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ATTACH_CLONE_69"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ATTACH_CLONE_69, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				Ped bodyguard = script::clone_ped_bodyguard(remotePed);
@@ -1262,7 +1262,7 @@ bool	CHack::refresh()
 			}
 			
 			//Trap In Cage
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_TRAP_IN_CAGE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_TRAP_IN_CAGE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				if(clock() - plrFeat->m_clockTick > 0x7FF)
@@ -1278,7 +1278,7 @@ bool	CHack::refresh()
 			}
 			
 			//clear tasks
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_CLEAR_TASKS"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_CLEAR_TASKS, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
@@ -1286,7 +1286,7 @@ bool	CHack::refresh()
 			}
 			
 			//send assasins
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_CHRISFORMAGE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_CHRISFORMAGE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				if(script::send_assasins_after_player(i, remotePed))
@@ -1294,7 +1294,7 @@ bool	CHack::refresh()
 			}
 			
 			//shoot
-			/*plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_SHOOT"]);
+			/*plrFeat = CMenu::getPlrFeature(PLRFEAT_SHOOT, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				script::shoot_ped(remotePed);
@@ -1302,7 +1302,7 @@ bool	CHack::refresh()
 			}*/
 
 			//Freeze
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_FREEZE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_FREEZE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
 				if(script::animate_player(remotePed, "mini@strip_club@pole_dance@pole_a_2_stage", "pole_a_2_stage", true))
@@ -1310,7 +1310,7 @@ bool	CHack::refresh()
 			}
 
 			//Animate
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_ANIMATE"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_ANIMATE, i);
 			if(!plrFeat->m_bSet && (plrFeat->m_bOn || !plrFeat->m_bRestored))
 			{
 				plrFeat->m_bRestored	= plrFeat->m_bOn ? false : true;
@@ -1319,7 +1319,7 @@ bool	CHack::refresh()
 			}
 
 			//dead clones
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_DEAD_CLONES"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_DEAD_CLONES, i);
 			if((plrFeat->m_bOn && clock() - plrFeat->m_clockTick > 500) || !plrFeat->m_bSet)
 			{
 				script::player_dead_clone(i, remotePed, !plrFeat->m_bOn);
@@ -1328,7 +1328,7 @@ bool	CHack::refresh()
 			}
 
 			//give wanted level
-			plrFeat = CMenu::getFeature(feature::player_map[i]["PLRFEAT_GIVE_WANTED"]);
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_GIVE_WANTED, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
 				if(script::give_player_wanted_level(i, 0x14))
@@ -1337,17 +1337,17 @@ bool	CHack::refresh()
 		}
 
 		//all players
-		checkAllPlayerFeature("FEATURE_A_TP_TO_ME", "PLRFEAT_TP_TO_ME");
-		checkAllPlayerFeature("FEATURE_A_TP_TO_SEA", "PLRFEAT_TP_TO_SEA");
-		checkAllPlayerFeature("FEATURE_A_TP_TO_AIR", "PLRFEAT_TP_TO_AIR");
-		checkAllPlayerFeature("FEATURE_A_GIVE_WEAPON", "PLRFEAT_GIVE_WEAPON");
-		checkAllPlayerFeature("FEATURE_A_GIVE_WEAPONS", "PLRFEAT_GIVE_WEAPONS");
-		checkAllPlayerFeature("FEATURE_A_REMOVE_WEAPONS", "PLRFEAT_REMOVE_WEAPONS");
-		checkAllPlayerFeature("FEATURE_A_TRAP_IN_CAGE", "PLRFEAT_TRAP_IN_CAGE");
-		checkAllPlayerFeature("FEATURE_A_EXPLODE", "PLRFEAT_EXPLODE");
-		checkAllPlayerFeature("FEATURE_A_FREEZE", "PLRFEAT_FREEZE");
-		checkAllPlayerFeature("FEATURE_A_CLEAR_TASKS", "PLRFEAT_CLEAR_TASKS");
-		checkAllPlayerFeature("FEATURE_A_ANIMATE", "PLRFEAT_ANIMATE");
+		checkAllPlayerFeature(FEATURE_A_TP_TO_ME, PLRFEAT_TP_TO_ME);
+		checkAllPlayerFeature(FEATURE_A_TP_TO_SEA, PLRFEAT_TP_TO_SEA);
+		checkAllPlayerFeature(FEATURE_A_TP_TO_AIR, PLRFEAT_TP_TO_AIR);
+		checkAllPlayerFeature(FEATURE_A_GIVE_WEAPON, PLRFEAT_GIVE_WEAPON);
+		checkAllPlayerFeature(FEATURE_A_GIVE_WEAPONS, PLRFEAT_GIVE_WEAPONS);
+		checkAllPlayerFeature(FEATURE_A_REMOVE_WEAPONS, PLRFEAT_REMOVE_WEAPONS);
+		checkAllPlayerFeature(FEATURE_A_TRAP_IN_CAGE, PLRFEAT_TRAP_IN_CAGE);
+		checkAllPlayerFeature(FEATURE_A_EXPLODE, PLRFEAT_EXPLODE);
+		checkAllPlayerFeature(FEATURE_A_FREEZE, PLRFEAT_FREEZE);
+		checkAllPlayerFeature(FEATURE_A_CLEAR_TASKS, PLRFEAT_CLEAR_TASKS);
+		checkAllPlayerFeature(FEATURE_A_ANIMATE, PLRFEAT_ANIMATE);
 
 		//memory hack stuff
 		if(m_pCPedPlayer != m_pCWorld->CPedLocalPlayer)
@@ -1355,21 +1355,21 @@ bool	CHack::refresh()
 		if(m_pCPlayerInfo != m_pCWorld->CPedLocalPlayer->pCPlayerInfo)
 			m_pCPlayerInfo = m_pCWorld->CPedLocalPlayer->pCPlayerInfo;
 
-		if(	CMenu::getFeature(feature::map["FEATURE_P_GOD"])->m_bOn ||
-			CMenu::getFeature(feature::map["FEATURE_P_TRUEGOD"])->m_bOn)		m_pCPedPlayer->giveHealth();
-		if(	CMenu::getFeature(feature::map["FEATURE_P_ANTINPC"])->m_bOn)		killNpc();
+		if(	CMenu::getFeature(FEATURE_P_GOD)->m_bOn ||
+			CMenu::getFeature(FEATURE_P_TRUEGOD)->m_bOn)		m_pCPedPlayer->giveHealth();
+		if(	CMenu::getFeature(FEATURE_P_ANTINPC)->m_bOn)		killNpc();
 
-		checkFeature<BYTE>	(	"FEATURE_P_TRUEGOD",
+		checkFeature<BYTE>	(	FEATURE_P_TRUEGOD,
 								(m_pCPedPlayer->btGodMode | 0x01) ^ 0x01,
 								m_pCPedPlayer->btGodMode | 0x01,
 								&m_pCPedPlayer->btGodMode);
 
-		checkFeature<BYTE>	(	"FEATURE_P_SEATBELT",
+		checkFeature<BYTE>	(	FEATURE_P_SEATBELT,
 								(m_pCPedPlayer->btSeatbelt | 0x01) ^ 0x01,
 								m_pCPedPlayer->btSeatbelt | 0x01,
 								&m_pCPedPlayer->btSeatbelt);
 
-		checkFeature<BYTE>	(	"FEATURE_P_NORAGDOLL",
+		checkFeature<BYTE>	(	FEATURE_P_NORAGDOLL,
 								m_pCPedPlayer->btNoRagdoll | 0x20,
 								(m_pCPedPlayer->btNoRagdoll | 0x20) ^ 0x20,
 								&m_pCPedPlayer->btNoRagdoll);
@@ -1377,54 +1377,54 @@ bool	CHack::refresh()
 		//PlayerInfo
 		if(m_pCPlayerInfo != nullptr)
 		{
-			if(CMenu::getFeature(feature::map["FEATURE_P_NEVERWANTED"])->m_bOn)
+			if(CMenu::getFeature(FEATURE_P_NEVERWANTED)->m_bOn)
 				m_pCPlayerInfo->removeWanted();
 
-			checkFeature<float>	(	"FEATURE_P_SWIMSPD",
+			checkFeature<float>	(	FEATURE_P_SWIMSPD,
 									1.f,
-									CMenu::getFeature(feature::map["FEATURE_P_SWIMSPD"])->getValue(),
+									CMenu::getFeature(FEATURE_P_SWIMSPD)->getValue(),
 									&m_pCPlayerInfo->fSwimSpeed);
 
-			checkFeature<float>	(	"FEATURE_P_RUNSPD",
+			checkFeature<float>	(	FEATURE_P_RUNSPD,
 									1.f,
-									CMenu::getFeature(feature::map["FEATURE_P_RUNSPD"])->getValue(),
+									CMenu::getFeature(FEATURE_P_RUNSPD)->getValue(),
 									&m_pCPlayerInfo->fRunSpeed);
 
-			checkFeature<DWORD>	(	"FEATURE_P_WANTED",
+			checkFeature<DWORD>	(	FEATURE_P_WANTED,
 									0,
-									(DWORD) CMenu::getFeature(feature::map["FEATURE_P_WANTED"])->getValue(),
+									(DWORD) CMenu::getFeature(FEATURE_P_WANTED)->getValue(),
 									&m_pCPlayerInfo->CWantedData.dwWantedLevel,
 									false);
 
-			checkFeature<float>	(	"FEATURE_P_STAMINA",
+			checkFeature<float>	(	FEATURE_P_STAMINA,
 									m_pCPlayerInfo->fStaminaMax,
 									m_pCPlayerInfo->fStaminaMax,
 									&m_pCPlayerInfo->fStamina);
 
-			checkFeature<float>	(	"FEATURE_P_NEVERWANTED",
+			checkFeature<float>	(	FEATURE_P_NEVERWANTED,
 									1.f,
 									0.f,
 									&m_pCPlayerInfo->CWantedData.fWantedCanChange);
 
-			checkFeature<BYTE>	(	"FEATURE_P_SUPERJUMP",
+			checkFeature<BYTE>	(	FEATURE_P_SUPERJUMP,
 									0,
 									m_pCPlayerInfo->btFrameFlags | (1 << 6),
 									&m_pCPlayerInfo->btFrameFlags,
 									false);
 
-			checkFeature<BYTE>	(	"FEATURE_P_EXPLOSIVEMELEE",
+			checkFeature<BYTE>	(	FEATURE_P_EXPLOSIVEMELEE,
 									0,
 									m_pCPlayerInfo->btFrameFlags | (1 << 5),
 									&m_pCPlayerInfo->btFrameFlags,
 									false);
 
-			checkFeature<BYTE>	(	"FEATURE_W_FIREAMMO",
+			checkFeature<BYTE>	(	FEATURE_W_FIREAMMO,
 									0,
 									m_pCPlayerInfo->btFrameFlags | (1 << 4),
 									&m_pCPlayerInfo->btFrameFlags,
 									false);
 
-			checkFeature<BYTE>	(	"FEATURE_W_EXPLOSIVEAMMO",
+			checkFeature<BYTE>	(	FEATURE_W_EXPLOSIVEAMMO,
 									0,
 									m_pCPlayerInfo->btFrameFlags | (1 << 3),
 									&m_pCPlayerInfo->btFrameFlags,
@@ -1448,70 +1448,70 @@ bool	CHack::refresh()
 				m_CVehicleHandling	= *m_pCVehicleHandling;
 			}
 
-			if(	CMenu::getFeature(feature::map["FEATURE_V_GOD"])->m_bOn ||
-				CMenu::getFeature(feature::map["FEATURE_V_TRUEGOD"])->m_bOn)
+			if(	CMenu::getFeature(FEATURE_V_GOD)->m_bOn ||
+				CMenu::getFeature(FEATURE_V_TRUEGOD)->m_bOn)
 				m_pCVehicle->giveHealth();
 
-			checkFeature<BYTE>	(	"FEATURE_V_TRUEGOD",
+			checkFeature<BYTE>	(	FEATURE_V_TRUEGOD,
 									(m_CVehicle.btGodMode | 0x01) ^ 0x01,
 									m_CVehicle.btGodMode | 0x01,
 									&m_pCVehicle->btGodMode);
 
-			checkFeature<float>	(	"FEATURE_V_GRAVITY",
+			checkFeature<float>	(	FEATURE_V_GRAVITY,
 									m_CVehicle.fGravity,
-									CMenu::getFeature(feature::map["FEATURE_V_GRAVITY"])->getValue(),
+									CMenu::getFeature(FEATURE_V_GRAVITY)->getValue(),
 									&m_pCVehicle->fGravity);
 
-			checkFeature<BYTE>	(	"FEATURE_V_BULLETPROOFTIRES",
+			checkFeature<BYTE>	(	FEATURE_V_BULLETPROOFTIRES,
 									m_CVehicle.btBulletproofTires,
 									m_CVehicle.btBulletproofTires | 0x20,
 									&m_pCVehicle->btBulletproofTires);
 
-			checkFeature<BYTE>	(	"FEATURE_V_VOLTIC_BOOST",
+			checkFeature<BYTE>	(	FEATURE_V_VOLTIC_BOOST,
 									m_CVehicle.btVolticRocketState,
 									m_CVehicle.btVolticRocketState | 0x01,
 									&m_pCVehicle->btVolticRocketState,
 									false);
 
-			checkFeature<float>	(	"FEATURE_V_VOLTIC_BOOST",
+			checkFeature<float>	(	FEATURE_V_VOLTIC_BOOST,
 									m_CVehicle.fVolticRocketEnergy,
 									1.25f,
 									&m_pCVehicle->fVolticRocketEnergy,
 									false);
 
-			checkFeature<DWORD>	(	"FEATURE_V_INF_CAR_ALARM",
+			checkFeature<DWORD>	(	FEATURE_V_INF_CAR_ALARM,
 									0,
 									0x7FF,
 									&m_pCVehicle->dwCarAlarmLength);
 
-			checkFeature<float>	(	"FEATURE_V_ACCELERATION",
+			checkFeature<float>	(	FEATURE_V_ACCELERATION,
 									m_CVehicleHandling.fAcceleration,
-									m_CVehicleHandling.fAcceleration * CMenu::getFeature(feature::map["FEATURE_V_ACCELERATION"])->getValue(),
+									m_CVehicleHandling.fAcceleration * CMenu::getFeature(FEATURE_V_ACCELERATION)->getValue(),
 									&m_pCVehicleHandling->fAcceleration);
 
-			checkFeature<float>	(	"FEATURE_V_BRAKEFORCE",
+			checkFeature<float>	(	FEATURE_V_BRAKEFORCE,
 									m_CVehicleHandling.fBrakeForce,
-									m_CVehicleHandling.fBrakeForce * CMenu::getFeature(feature::map["FEATURE_V_BRAKEFORCE"])->getValue(),
+									m_CVehicleHandling.fBrakeForce * CMenu::getFeature(FEATURE_V_BRAKEFORCE)->getValue(),
 									&m_pCVehicleHandling->fBrakeForce);
 
-			checkFeature<float>	(	"FEATURE_V_TRACTION",
+			checkFeature<float>	(	FEATURE_V_TRACTION,
 									m_CVehicleHandling.fTractionCurveMin,
-									m_CVehicleHandling.fTractionCurveMin * CMenu::getFeature(feature::map["FEATURE_V_TRACTION"])->getValue(),
+									m_CVehicleHandling.fTractionCurveMin * CMenu::getFeature(FEATURE_V_TRACTION)->getValue(),
 									&m_pCVehicleHandling->fTractionCurveMin);
 
-			checkFeature<float>	(	"FEATURE_V_DEFORMATION",
+			checkFeature<float>	(	FEATURE_V_DEFORMATION,
 									m_CVehicleHandling.fDeformationDamageMult,
-									CMenu::getFeature(feature::map["FEATURE_V_DEFORMATION"])->getValue(),
+									CMenu::getFeature(FEATURE_V_DEFORMATION)->getValue(),
 									&m_pCVehicleHandling->fDeformationDamageMult);
 
-			checkFeature<float>	(	"FEATURE_V_UPSHIFT",
+			checkFeature<float>	(	FEATURE_V_UPSHIFT,
 									m_CVehicleHandling.fClutchChangeRateScaleUpShift,
-									CMenu::getFeature(feature::map["FEATURE_V_UPSHIFT"])->getValue(),
+									CMenu::getFeature(FEATURE_V_UPSHIFT)->getValue(),
 									&m_pCVehicleHandling->fClutchChangeRateScaleUpShift);
 
-			checkFeature<float>	(	"FEATURE_V_SUSPENSION_FORCE",
+			checkFeature<float>	(	FEATURE_V_SUSPENSION_FORCE,
 									m_CVehicleHandling.fSuspensionForce,
-									m_CVehicleHandling.fSuspensionForce * CMenu::getFeature(feature::map["FEATURE_V_SUSPENSION_FORCE"])->getValue(),
+									m_CVehicleHandling.fSuspensionForce * CMenu::getFeature(FEATURE_V_SUSPENSION_FORCE)->getValue(),
 									&m_pCVehicleHandling->fSuspensionForce);
 		}
 
@@ -1538,47 +1538,47 @@ bool	CHack::refresh()
 				m_CWeapon	= *m_pCWeapon;
 			}
 
-			checkFeature<float>	(	"FEATURE_W_RECOIL",
+			checkFeature<float>	(	FEATURE_W_RECOIL,
 									m_CWeapon.fRecoil,
 									0.f,
 									&m_pCWeapon->fRecoil);
 
-			checkFeature<float>	(	"FEATURE_W_SPREAD",
+			checkFeature<float>	(	FEATURE_W_SPREAD,
 									m_CWeapon.fSpread,
 									0.f,
 									&m_pCWeapon->fSpread);
 
-			checkFeature<float>	(	"FEATURE_W_RELOAD",
+			checkFeature<float>	(	FEATURE_W_RELOAD,
 									m_CWeapon.fAnimReloadRate,
-									m_CWeapon.fAnimReloadRate * CMenu::getFeature(feature::map["FEATURE_W_RELOAD"])->getValue(),
+									m_CWeapon.fAnimReloadRate * CMenu::getFeature(FEATURE_W_RELOAD)->getValue(),
 									&m_pCWeapon->fAnimReloadRate);
 
-			checkFeature<float>	(	"FEATURE_W_RELOAD",
+			checkFeature<float>	(	FEATURE_W_RELOAD,
 									m_CWeapon.fVehicleReloadTime,
 									0.f,
 									&m_pCWeapon->fVehicleReloadTime);
 
-			checkFeature<float>	(	"FEATURE_W_DAMAGE",
+			checkFeature<float>	(	FEATURE_W_DAMAGE,
 									m_CWeapon.fBulletDamage,
-									m_CWeapon.fBulletDamage * CMenu::getFeature(feature::map["FEATURE_W_DAMAGE"])->getValue(),
+									m_CWeapon.fBulletDamage * CMenu::getFeature(FEATURE_W_DAMAGE)->getValue(),
 									&m_pCWeapon->fBulletDamage);
 
 			//checkFeature<float>	(	"FEATURE_W_RANGE",
 			//						m_CWeapon.fWeaponRange,
-			//						m_CWeapon.fWeaponRange * CMenu::getFeature(feature::map["FEATURE_W_RANGE"])->getValue(),
+			//						m_CWeapon.fWeaponRange * CMenu::getFeature(FEATURE_W_RANGE)->getValue(),
 			//						&m_pCWeapon->fWeaponRange);
 
-			checkFeature<float>	(	"FEATURE_W_SPINUP",
+			checkFeature<float>	(	FEATURE_W_SPINUP,
 									m_CWeapon.fSpinTime,
 									0.f,
 									&m_pCWeapon->fSpinTime);
 
-			checkFeature<float>	(	"FEATURE_W_SPINUP",
+			checkFeature<float>	(	FEATURE_W_SPINUP,
 									m_CWeapon.fSpinUpTime,
 									0.f,
 									&m_pCWeapon->fSpinUpTime);
 
-			/*float	fValue	= m_CWeapon.dwBulletInBatch * CMenu::getFeature(feature::map["FEATURE_W_BULLET_BATCH"])->getValue();
+			/*float	fValue	= m_CWeapon.dwBulletInBatch * CMenu::getFeature(FEATURE_W_BULLET_BATCH)->getValue();
 					fValue	= (fValue > 15) ? 15 : fValue;
 			checkFeature<DWORD>	(	"FEATURE_W_BULLET_BATCH",
 									m_CWeapon.dwBulletInBatch,
@@ -1587,12 +1587,12 @@ bool	CHack::refresh()
 
 			checkFeature<float>	(	"FEATURE_W_MUZZLE_VELOCITY",
 									m_CWeapon.fMuzzleVelocity,
-									m_CWeapon.fMuzzleVelocity * CMenu::getFeature(feature::map["FEATURE_W_MUZZLE_VELOCITY"])->getValue(),
+									m_CWeapon.fMuzzleVelocity * CMenu::getFeature(FEATURE_W_MUZZLE_VELOCITY)->getValue(),
 									&m_pCWeapon->fMuzzleVelocity);
 
 			checkFeature<float>	(	"FEATURE_W_BATCH_SPREAD",
 									m_CWeapon.fBatchSpread,
-									CMenu::getFeature(feature::map["FEATURE_W_BATCH_SPREAD"])->getValue(),
+									CMenu::getFeature(FEATURE_W_BATCH_SPREAD)->getValue(),
 									&m_pCWeapon->fBatchSpread);*/
 		}
 	}

@@ -39,9 +39,8 @@ bool			initHooks();
 bool			hookNatives();
 void			findPatterns();
 
-const	int					EVENT_COUNT		= 78;
 static	std::vector<void*>	g_eventPtrs;
-static	unsigned char		g_eventRestore[EVENT_COUNT]	= { 0 };
+static	unsigned char		g_eventRestore[REVENT_END]	= { 0 };
 
 /*
 	//Hooking public functions
@@ -210,7 +209,7 @@ BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 	//	CLog::msg("Remote rp attempt blocked.");
 	//if(CMenu::getFeature(feature::map["FEATURE_D_FRAUD"])->m_bOn		&& p1 == 0x186)
 	//	CLog::msg("Remote fraud attempt blocked.");
-	if(CMenu::getFeature(feature::map["FEATURE_D_KICK"])->m_bOn	&& p1 == 0x38)
+	if(CMenu::getFeature(FEATURE_D_KICK)->m_bOn	&& p1 == 0x38)
 		CLog::msg("Remote kick attempt blocked.");
 	else
 		return OG_GET_EVENT_DATA(cxt);
@@ -287,7 +286,7 @@ void findPatterns()
 
 		const char* const	pat	= "\x4C\x8D\x05";
 
-		while(found < EVENT_COUNT)
+		while(found < REVENT_END)
 		{
 			if(*ptr == pat[j])
 			{
