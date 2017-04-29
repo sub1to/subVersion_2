@@ -209,9 +209,9 @@ bool	CRender::render()
 				}
 				else if(feature->m_type & 1 << 2)
 				{
-					if(feature->m_type & (1 << 8 | 1 << 10))
+					if(feature->m_type & (1 << 8 | 1 << 9))
 					{
-						char** ppCh = feature->getCharArray();
+						const char* const * ppCh = feature->getCharArray();
 						drawText((std::string) "< " +  *((ppCh) + (int) feature->getValue()) + " >", x, y - 5, w, LAYOUT_ELEMENT_HEIGHT, 1, LAYOUT_COLOR_TEXT, DT_VCENTER | DT_CENTER);
 					}
 					else

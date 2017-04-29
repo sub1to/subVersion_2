@@ -39,29 +39,28 @@ CWeapon				CHack::m_CWeapon;
 
 int					CHack::m_lastVehicle		= NULL;
 
-vec_int			CHack::m_pedCleanup;						//vector with all spawned peds
+deque_int		CHack::m_pedCleanup;						//queue with all spawned peds
 clock_t			CHack::m_pedCleanupClock	= clock();
 
-vec_int			CHack::m_entityCleanup;					//vector where objects will be pushed to be destroyed
+queue_int		CHack::m_entityCleanup;					//queue where entities will be pushed to be destroyed
 clock_t			CHack::m_entityCleanupClock	= clock();
 int				CHack::m_entityCleanupTries	= 0;
 
-vec_int			CHack::m_remotePlayerAttach[MAX_PLAYERS];
-vec_attach		CHack::m_requestedAttach;
+deque_int		CHack::m_remotePlayerAttach[MAX_PLAYERS];
 
 std::string		CHack::m_szRequestedModel	= "";
 bool			CHack::m_bModelSet			= true;
 bool			CHack::m_bModelWeapons		= true;
 clock_t			CHack::m_modelClock			= clock();
 
-vec_str			CHack::m_requestedVehicle;
-vec_str			CHack::m_requestedWeapon;
+queue_str		CHack::m_requestedVehicle;
+queue_str		CHack::m_requestedWeapon;
 bool			CHack::m_bWeaponGive;
-vec_str			CHack::m_requestedPed;
-vec_str			CHack::m_requestedObject;
+queue_str		CHack::m_requestedPed;
+queue_str		CHack::m_requestedObject;
 
-vec_int			CHack::m_nearbyPed;
-vec_int			CHack::m_nearbyVehicle;
+queue_int		CHack::m_nearbyPed;
+queue_int		CHack::m_nearbyVehicle;
 
 v3				CHack::m_v3Teleport			= {};
 
@@ -129,40 +128,14 @@ bool	CHack::refresh()
 {
 	if(m_pCWorld->CPedLocalPlayer != nullptr)
 	{
-		
+		clock_t	curClock	= clock();
+
 		//init player, playerPed and playerVeh
 		Player	player		= PLAYER::PLAYER_ID();
 		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
 
 		if(!PLAYER::IS_PLAYER_PLAYING(player))
 			return false;
-
-		/*int max = CHooking::m_replayIntf->ped_interface->max_peds;
-		for(int i = 0; i < max; i++)
-		{
-			CPed* ped = CHooking::m_replayIntf->ped_interface->get_ped(i);
-			if(ped == nullptr || ped == m_pCPedPlayer)
-				continue;
-			Ped id = CHooking::m_replayIntf->ped_interface->get_ped_handle(i);
-			char	buf[0xFF];
-			sprintf_s(buf, "Replay - Ped Handle %i: %i", i, id);
-			CLog::msg(buf);
-			//if(ENTITY::DOES_ENTITY_EXIST(id))
-			//	CLog::msg("Exists");
-			//v3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, false);
-			//script::teleport_entity_to_coords(id, playerPos, false);
-		}
-
-		script::update_nearby_ped(playerPed, 0x80);
-		int tmp = 0;
-		while(!m_nearbyPed.empty())
-		{
-			char	buf[0xFF];
-			sprintf_s(buf, "Native - Ped Handle %i: %i", tmp, m_nearbyPed[0]);
-			CLog::msg(buf);
-			m_nearbyPed.erase(m_nearbyPed.begin());
-			++tmp;
-		}*/
 
 		//bool	playerInVeh	= PED::IS_PED_IN_ANY_VEHICLE(playerPed, true) > 0;
 		bool	playerInVeh	= script::is_ped_in_any_vehicle(playerPed);
@@ -236,7 +209,7 @@ bool	CHack::refresh()
 		
 		//spawned ped cleanup
 		feat = CMenu::getFeature(FEATURE_S_PED_CLEANUP);
-		if(!m_pedCleanup.empty() && clock() - m_pedCleanupClock > 0xFF)
+		if(!m_pedCleanup.empty() && curClock - m_pedCleanupClock > 0xFF)
 		{
 			if(feat->m_bOn)
 			{
@@ -247,58 +220,58 @@ bool	CHack::refresh()
 						continue;
 					if(ENTITY::IS_ENTITY_ATTACHED(e))
 						script::detach_entity(e);
-					m_entityCleanup.push_back(e);
+					m_entityCleanup.push(e);
 					m_pedCleanup.erase(m_pedCleanup.begin() + i);
 					break;
 				}
 			}
 			else
 				m_pedCleanup.clear();
-			m_pedCleanupClock = clock();
+			m_pedCleanupClock = curClock;
 		}
 		
 		//entity cleanup
 		static std::unordered_map<Entity, int>	countMap;
-		if(!m_entityCleanup.empty() && clock() - m_entityCleanupClock > 0x10)
+		if(!m_entityCleanup.empty() && curClock - m_entityCleanupClock > 0x10)
 		{
-			Entity e = m_entityCleanup[0];
-			if(!ENTITY::IS_AN_ENTITY(e))
+			Entity ent = m_entityCleanup.front();
+			if(!ENTITY::IS_AN_ENTITY(ent))
 			{
-				if(countMap.find(m_entityCleanup[0]) != countMap.end())
-					countMap.erase(m_entityCleanup[0]);
-				m_entityCleanup.erase(m_entityCleanup.begin());
+				if(countMap.find(ent) != countMap.end())
+					countMap.erase(ent);
+				m_entityCleanup.pop();
 				m_entityCleanupTries = 0;
 			}
 			else if(m_entityCleanupTries > 5)
 			{
-				std::unordered_map<Entity, int>::iterator it = countMap.find(m_entityCleanup[0]);
+				std::unordered_map<Entity, int>::iterator it = countMap.find(ent);
 				if(it != countMap.end())
 					if(it->second < 0xFF)
 						it->second++;
 					else
 					{
 						countMap.erase(it);
-						m_entityCleanup.erase(m_entityCleanup.begin());
+						m_entityCleanup.pop();
 						m_entityCleanupTries = 0;
 					}
 				else
-					countMap[m_entityCleanup[0]] = 1;
-				m_entityCleanup.push_back(m_entityCleanup[0]);
-				m_entityCleanup.erase(m_entityCleanup.begin());
+					countMap[ent] = 1;
+				m_entityCleanup.push(ent);
+				m_entityCleanup.pop();
 				m_entityCleanupTries = 0;
 			}
-			else if(script::request_control_of_entity(e))
+			else if(script::request_control_of_entity(ent))
 			{
-				script::detach_entity(e);
-				ENTITY::SET_ENTITY_AS_MISSION_ENTITY(e, false, false);
-				ENTITY::DELETE_ENTITY(&e);
-				if(ENTITY::IS_AN_ENTITY(m_entityCleanup[0]))
+				script::detach_entity(ent);
+				ENTITY::SET_ENTITY_AS_MISSION_ENTITY(ent, false, false);
+				ENTITY::DELETE_ENTITY(&ent);
+				if(ENTITY::IS_AN_ENTITY(m_entityCleanup.front()))
 					m_entityCleanupTries = 0xFF;
 				m_entityCleanupTries++;
 			}	
 			else
 				m_entityCleanupTries++;
-			m_entityCleanupClock	= clock();
+			m_entityCleanupClock	= curClock;
 		}
 		
 		//mp vehicles in sp
@@ -341,21 +314,21 @@ bool	CHack::refresh()
 			if(feat2->m_bOn)
 				colours	|=	((int) feat2->getValue()) << 0x08;
 
-			if(script::spawn_vehicle(&m_requestedVehicle[0][0], nullptr, flags, colours))
-				m_requestedVehicle.erase(m_requestedVehicle.begin());
+			if(script::spawn_vehicle(&m_requestedVehicle.front()[0], nullptr, flags, colours))
+				m_requestedVehicle.pop();
 		}
 			
 		
 		//ped spawn
 		if(!m_requestedPed.empty())
-			if(script::spawn_ped(&m_requestedPed[0][0], PedTypeHuman, {}, nullptr, CMenu::getFeature(FEATURE_S_PED_RANDOMIZE)->m_bOn, (int) CMenu::getFeature(FEATURE_S_PED_TYPE)->getValue()))
-				m_requestedPed.erase(m_requestedPed.begin());
+			if(script::spawn_ped(&m_requestedPed.front()[0], PedTypeHuman, {}, nullptr, CMenu::getFeature(FEATURE_S_PED_RANDOMIZE)->m_bOn, (int) CMenu::getFeature(FEATURE_S_PED_TYPE)->getValue()))
+				m_requestedPed.pop();
 		
 		//weapon spawn
 		if(!m_requestedWeapon.empty())
 		{
-			script::ped_weapon(playerPed, &m_requestedWeapon[0][0], m_bWeaponGive);
-			m_requestedWeapon.erase(m_requestedWeapon.begin());
+			script::ped_weapon(playerPed, &m_requestedWeapon.front()[0], m_bWeaponGive);
+			m_requestedWeapon.pop();
 		}
 
 		//anim request
@@ -384,10 +357,10 @@ bool	CHack::refresh()
 			{
 				m_bModelSet = true;
 				m_bModelWeapons = false;
-				m_modelClock = clock();
+				m_modelClock = curClock;
 			}
 		}
-		else if(!m_bModelWeapons && clock() - m_modelClock > 0xF0)
+		else if(!m_bModelWeapons && curClock - m_modelClock > 0xF0)
 		{
 			if (tmpVeh != NULL)
 				PED::SET_PED_INTO_VEHICLE(playerPed, tmpVeh, script::get_free_seat(tmpVeh));
@@ -396,14 +369,6 @@ bool	CHack::refresh()
 			m_pCPedPlayer->fHealthMax = 328.f;
 			m_bModelWeapons = true;
 		}
-		
-		//object attach requests
-		/*if(!m_requestedAttach.empty())
-		{
-			Object obj = script::attach_object_to_entity(PLAYER::GET_PLAYER_PED(m_requestedAttach[0].player), &m_requestedAttach[0].hash[0], hash::ped_bone_hash[m_requestedAttach[0].bone]);
-			m_remotePlayerAttach[m_requestedAttach[0].player].push_back(obj);
-			m_requestedAttach.erase(m_requestedAttach.begin());
-		}*/
 
 		//teleport
 		if(m_v3Teleport.x != 0.f && m_v3Teleport.y != 0.f && m_v3Teleport.z != 0.f)
@@ -414,12 +379,12 @@ bool	CHack::refresh()
 		
 		//tp to waypoint
 		feat = CMenu::getFeature(FEATURE_TP_WAYPOINT);
-		if(feat->m_bOn && !feat->m_bSet && clock() - feat->m_clockTick > 0x20)
+		if(feat->m_bOn && !feat->m_bSet && curClock - feat->m_clockTick > 0x20)
 		{
 			if(script::teleport_to_waypoint())
 				feat->m_bSet		= true;
 			else
-				feat->m_clockTick	= clock();
+				feat->m_clockTick	= curClock;
 		}
 		
 		//tp to waypoint
@@ -508,9 +473,9 @@ bool	CHack::refresh()
 			}
 
 			Entity e	= NULL;
-			if(!m_requestedObject.empty() && script::spawn_object(&m_requestedObject[0][0], &e))
+			if(!m_requestedObject.empty() && script::spawn_object(&m_requestedObject.front()[0], &e))
 			{
-				m_requestedObject.erase(m_requestedObject.begin());
+				m_requestedObject.pop();
 				feat->m_bRestored = true;
 			}
 
@@ -567,27 +532,27 @@ bool	CHack::refresh()
 
 		//mobile radio
 		feat = CMenu::getFeature(FEATURE_P_MOBILE_RADIO);
-		if(!feat->m_bSet || feat->m_bOn && clock() - feat->m_clockTick > 0xFF)
+		if(!feat->m_bSet || feat->m_bOn && curClock - feat->m_clockTick > 0xFF)
 		{
 			AUDIO::SET_MOBILE_RADIO_ENABLED_DURING_GAMEPLAY(feat->m_bOn);
-			feat->m_clockTick	= clock();
+			feat->m_clockTick	= curClock;
 			feat->m_bSet		= true;
 		}
 
 		//freeze radio
 		feat = CMenu::getFeature(FEATURE_P_FREEZE_RADIO);
-		if(feat->m_bOn && clock() - feat->m_clockTick > 0xFF)
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0xFF)
 		{
 			script::set_radio_station(hash::radio_station_hash[(int) feat->getValue()]);
-			feat->m_clockTick = clock();
+			feat->m_clockTick = curClock;
 		}
 		
 		//inf ammo
 		feat = CMenu::getFeature(FEATURE_W_AMMO);
-		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
+		if(!feat->m_bSet || (feat->m_bOn && curClock - feat->m_clockTick > 0xFF))
 		{
 			WEAPON::SET_PED_INFINITE_AMMO_CLIP(playerPed, feat->m_bOn);
-			feat->m_clockTick = clock();
+			feat->m_clockTick = curClock;
 			feat->m_bSet = true;
 		}
 		
@@ -648,12 +613,12 @@ bool	CHack::refresh()
 		//Chaos mode
 		feat = CMenu::getFeature(FEATURE_U_CHAOS_MODE);
 		if(feat->m_bOn)
-			script::chaos_mode(&feat->m_clockTick, (int) feat->getValue());
+			script::chaos_mode((int) feat->getValue());
 		
 		//Smash Vehicles
 		feat = CMenu::getFeature(FEATURE_U_SMASH_VEHICLES);
 		if(feat->m_bOn && !feat->m_bSet)
-			if(script::smash_vehicles(&feat->m_clockTick))
+			if(script::smash_vehicles())
 				feat->m_bSet	= true;
 
 		//black hole
@@ -661,13 +626,18 @@ bool	CHack::refresh()
 		if(feat->m_bOn && !feat->m_bSet && script::black_hole((int) feat->getValue()))
 			feat->m_bSet	= true;
 		
-		//money drop (sp only)
-		/*feat = CMenu::getFeature(FEATURE_P_MONEY_DROP);
-		if(feat->m_bOn && clock() - feat->m_clockTick > 0x60)
+		//money drop 2k
+		feat = CMenu::getFeature(FEATURE_U_MONEY_DROP_2K);
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0x60)
 		{
-			script::drop_money_on_entity(playerPed, 40000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
-			feat->m_clockTick = clock();
-		}*/
+			script::drop_money_on_entity(playerPed, 2000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
+			feat->m_clockTick = curClock;
+		}
+
+		//money drop 40k
+		feat = CMenu::getFeature(FEATURE_U_MONEY_DROP_40K);
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0x60 && script::drop_money_on_entity(playerPed, 40000))
+			feat->m_clockTick = curClock;
 
 		//ped drop
 		feat = CMenu::getFeature(FEATURE_U_PED_DROP);
@@ -676,7 +646,7 @@ bool	CHack::refresh()
 			if(feat->m_bOn)
 				script::ped_money_drop(playerPed, &feat->m_clockTick);
 			else
-				m_nearbyPed.clear();
+				util::clear_queue(m_nearbyPed);
 			feat->m_bSet		= true;
 		}
 		
@@ -698,7 +668,7 @@ bool	CHack::refresh()
 
 		//rp loop
 		feat = CMenu::getFeature(FEATURE_R_RP_LOOP);
-		if((feat->m_bOn && clock() - feat->m_clockTick > 0x6F) || !feat->m_bSet)
+		if((feat->m_bOn && curClock - feat->m_clockTick > 0x6F) || !feat->m_bSet)
 		{
 			if(!feat->m_bSet)
 			{
@@ -708,7 +678,7 @@ bool	CHack::refresh()
 			}
 			m_pCPedPlayer->pCPlayerInfo->CWantedData.dwWantedLevel	= feat->m_bOn && feat->m_bRestored ? 5 : 0;
 			feat->m_bRestored	= !feat->m_bRestored;
-			feat->m_clockTick	= clock();
+			feat->m_clockTick	= curClock;
 		}
 
 		//clear reports
@@ -729,9 +699,9 @@ bool	CHack::refresh()
 		
 		//Time Freeze
 		feat = CMenu::getFeature(FEATURE_T_PAUSE_CLOCK);
-		if(!feat->m_bSet || (feat->m_bOn && clock() - feat->m_clockTick > 0xFF))
+		if(!feat->m_bSet || (feat->m_bOn && curClock - feat->m_clockTick > 0xFF))
 		{
-			TIME::PAUSE_CLOCK(feat->m_bOn);
+			script::freeze_time(feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
@@ -765,7 +735,7 @@ bool	CHack::refresh()
 			feat->m_bSet = true;
 
 		//Unlocks
-		const eFeatures unlockFeat[]	= {
+		constexpr eFeatures unlockFeat[]	= {
 			FEATURE_R_UNLOCK_STAT,
 			FEATURE_R_UNLOCK_TATTOO,
 			FEATURE_R_UNLOCK_PARACHUTE,
@@ -776,7 +746,7 @@ bool	CHack::refresh()
 			FEATURE_R_UNLOCK_WEAPON,
 			FEATURE_R_UNLOCK_CLOTHING,
 		};
-		void (*unlockFunc[])() = {
+		constexpr void (*unlockFunc[])() = {
 			&script::unlocks_stats,
 			&script::unlocks_tattoos,
 			&script::unlocks_parachutes,
@@ -799,14 +769,23 @@ bool	CHack::refresh()
 		}
 
 		//Event protections
-		const eFeatures protexFeat[]	= {
+		constexpr eFeatures protexFeat[]	= {
 			FEATURE_D_TELEPORT,
 			FEATURE_D_KICK,
+			FEATURE_D_CLEAR_TASKS,
+			FEATURE_D_EXPLOSION,
+			FEATURE_D_FIRE,
+			FEATURE_D_FREEZE,
 		};
 
-		const eRockstarEvent protexEnum[]	= {
+		constexpr eRockstarEvent protexEnum[]	= {
 			REVENT_NETWORK_START_SYNCED_SCENE_EVENT,
 			REVENT_KICK_VOTES_EVENT,
+			REVENT_NETWORK_CLEAR_PED_TASKS_EVENT,
+			REVENT_EXPLOSION_EVENT,
+			REVENT_FIRE_EVENT,
+			REVENT_REQUEST_CONTROL_EVENT,
+
 		};
 
 		for(int i = 0; i < sizeof(protexFeat) / sizeof(*protexFeat); ++i)
@@ -817,6 +796,14 @@ bool	CHack::refresh()
 				CHooking::defuseEvent(protexEnum[i], feat->m_bOn);
 				feat->m_bSet	= true;
 			}
+		}
+
+		feat = CMenu::getFeature(FEATURE_D_REMOVE_WEAPONS);
+		if(!feat->m_bSet)
+		{
+			CHooking::defuseEvent(REVENT_REMOVE_ALL_WEAPONS_EVENT, feat->m_bOn);
+			CHooking::defuseEvent(REVENT_REMOVE_WEAPON_EVENT, feat->m_bOn);
+			feat->m_bSet	= true;
 		}
 		
 		//vehicle stuff
@@ -904,10 +891,10 @@ bool	CHack::refresh()
 			
 			//rainbow car
 			feat = CMenu::getFeature(FEATURE_V_RAINBOW);
-			if(feat->m_bOn && clock() - feat->m_clockTick > 200)
+			if(feat->m_bOn && curClock - feat->m_clockTick > 200)
 			{
 				VEHICLE::SET_VEHICLE_COLOURS(playerVeh, util::random_int(1, 120), util::random_int(1, 120));
-				feat->m_clockTick = clock();
+				feat->m_clockTick = curClock;
 			}
 
 			//preset vehicle colors
@@ -965,12 +952,10 @@ bool	CHack::refresh()
 			}
 			else if(feat->m_bOn)
 			{
-				for(int j = 0; j < m_remotePlayerAttach[i].size(); j++)		//clear up all attachments if the player leaves
+				while(!m_remotePlayerAttach[i].empty())	//clear up all attachments if the player leaves
 				{
-					script::detach_entity(m_remotePlayerAttach[i][j]);
-					m_entityCleanup.push_back(m_remotePlayerAttach[i][j]);
-					m_remotePlayerAttach[i].erase(m_remotePlayerAttach[i].begin() + j);
-					j--;
+					m_entityCleanup.push(m_remotePlayerAttach[i].back());
+					m_remotePlayerAttach[i].pop_back();
 				}
 				CMenu::m_disableParent.push_back(feat->m_iId);
 				feat->m_szName = szName;
@@ -984,7 +969,7 @@ bool	CHack::refresh()
 
 			//update player info features, if the screen is active for this player
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_INFO, i);
-			if(clock() - m_clockPlayerInfo > 0x400 && CMenu::getActiveParent() == plrFeat->m_iId)
+			if(curClock - m_clockPlayerInfo > 0x400 && CMenu::getActiveParent() == plrFeat->m_iId)
 			{
 				char	msg[0xFF];
 				CPed*	cp			= util::ped_handle_to_ptr(remotePed);
@@ -1023,7 +1008,7 @@ bool	CHack::refresh()
 					sprintf_s(msg, "Is God: %s", cp->isGod() ? "Yes" : "No");
 					CMenu::getPlrFeature(PLRFEAT_INFO_IS_GOD, i)->m_szName = msg;
 				}
-				m_clockPlayerInfo	= clock();
+				m_clockPlayerInfo	= curClock;
 			}
 
 			if(remotePed != playerPed && !ENTITY::IS_ENTITY_VISIBLE(remotePed))
@@ -1044,9 +1029,22 @@ bool	CHack::refresh()
 				if(plrFeat->m_bOn)
 					script::ped_money_drop(remotePed, &plrFeat->m_clockTick);
 				else
-					m_nearbyPed.clear();
+					util::clear_queue(m_nearbyPed);
 				plrFeat->m_bSet		= true;
 			}
+
+			//drop 2k
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_MONEY_DROP_2K, i);
+			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x60)
+			{
+				script::drop_money_on_entity(remotePed, 2000, hash::object_prop_money_hash[(int) plrFeat->getValue()]);
+				plrFeat->m_clockTick = curClock;
+			}
+
+			//drop 40k
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_MONEY_DROP_40K, i);
+			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x60 && script::drop_money_on_entity(remotePed, 40000))
+				plrFeat->m_clockTick = curClock;
 
 			//Track player
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TRACK, i);
@@ -1079,20 +1077,20 @@ bool	CHack::refresh()
 			
 			//teleport player to me
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_ME, i);
-			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
+			if(plrFeat->m_bOn && !plrFeat->m_bSet && curClock - plrFeat->m_clockTick > 0x80)
 			{
 				if(script::teleport_player_to_me(remotePed, i))
 					plrFeat->m_bSet = true;
-				plrFeat->m_clockTick = clock();
+				plrFeat->m_clockTick = curClock;
 			}
 			
 			//teleport player to sea
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_SEA, i);
-			if(plrFeat->m_bOn && !plrFeat->m_bSet && clock() - plrFeat->m_clockTick > 0x80)
+			if(plrFeat->m_bOn && !plrFeat->m_bSet && curClock - plrFeat->m_clockTick > 0x80)
 			{
 				if(script::teleport_player_to_sea(remotePed, i))
 					plrFeat->m_bSet = true;
-				plrFeat->m_clockTick = clock();
+				plrFeat->m_clockTick = curClock;
 			}
 			
 			//teleport player in the air
@@ -1223,12 +1221,10 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_DETACH_ALL, i);
 			if(!plrFeat->m_bSet)	//without m_bOn check, this will also be run when the hack is unloaded
 			{
-				for(int j = 0; j < m_remotePlayerAttach[i].size(); j++)
+				while(!m_remotePlayerAttach[i].empty())
 				{
-					script::detach_entity(m_remotePlayerAttach[i][j]);
-					m_entityCleanup.push_back(m_remotePlayerAttach[i][j]);
-					m_remotePlayerAttach[i].erase(m_remotePlayerAttach[i].begin() + j);
-					j--;
+					m_entityCleanup.push(m_remotePlayerAttach[i].back());
+					m_remotePlayerAttach[i].pop_back();
 				}
 				plrFeat->m_bSet = true;
 			}
@@ -1265,14 +1261,14 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TRAP_IN_CAGE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
-				if(clock() - plrFeat->m_clockTick > 0x7FF)
-					plrFeat->m_clockTick = clock();
-				if(clock() - plrFeat->m_clockTick < 0x40)
+				if(curClock - plrFeat->m_clockTick > 0x7FF)
+					plrFeat->m_clockTick = curClock;
+				if(curClock - plrFeat->m_clockTick < 0x40)
 					AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
-				if(clock() - plrFeat->m_clockTick > 200)
+				if(curClock - plrFeat->m_clockTick > 200)
 				{
 					m_remotePlayerAttach[i].push_back(script::trap_player_in_cage(remotePed));
-					plrFeat->m_clockTick = clock();
+					plrFeat->m_clockTick = curClock;
 					plrFeat->m_bSet = true;
 				}
 			}
@@ -1292,14 +1288,6 @@ bool	CHack::refresh()
 				if(script::send_assasins_after_player(i, remotePed))
 					plrFeat->m_bSet = true;
 			}
-			
-			//shoot
-			/*plrFeat = CMenu::getPlrFeature(PLRFEAT_SHOOT, i);
-			if(!plrFeat->m_bSet && plrFeat->m_bOn)
-			{
-				script::shoot_ped(remotePed);
-				plrFeat->m_bSet = true;
-			}*/
 
 			//Freeze
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_FREEZE, i);
@@ -1320,11 +1308,11 @@ bool	CHack::refresh()
 
 			//dead clones
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_DEAD_CLONES, i);
-			if((plrFeat->m_bOn && clock() - plrFeat->m_clockTick > 500) || !plrFeat->m_bSet)
+			if((plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 500) || !plrFeat->m_bSet)
 			{
 				script::player_dead_clone(i, remotePed, !plrFeat->m_bOn);
 				plrFeat->m_bSet			= true;
-				plrFeat->m_clockTick	= clock();
+				plrFeat->m_clockTick	= curClock;
 			}
 
 			//give wanted level
@@ -1337,6 +1325,8 @@ bool	CHack::refresh()
 		}
 
 		//all players
+		checkAllPlayerFeature(FEATURE_A_MONEY_DROP_2K, PLRFEAT_MONEY_DROP_2K, 3);
+		checkAllPlayerFeature(FEATURE_A_MONEY_DROP_40K, PLRFEAT_MONEY_DROP_40K, 3);
 		checkAllPlayerFeature(FEATURE_A_TP_TO_ME, PLRFEAT_TP_TO_ME);
 		checkAllPlayerFeature(FEATURE_A_TP_TO_SEA, PLRFEAT_TP_TO_SEA);
 		checkAllPlayerFeature(FEATURE_A_TP_TO_AIR, PLRFEAT_TP_TO_AIR);

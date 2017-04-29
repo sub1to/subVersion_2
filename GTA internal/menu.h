@@ -58,7 +58,6 @@ enum eFeatures : unsigned
 	FEATURE_P_MOBILE_RADIO,
 	FEATURE_P_FREEZE_RADIO,
 	FEATURE_P_CLEAR_REPORTS,
-	FEATURE_P_MONEY_DROP,
 	FEATURE_P_CLONE_BODYGUARD,
 	FEATURE_P_CLEANUP_OBJECTS,
 	FEATURE_P_ANTI_AFK,
@@ -128,12 +127,19 @@ enum eFeatures : unsigned
 	FEATURE_D_FRAUD,
 	FEATURE_D_KICK,
 	FEATURE_D_TELEPORT,
+	FEATURE_D_EXPLOSION,
+	FEATURE_D_FIRE,
+	FEATURE_D_FREEZE,
+	FEATURE_D_REMOVE_WEAPONS,
+	FEATURE_D_CLEAR_TASKS,
 	FEATURE_U_NOCLIP,
 	FEATURE_U_NOCLIP_SPEED,
 	FEATURE_U_CHAOS_MODE,
 	FEATURE_U_SMASH_VEHICLES,
 	FEATURE_U_BLACK_HOLE,
 	FEATURE_U_PED_DROP,
+	FEATURE_U_MONEY_DROP_2K,
+	FEATURE_U_MONEY_DROP_40K,
 	FEATURE_U_CLEAN_SESSION,
 	FEATURE_I_FPS_COUNTER,
 	FEATURE_I_SPEED_O_METER,
@@ -151,6 +157,8 @@ enum eFeatures : unsigned
 	FEATURE_A_REMOVE_WEAPONS,
 	FEATURE_A_TRAP_IN_CAGE,
 	FEATURE_A_CLEAR_TASKS,
+	FEATURE_A_MONEY_DROP_2K,
+	FEATURE_A_MONEY_DROP_40K,
 	FEATURE_A_FREEZE,
 	FEATURE_A_ANIMATE,
 	FEATURE_O_ESP_MAX_DIST,
@@ -226,6 +234,8 @@ enum ePlrFeats : unsigned
 	PLRFEAT_ANIMATE,
 	PLRFEAT_DEAD_CLONES,
 	PLRFEAT_GIVE_WANTED,
+	PLRFEAT_MONEY_DROP_2K,
+	PLRFEAT_MONEY_DROP_40K,
 	PLRFEAT_END
 };
 
@@ -276,9 +286,8 @@ enum featType
 	feat_spawn				= (1 << 6),
 	feat_action_value		= (1 << 7)	| 1 << 2,
 	feat_action_value_str	= (1 << 8)	| feat_action_value,
-	feat_attach				= (1 << 9)	| feat_action,
-	feat_value_str			= (1 << 10)	| feat_value,
-	feat_anim				= (1 << 11)
+	feat_value_str			= (1 << 9)	| feat_value,
+	feat_anim				= (1 << 10)
 };
 
 enum teleType	{ tp_saved, tp_static };
@@ -324,7 +333,7 @@ class CFeat
 		virtual int		getChild(int i) { return -1; };
 		virtual int		getChildCount() { return 0; };
 		virtual void	disableChildren() {};
-		virtual char**	getCharArray() { return nullptr; };
+		virtual const char* const *	getCharArray() { return nullptr; };
 };
 
 class CFeatAction : public CFeat
@@ -367,8 +376,8 @@ class CFeatValueStr : public CFeatValue
 	public:
 				CFeatValueStr();
 				~CFeatValueStr();
-		char**	getCharArray();
-		char**	m_ppCh;
+		const char* const *	getCharArray();
+		const char* const *	m_ppCh;
 };
 
 class CFeatActionValue : public CFeatValue
@@ -384,8 +393,8 @@ class CFeatActionValueStr : public CFeatActionValue
 	public:
 				CFeatActionValueStr();
 				~CFeatActionValueStr();
-		char**	getCharArray();
-		char**	m_ppCh;
+		const char* const *	getCharArray();
+		const char* const *	m_ppCh;
 };
 
 class CFeatTeleport : public CFeat
@@ -416,16 +425,6 @@ class CFeatAnim : public CFeat
 		spwnType	m_spawnType;
 				CFeatAnim();
 				~CFeatAnim();
-		void	toggle();
-};
-
-class CFeatAttach : public CFeat
-{
-	public:
-		std::string	m_szHash;
-		int		m_iPlayer;
-				CFeatAttach();
-				~CFeatAttach();
 		void	toggle();
 };
 
@@ -549,9 +548,8 @@ class CMenu
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string str1, std::string str2);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, spwnType spawnType);
-		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, int playerId);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max);
-		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, char* enumArray[]);
+		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, const char* const enumArray[]);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, teleType tpType);
 		static int			addFeature(int cat, int parent, std::string name, featType type, teleType tpType);

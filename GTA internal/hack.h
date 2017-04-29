@@ -21,17 +21,6 @@
 #ifndef HACK_H
 #define HACK_H
 
-typedef struct playerAttach
-{
-	int			player,
-				bone;
-	std::string hash;
-} playerAttach;
-
-typedef	std::vector<int>					vec_int;
-typedef	std::vector<std::string>			vec_str;
-typedef std::vector<playerAttach>			vec_attach;
-
 class CHack
 {
 	public:
@@ -55,18 +44,17 @@ class CHack
 		//last vehicle
 		static int					m_lastVehicle;
 
-		//vector to keep track of spawned peds
-		static vec_int				m_pedCleanup;
+		//queue to keep track of spawned peds
+		static deque_int			m_pedCleanup;
 		static clock_t				m_pedCleanupClock;
 
-		//vector where objects will be pushed to be destroyed
-		static vec_int				m_entityCleanup;
+		//queue where objects will be pushed to be destroyed
+		static queue_int			m_entityCleanup;
 		static clock_t				m_entityCleanupClock;
 		static int					m_entityCleanupTries;
 
-		//a vector for each player, to store every attached entity
-		static vec_int				m_remotePlayerAttach[MAX_PLAYERS];
-		static vec_attach			m_requestedAttach;
+		//a deque for each player, to store every attached entity
+		static deque_int			m_remotePlayerAttach[MAX_PLAYERS];
 
 		//model change vars
 		static std::string			m_szRequestedModel;
@@ -75,15 +63,15 @@ class CHack
 		static clock_t				m_modelClock;
 
 		//spawn requests
-		static vec_str	m_requestedVehicle;
-		static vec_str	m_requestedWeapon;
-		static bool		m_bWeaponGive;
-		static vec_str	m_requestedPed;
-		static vec_str	m_requestedObject;
+		static queue_str	m_requestedVehicle;
+		static queue_str	m_requestedWeapon;
+		static bool			m_bWeaponGive;
+		static queue_str	m_requestedPed;
+		static queue_str	m_requestedObject;
 
-		// vector with nearby peds, update by update_nearby_ped()
-		static std::vector<int>	m_nearbyPed;
-		static std::vector<int>	m_nearbyVehicle;
+		// queue with nearby peds, updated by update_nearby_ped() (by default)
+		static queue_int	m_nearbyPed;
+		static queue_int	m_nearbyVehicle;
 
 		//teleport
 		static v3	m_v3Teleport;

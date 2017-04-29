@@ -26,3 +26,9 @@ typedef int TaskSequence;
 typedef int ColourIndex;
 typedef int Sphere;
 typedef int ScrHandle;
+
+typedef	std::vector<int>			vec_int;
+typedef	std::vector<std::string>	vec_str;
+typedef std::queue<int>				queue_int;
+typedef std::queue<std::string>		queue_str;
+typedef std::deque<int>				deque_int;

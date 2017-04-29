@@ -36,6 +36,7 @@ CRITICAL_SECTION							CHooking::m_critSec;
 	//Private declarations
 */
 bool			initHooks();
+void			antiCheatBypass(bool);
 bool			hookNatives();
 void			findPatterns();
 
@@ -55,8 +56,10 @@ void CHooking::init()
 	while(*CHooking::m_gameState != GameStatePlaying)
 		Sleep(100);
 
-	if (!initHooks())
+	if(!initHooks())
 		killProcess();
+
+	antiCheatBypass(true);
 
 	CLog::msg("Ready");
 }
@@ -79,6 +82,7 @@ void CHooking::onTick()
 
 void CHooking::cleanup()
 {
+	antiCheatBypass(false);
 	DeleteCriticalSection(&m_critSec);
 	CLog::msg("Unloading");
 	for(int i = 0; i < m_hookedNative.size(); i++)
@@ -105,7 +109,6 @@ NativeHandler CHooking::getNativeHandler(uint64_t origHash)
 					handler = table->handlers[i];
 					break;
 				}
-
 
 		m_handlerCache[origHash] = handler;
 	}
@@ -147,6 +150,13 @@ bool initHooks()
  		return false;
  	}
 	return true;
+}
+
+void antiCheatBypass(bool b = true)
+{
+	CHooking::defuseEvent(REVENT_REQUEST_PICKUP_EVENT, b);
+	CHooking::defuseEvent(REVENT_REPORT_MYSELF_EVENT, b);
+	CHooking::defuseEvent(REVENT_REPORT_CASH_SPAWN_EVENT, b);
 }
 
 template <typename T>

@@ -33,6 +33,7 @@
 #include <map>
 #include <unordered_map>
 #include <array>
+#include <queue>
 
 #include <Dwmapi.h>
 #pragma comment(lib,"Dwmapi.lib")

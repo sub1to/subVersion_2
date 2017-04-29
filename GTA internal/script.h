@@ -27,6 +27,13 @@ namespace util
 	int		random_int(int start, int end);
 	CPed*	ped_handle_to_ptr(Ped ped);
 	bool	to_clipboard(char* str);
+
+	template <class T>
+	void	clear_queue(std::queue<T>& q)
+	{
+		std::queue<T>	tmp;
+		std::swap(q, tmp);
+	}
 }
 
 namespace script
@@ -43,8 +50,8 @@ namespace script
 
 	bool	request_control_of_entity(Entity entity);
 
-	void	update_nearby_ped(Ped origin, int c);
-	void	update_nearby_vehicle(Ped origin, int c, bool driveable = true);
+	void	update_nearby_ped(Ped origin, int c, bool alive = true, queue_int* out = &CHack::m_nearbyPed);
+	void	update_nearby_vehicle(Ped origin, int c, bool driveable = true, queue_int* out = &CHack::m_nearbyVehicle);
 
 	Hash	$(std::string str);
 
@@ -104,14 +111,15 @@ namespace script
 
 	int		super_run(float force, bool stop = false, bool keyState = false);
 
-	void	chaos_mode(clock_t* tmr, int action = 0);
-	bool	smash_vehicles(clock_t* tmr);
+	void	chaos_mode(int action = 0);
+	bool	smash_vehicles();
 	bool	black_hole(int sec);
 
-	void	drop_money_on_entity(Entity e, int amount = 2000, char* prop = "prop_money_bag_01");
+	bool	drop_money_on_entity(Entity e, int amount = 2000, const char* const prop = "prop_money_bag_01");
 
 	void	set_time(int h, int m);
-	void	set_weather(char* w);
+	void	set_weather(std::string w);
+	void	freeze_time(bool b);
 
 	void	draw_speedometer(Vehicle v, bool mph = false);
 	void	draw_fps();
@@ -135,8 +143,8 @@ namespace script
 	void	ped_money_drop(Ped playerPed, clock_t* tmr);
 	void	stealth_money(int mils, bool remove = false);
 
-	bool	animate_player(Ped remotePed, char* dict, char* anim, bool freeze = false, bool restore = false);
-	bool	animate_local_player(Ped playerPed, char* dict, char* anim, bool restore = false);
+	bool	animate_player(Ped remotePed, std::string dict, std::string anim, bool freeze = false, bool restore = false);
+	bool	animate_local_player(Ped playerPed, std::string dict, std::string anim, bool restore = false);
 
 	bool	player_dead_clone(Player player, Ped p, bool erase = false);
 

@@ -49,9 +49,10 @@ class CPatternResult
 		template <typename rT>
 		rT*	get(int offset = 0)
 		{
-			if(m_pVoid == nullptr)
-				return nullptr;
-			return reinterpret_cast<rT*>(reinterpret_cast<char*>(m_pVoid) + offset);
+			rT*	ret	= nullptr;
+			if(m_pVoid != nullptr)
+				ret	= reinterpret_cast<rT*>(reinterpret_cast<char*>(m_pVoid) + offset);
+			return ret;
 		}
 
 	protected:

@@ -69,7 +69,6 @@ namespace feature
 			CMenu::indexFeature(FEATURE_P_MOBILE_RADIO, CMenu::addFeature(-1, *parent, "Mobile Radio", feat_toggle, "mobileRadio"));
 			CMenu::indexFeature(FEATURE_P_FREEZE_RADIO, CMenu::addFeature(-1, *parent, "Freeze Radio", feat_value_str, "freezeRadio", 0.f, 19.f, 1.f, hash::radio_station_name));
 			//CMenu::indexFeature(FEATURE_P_CLEAR_REPORTS, CMenu::addFeature(-1, *parent, "Clear Reports", feat_action));
-			//CMenu::indexFeature(FEATURE_P_MONEY_DROP, CMenu::addFeature(-1, *parent, "Money Drop", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
 			CMenu::indexFeature(FEATURE_P_CLONE_BODYGUARD, CMenu::addFeature(-1, *parent, "Clone Bodyguard", feat_action));
 			//CMenu::indexFeature(FEATURE_P_CLEANUP_OBJECTS, CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
 			//CMenu::indexFeature(FEATURE_P_ANTI_AFK, CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
@@ -199,7 +198,7 @@ namespace feature
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], dspwn_weapon);
 
 		*parent	= CMenu::addFeature(0, -1, "Weather & Time", feat_parent);
-			CMenu::indexFeature(FEATURE_T_PAUSE_CLOCK, CMenu::addFeature(-1, *parent, "Pause Clock (SP Only)", feat_toggle, "timePause"));
+			CMenu::indexFeature(FEATURE_T_PAUSE_CLOCK, CMenu::addFeature(-1, *parent, "Pause Clock", feat_toggle, "timePause"));
 			CMenu::indexFeature(FEATURE_T_SET_HOUR, CMenu::addFeature(-1, *parent, "Set Hour", feat_action_value, "timeHour", 0.f, 23.f, 1.f));
 			CMenu::indexFeature(FEATURE_T_SET_MIN, CMenu::addFeature(-1, *parent, "Set Minute", feat_action_value, "timeMin", 0.f, 55.f, 5.f));
 			CMenu::indexFeature(FEATURE_T_WEATHER, CMenu::addFeature(-1, *parent, "Weather", feat_action_value_str, "", 0.f, 11.f, 1.f, hash::weather_enum));
@@ -222,6 +221,11 @@ namespace feature
 			//CMenu::indexFeature(FEATURE_D_FRAUD, CMenu::addFeature(-1, *parent, "Bill Fraud", feat_toggle, "protFraud"));
 			CMenu::indexFeature(FEATURE_D_KICK, CMenu::addFeature(-1, *parent, "Kick", feat_toggle, "protKick"));
 			CMenu::indexFeature(FEATURE_D_TELEPORT, CMenu::addFeature(-1, *parent, "Teleport", feat_toggle, "protTele"));
+			CMenu::indexFeature(FEATURE_D_CLEAR_TASKS, CMenu::addFeature(-1, *parent, "Clear Ped Tasks", feat_toggle, "protClearTasks"));
+			CMenu::indexFeature(FEATURE_D_EXPLOSION, CMenu::addFeature(-1, *parent, "Explosion", feat_toggle, "protExplosion"));
+			CMenu::indexFeature(FEATURE_D_FIRE, CMenu::addFeature(-1, *parent, "Fire", feat_toggle, "protFire"));
+			CMenu::indexFeature(FEATURE_D_FREEZE, CMenu::addFeature(-1, *parent, "Freeze", feat_toggle, "protFreeze"));
+			CMenu::indexFeature(FEATURE_D_REMOVE_WEAPONS, CMenu::addFeature(-1, *parent, "Remove Weapons", feat_toggle, "protRemoveWeapons"));
 
 		*parent	= CMenu::addFeature(0, -1, "Misc", feat_parent);
 			CMenu::indexFeature(FEATURE_U_NOCLIP, CMenu::addFeature(-1, *parent, "No Clip", feat_value_str, "noclip", 0.f, 1.f, 1.f, hash::noclip_type));
@@ -230,6 +234,8 @@ namespace feature
 			CMenu::indexFeature(FEATURE_U_SMASH_VEHICLES, CMenu::addFeature(-1, *parent, "Smash Vehicles", feat_action));
 			CMenu::indexFeature(FEATURE_U_BLACK_HOLE, CMenu::addFeature(-1, *parent, "Black Hole", feat_action_value, "blackHole", 30.f, 120.f, 10.f));
 			CMenu::indexFeature(FEATURE_U_PED_DROP, CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
+			CMenu::indexFeature(FEATURE_U_MONEY_DROP_2K, CMenu::addFeature(-1, *parent, "2K Drops", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
+			CMenu::indexFeature(FEATURE_U_MONEY_DROP_40K, CMenu::addFeature(-1, *parent, "40K Drops", feat_toggle));
 			CMenu::indexFeature(FEATURE_U_CLEAN_SESSION, CMenu::addFeature(-1, *parent, "Clean Session (Lag switch)", feat_action));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
@@ -259,6 +265,8 @@ namespace feature
 				CMenu::indexPlrFeature(PLRFEAT_TRACK, i, CMenu::addFeature(-1, *(parent + 1), "Track Player", feat_toggle));
 				CMenu::indexPlrFeature(PLRFEAT_SPECTATE, i, CMenu::addFeature(-1, *(parent + 1), "Spectate Player", feat_toggle));
 				CMenu::indexPlrFeature(PLRFEAT_PED_DROP, i, CMenu::addFeature(-1, *(parent + 1), "Ped Drop", feat_toggle));
+				CMenu::indexPlrFeature(PLRFEAT_MONEY_DROP_2K, i, CMenu::addFeature(-1, *(parent + 1), "2K Drops", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
+				CMenu::indexPlrFeature(PLRFEAT_MONEY_DROP_40K, i, CMenu::addFeature(-1, *(parent + 1), "40K Drops", feat_toggle));
 				CMenu::indexPlrFeature(PLRFEAT_TP_TO, i, CMenu::addFeature(-1, *(parent + 1), "Teleport to player", feat_action));
 				CMenu::indexPlrFeature(PLRFEAT_TP_TO_CAR, i, CMenu::addFeature(-1, *(parent + 1), "Teleport to vehicle", feat_action));
 				CMenu::indexPlrFeature(PLRFEAT_TP_TO_ME, i, CMenu::addFeature(-1, *(parent + 1), "Teleport to me", feat_action));
@@ -290,7 +298,9 @@ namespace feature
 		}
 	
 		*parent	= CMenu::addFeature(1, -1, "All Players", feat_parent);
-			CMenu::indexFeature(FEATURE_A_TRACK, CMenu::addFeature(-1, *parent, "Track", feat_toggle));
+			CMenu::indexFeature(FEATURE_A_TRACK, CMenu::addFeature(-1, *parent, "Track", feat_toggle, "allTrack"));
+			CMenu::indexFeature(FEATURE_A_MONEY_DROP_2K, CMenu::addFeature(-1, *parent, "2K Drops", feat_value_str, "", 0.f, (float) (sizeof(hash::object_prop_money_name) / sizeof(*hash::object_prop_money_name)) - 1, 1.f, hash::object_prop_money_name));
+			CMenu::indexFeature(FEATURE_A_MONEY_DROP_40K, CMenu::addFeature(-1, *parent, "40K Drops", feat_toggle));
 			CMenu::indexFeature(FEATURE_A_TP_TO_ME, CMenu::addFeature(-1, *parent, "Teleport to me", feat_action));
 			CMenu::indexFeature(FEATURE_A_TP_TO_SEA, CMenu::addFeature(-1, *parent, "Teleport to sea", feat_action));
 			CMenu::indexFeature(FEATURE_A_TP_TO_AIR, CMenu::addFeature(-1, *parent, "Teleport in the air", feat_action));

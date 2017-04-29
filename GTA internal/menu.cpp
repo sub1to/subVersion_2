@@ -429,9 +429,6 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type)
 		case feat_spawn:
 			m_pFeature.push_back(new CFeatSpawn);
 		break;
-		case feat_attach:
-			m_pFeature.push_back(new CFeatAttach);
-		break;
 		case feat_anim:
 			m_pFeature.push_back(new CFeatAnim);
 		break;
@@ -455,8 +452,6 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		return id;
 	if(m_pFeature[id]->m_type == feat_spawn)
 		static_cast<CFeatSpawn*>(m_pFeature[id])->m_szHash = iniKey;
-	else if(m_pFeature[id]->m_type == feat_attach)
-		static_cast<CFeatAttach*>(m_pFeature[id])->m_szHash = iniKey;
 	else if(m_pFeature[id]->m_type == feat_anim)
 		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
@@ -486,16 +481,6 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	return id;
 }
 
-int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, int playerId)
-{
-	int id = addFeature(cat, parent, name, type, iniKey);
-	if(id < 0)
-		return id;
-	if(m_pFeature[id]->m_type == feat_attach)
-		static_cast<CFeatAttach*>(m_pFeature[id])->m_iPlayer		= playerId;
-	return id;
-}
-
 int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max)
 {
 	int id = addFeature(cat, parent, name, type, iniKey);
@@ -514,7 +499,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	return id;
 }
 
-int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, char* enumArray[])
+int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, const char* const enumArray[])
 {
 	int id = addFeature(cat, parent, name, type, iniKey, min, max, mod);
 	if(id < 0)
@@ -826,7 +811,7 @@ void	CFeatValue::dec()
 CFeatValueStr::CFeatValueStr() {}
 CFeatValueStr::~CFeatValueStr() {}
 
-char**	CFeatValueStr::getCharArray()
+const char* const *	CFeatValueStr::getCharArray()
 {
 	return m_ppCh;
 };
@@ -843,7 +828,7 @@ void	CFeatActionValue::toggle()
 CFeatActionValueStr::CFeatActionValueStr() {}
 CFeatActionValueStr::~CFeatActionValueStr() {}
 
-char**	CFeatActionValueStr::getCharArray()
+const char* const *	CFeatActionValueStr::getCharArray()
 {
 	return m_ppCh;
 };
@@ -868,22 +853,22 @@ void	CFeatSpawn::toggle()
 	switch(m_spawnType)
 	{
 		case spwn_vehicle:
-			CHack::m_requestedVehicle.push_back(m_szHash);
+			CHack::m_requestedVehicle.push(m_szHash);
 		break;
 		case spwn_weapon:
-			CHack::m_requestedWeapon.push_back(m_szHash);
+			CHack::m_requestedWeapon.push(m_szHash);
 			CHack::m_bWeaponGive	= true;
 		break;
 		case spwn_weapon_all:
-			CHack::m_requestedWeapon.push_back("ALL");
+			CHack::m_requestedWeapon.push("ALL");
 			CHack::m_bWeaponGive	= true;
 		break;
 		case dspwn_weapon:
-			CHack::m_requestedWeapon.push_back(m_szHash);
+			CHack::m_requestedWeapon.push(m_szHash);
 			CHack::m_bWeaponGive	= false;
 		break;
 		case dspwn_weapon_all:
-			CHack::m_requestedWeapon.push_back("ALL");
+			CHack::m_requestedWeapon.push("ALL");
 			CHack::m_bWeaponGive	= false;
 		break;
 		case spwn_model:
@@ -891,10 +876,10 @@ void	CFeatSpawn::toggle()
 			CHack::m_bModelSet			= false;
 		break;
 		case spwn_ped:
-			CHack::m_requestedPed.push_back(m_szHash);
+			CHack::m_requestedPed.push(m_szHash);
 		break;
 		case spwn_object:
-			CHack::m_requestedObject.push_back(m_szHash);
+			CHack::m_requestedObject.push(m_szHash);
 			CFeat* feat = CMenu::getFeature(FEATURE_E_EDITOR_MODE);
 			feat->toggle(true);
 		break;
@@ -908,18 +893,6 @@ void	CFeatAnim::toggle()
 {
 	CHack::m_szRequestedAnim		= m_szHash[0];
 	CHack::m_szRequestedAnimDict	= m_szHash[1];
-}
-
-CFeatAttach::CFeatAttach() {}
-CFeatAttach::~CFeatAttach() {}
-
-void	CFeatAttach::toggle()
-{
-	CFeat* feat = CMenu::getFeature(FEATURE_O_ATTACH_BONE);
-	int	iAttachBone = -1;
-	if(feat->m_bOn)
-		iAttachBone = (int) feat->getValue();
-	CHack::m_requestedAttach.push_back({ m_iPlayer, iAttachBone, m_szHash });
 }
 
 CFeatParent::CFeatParent() {}

@@ -23,141 +23,138 @@
 
 namespace hash
 {
-	extern char* weapon_hash[58];
-	extern char* weapon_name[58];
+	extern const char* const weapon_hash[58];
+	extern const char* const weapon_name[58];
 
-	extern char* radio_station_hash[20];
-	extern char* radio_station_name[20];
+	extern const char* const radio_station_hash[20];
+	extern const char* const radio_station_name[20];
 
-	extern char* object_prop_attach_hash[47];
-	extern char* object_prop_attach_name[47];
+	extern const char* const object_prop_money_hash[38];
+	extern const char* const object_prop_money_name[38];
 
-	extern char* object_prop_money_hash[38];
-	extern char* object_prop_money_name[38];
+	extern const char* const object_prop_spawn_hash[47];
+	extern const char* const object_prop_spawn_name[47];
 
-	extern char* object_prop_spawn_hash[47];
-	extern char* object_prop_spawn_name[47];
+	extern const char* const weather_enum[12];
 
-	extern char* weather_enum[12];
+	extern const char* const ped_animal_hash[22];
+	extern const char* const ped_animal_name[22];
 
-	extern char* ped_animal_hash[22];
-	extern char* ped_animal_name[22];
+	extern const char* const ped_emergency_hash[9];
+	extern const char* const ped_emergency_name[9];
 
-	extern char* ped_emergency_hash[9];
-	extern char* ped_emergency_name[9];
+	extern const char* const ped_sex_hash[7];
+	extern const char* const ped_sex_name[7];
 
-	extern char* ped_sex_hash[7];
-	extern char* ped_sex_name[7];
+	extern const char* const ped_story_hash[22];
+	extern const char* const ped_story_name[22];
 
-	extern char* ped_story_hash[22];
-	extern char* ped_story_name[22];
+	extern const char* const ped_misc_hash[9];
+	extern const char* const ped_misc_name[9];
 
-	extern char* ped_misc_hash[9];
-	extern char* ped_misc_name[9];
+	extern const char* const vehicle_boat_hash[21];
+	extern const char* const vehicle_boat_name[21];
+ 
+	extern const char* const vehicle_commercial_hash[11];
+	extern const char* const vehicle_commercial_name[11];
+ 
+	extern const char* const vehicle_compact_hash[8];
+	extern const char* const vehicle_compact_name[8];
+ 
+	extern const char* const vehicle_coupe_hash[14];
+	extern const char* const vehicle_coupe_name[14];
+ 
+	extern const char* const vehicle_cycle_hash[7];
+	extern const char* const vehicle_cycle_name[7];
+ 
+	extern const char* const vehicle_emergency_hash[18];
+	extern const char* const vehicle_emergency_name[18];
+ 
+	extern const char* const vehicle_helicopter_hash[22];
+	extern const char* const vehicle_helicopter_name[22];
+ 
+	extern const char* const vehicle_industrial_hash[11];
+	extern const char* const vehicle_industrial_name[11];
+ 
+	extern const char* const vehicle_military_hash[5];
+	extern const char* const vehicle_military_name[5];
+ 
+	extern const char* const vehicle_motorcycle_hash[42];
+	extern const char* const vehicle_motorcycle_name[42];
+ 
+	extern const char* const vehicle_muscle_hash[39];
+	extern const char* const vehicle_muscle_name[39];
+ 
+	extern const char* const vehicle_offroad_hash[27];
+	extern const char* const vehicle_offroad_name[27];
+ 
+	extern const char* const vehicle_plane_hash[19];
+	extern const char* const vehicle_plane_name[19];
+ 
+	extern const char* const vehicle_sedan_hash[31];
+	extern const char* const vehicle_sedan_name[31];
+ 
+	extern const char* const vehicle_service_hash[10];
+	extern const char* const vehicle_service_name[10];
+ 
+	extern const char* const vehicle_sport_hash[41];
+	extern const char* const vehicle_sport_name[41];
+ 
+	extern const char* const vehicle_sport_classic_hash[23];
+	extern const char* const vehicle_sport_classic_name[23];
 
-	extern char* vehicle_boat_hash[21];
-	extern char* vehicle_boat_name[21];
+	extern const char* const vehicle_super_hash[21];
+	extern const char* const vehicle_super_name[21];
  
-	extern char* vehicle_commercial_hash[11];
-	extern char* vehicle_commercial_name[11];
+	extern const char* const vehicle_suv_hash[27];
+	extern const char* const vehicle_suv_name[27];
  
-	extern char* vehicle_compact_hash[8];
-	extern char* vehicle_compact_name[8];
+	extern const char* const vehicle_trailer_hash[22];
+	extern const char* const vehicle_trailer_name[22];
  
-	extern char* vehicle_coupe_hash[14];
-	extern char* vehicle_coupe_name[14];
+	extern const char* const vehicle_train_hash[8];
+	extern const char* const vehicle_train_name[8];
  
-	extern char* vehicle_cycle_hash[7];
-	extern char* vehicle_cycle_name[7];
+	extern const char* const vehicle_utility_hash[18];
+	extern const char* const vehicle_utility_name[18];
  
-	extern char* vehicle_emergency_hash[18];
-	extern char* vehicle_emergency_name[18];
- 
-	extern char* vehicle_helicopter_hash[22];
-	extern char* vehicle_helicopter_name[22];
- 
-	extern char* vehicle_industrial_hash[11];
-	extern char* vehicle_industrial_name[11];
- 
-	extern char* vehicle_military_hash[5];
-	extern char* vehicle_military_name[5];
- 
-	extern char* vehicle_motorcycle_hash[42];
-	extern char* vehicle_motorcycle_name[42];
- 
-	extern char* vehicle_muscle_hash[39];
-	extern char* vehicle_muscle_name[39];
- 
-	extern char* vehicle_offroad_hash[27];
-	extern char* vehicle_offroad_name[27];
- 
-	extern char* vehicle_plane_hash[19];
-	extern char* vehicle_plane_name[19];
- 
-	extern char* vehicle_sedan_hash[31];
-	extern char* vehicle_sedan_name[31];
- 
-	extern char* vehicle_service_hash[10];
-	extern char* vehicle_service_name[10];
- 
-	extern char* vehicle_sport_hash[41];
-	extern char* vehicle_sport_name[41];
- 
-	extern char* vehicle_sport_classic_hash[23];
-	extern char* vehicle_sport_classic_name[23];
+	extern const char* const vehicle_van_hash[32];
+	extern const char* const vehicle_van_name[32];
 
-	extern char* vehicle_super_hash[21];
-	extern char* vehicle_super_name[21];
- 
-	extern char* vehicle_suv_hash[27];
-	extern char* vehicle_suv_name[27];
- 
-	extern char* vehicle_trailer_hash[22];
-	extern char* vehicle_trailer_name[22];
- 
-	extern char* vehicle_train_hash[8];
-	extern char* vehicle_train_name[8];
- 
-	extern char* vehicle_utility_hash[18];
-	extern char* vehicle_utility_name[18];
- 
-	extern char* vehicle_van_hash[32];
-	extern char* vehicle_van_name[32];
+	extern const char* const vehicle_importexport_hash[24];
+	extern const char* const vehicle_importexport_name[24];
 
-	extern char* vehicle_importexport_hash[24];
-	extern char* vehicle_importexport_name[24];
-
-	extern DWORD ped_bone_hash[20];
-	extern char* ped_bone_name[20];
+	extern const DWORD ped_bone_hash[20];
+	extern const char* const ped_bone_name[20];
 
 
-	extern char* explosion_enum[35];
+	extern const char* const explosion_enum[35];
 
-	extern char* ped_spawn_type[3];
-	extern char* chaos_mode_type[8];
-	extern char* noclip_type[2];
+	extern const char* const ped_spawn_type[3];
+	extern const char* const chaos_mode_type[8];
+	extern const char* const noclip_type[2];
 
-	//extern char* anti_afk_hash[3];
-	//extern char* anti_afk_name[3];
+	//extern const char* const anti_afk_hash[3];
+	//extern const char* const anti_afk_name[3];
 
-	extern char* ped_anim_dict[0x40];
-	extern char* ped_anim_name[0x20];
+	extern const char* const ped_anim_dict[0x40];
+	extern const char* const ped_anim_name[0x20];
 
 
 	/*
 		//outfits
 	*/
-	extern BYTE	outfit_santa_female[0xA][0x3];
-	extern BYTE	outfit_santa_male[0xA][0x3];
+	extern const BYTE	outfit_santa_female[0xA][0x3];
+	extern const BYTE	outfit_santa_male[0xA][0x3];
 
-	extern BYTE	outfit_trash_orange_female[0xA][0x3];
-	extern BYTE	outfit_trash_orange_male[0xA][0x3];
+	extern const BYTE	outfit_trash_orange_female[0xA][0x3];
+	extern const BYTE	outfit_trash_orange_male[0xA][0x3];
 
-	extern BYTE	outfit_trash_green_female[0xA][0x3];
-	extern BYTE	outfit_trash_green_male[0xA][0x3];
+	extern const BYTE	outfit_trash_green_female[0xA][0x3];
+	extern const BYTE	outfit_trash_green_male[0xA][0x3];
 
-	extern BYTE	outfit_police_female[0xA][0x3];
-	extern BYTE	outfit_police_male[0xA][0x3];
+	extern const BYTE	outfit_police_female[0xA][0x3];
+	extern const BYTE	outfit_police_male[0xA][0x3];
 };
 
 #endif
