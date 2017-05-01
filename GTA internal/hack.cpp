@@ -304,7 +304,7 @@ bool	CHack::refresh()
 			};
 
 			for(int i = 0; i < sizeof(flagFeats) / sizeof(*flagFeats); ++i)
-				flags	|= !!CMenu::getFeature(FEATURE_S_IN_VEHICLE)->m_bOn	<< i;
+				flags	|= !!CMenu::getFeature(flagFeats[i])->m_bOn	<< i;
 
 			CFeat* feat		= CMenu::getFeature(FEATURE_S_COLOR_1);
 			CFeat* feat2	= CMenu::getFeature(FEATURE_S_COLOR_2);
