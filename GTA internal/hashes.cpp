@@ -69,59 +69,272 @@ namespace hash
 
 	const char* const object_prop_money_hash[] = {
 	"prop_alien_egg_01", "p_v_43_safe_s", "prop_wheelchair_01", "prop_coke_block_01",
-	"prop_xmas_tree_int", "p_spinning_anus_s", "prop_beer_neon_01", "prop_space_rifle",
-	"prop_crashed_heli", "prop_dj_deck_01", "prop_micro_01", "prop_ld_ferris_wheel",
-	"prop_lev_des_barge_01", "prop_lev_des_barge_02", "p_ld_soc_ball_01", "prop_rub_trolley01a",
+	"prop_xmas_tree_int", "prop_beer_neon_01", "prop_space_rifle",
+	"prop_dj_deck_01", "prop_micro_01",
+	"p_ld_soc_ball_01", "prop_rub_trolley01a",
 	"prop_dummy_01", "prop_large_gold", "prop_cs_dildo_01", "prop_fan_01", "prop_golf_bag_01",
 	"prop_armchair_01", "prop_armour_pickup", "prop_big_shit_01", "prop_bin_04a", 
 	"prop_chair_01a", "prop_chip_fryer", "prop_chickencoop_a", "prop_dog_cage_01",
-	"prop_gold_cont_01", "prop_xmas_ext", "p_cablecar_s", "p_cs_mp_jet_01_s",
-	"prop_prop_tree_01", "prop_prop_tree_02", "prop_coffin_02", "prop_coffin_02b",
-	"prop_cs_dumpster_01a"
+	"prop_coffin_02", "prop_coffin_02b", "prop_cs_dumpster_01a"
 	};
 
 	const char* const object_prop_money_name[] = {
 	"Alien Egg", "Safe", "Wheelchair", "Coke Brick",
-	"Xmas Tree", "UFO", "Neon Liquor Sign", "Space Rifle",
-	"Crashed Helicopter", "DJ Deck", "Microwave", "Ferris Wheel",
-	"Barge 01", "Barge 02", "Soccer Ball", "Shopping Cart",
+	"Xmas Tree", "Neon Liquor Sign", "Space Rifle",
+	"DJ Deck", "Microwave",
+	"Soccer Ball", "Shopping Cart",
 	"Mannequin", "Gold Cart", "Dildo", "Fan", "Golf Bag",
 	"Arm Chair", "Armour Pickup", "Turd", "Garbage Bin", 
 	"Chair", "Fryer", "Chicken Coop", "Dog Cage",
-	"Cage", "Huge Xmas Tree", "Cablecar", "Plane",
-	"Tree", "Tree 2", "Coffin Broken", "Coffin",
-	"Dumpster"
+	"Coffin Broken", "Coffin", "Dumpster"
 	};
 
-	const char* const object_prop_spawn_hash[] = {
-	"prop_xmas_tree_int",  "p_spinning_anus_s", "prop_beer_neon_01", "prop_ld_toilet_01", "prop_space_rifle",
-	"prop_food_van_01", "prop_crashed_heli", "prop_dj_deck_01", "prop_portacabin01",
-	"prop_micro_01", "prop_ld_ferris_wheel", "prop_lev_des_barge_01", "prop_lev_des_barge_02",
-	"prop_tv_flat_01", "prop_coke_block_01", "Prop_weed_01", "prop_wheelchair_01",
-	"p_v_43_safe_s", "prop_swiss_ball_01", "p_ld_soc_ball_01", "prop_rub_trolley01a",
-	"prop_dummy_01", "prop_large_gold", "prop_cs_dildo_01", "prop_fan_01", "prop_golf_bag_01",
-	"prop_armchair_01", "prop_armour_pickup", "prop_big_shit_01", "prop_bin_04a", 
-	"prop_chair_01a", "prop_chip_fryer", "prop_chickencoop_a", "prop_dog_cage_01",
-	"prop_windmill_01", "prop_gold_cont_01", "prop_xmas_ext", "prop_weed_pallet",
-	"p_cablecar_s", "prop_air_bigradar", "p_cs_mp_jet_01_s", "prop_alien_egg_01",
-	"prop_prop_tree_01", "prop_prop_tree_02", "prop_coffin_02", "prop_coffin_02b",
-	"prop_cs_dumpster_01a"
+	const char* const object_prop_spawn_misc_hash[] = {
+		"prop_xmas_tree_int",  "prop_beer_neon_01", "prop_ld_toilet_01", "prop_space_rifle",
+		"prop_food_van_01", "prop_crashed_heli", "prop_dj_deck_01", "prop_portacabin01",
+		"prop_micro_01", "prop_tv_flat_01", "prop_wheelchair_01",
+		"p_v_43_safe_s", "prop_swiss_ball_01", "p_ld_soc_ball_01", "prop_rub_trolley01a",
+		"prop_large_gold", "prop_cs_dildo_01", "prop_fan_01", "prop_golf_bag_01",
+		"prop_armchair_01", "prop_armour_pickup", "prop_big_shit_01", "prop_bin_04a", 
+		"prop_chair_01a", "prop_chip_fryer", "prop_chickencoop_a", "prop_dog_cage_01",
+		"prop_gold_cont_01", "p_cablecar_s", "prop_alien_egg_01",
+		"prop_prop_tree_01", "prop_prop_tree_02", "prop_coffin_02", "prop_coffin_02b",
+		"prop_cs_dumpster_01a", "prop_pizza_box_01", "prop_pizza_box_02", 
+		"prop_cs_panties", "prop_cs_panties_02", "prop_cs_panties_03",
 	};
 
-	const char* const object_prop_spawn_name[] = {
-	"Xmas Tree", "UFO", "Neon Liquor Sign", "Toilet", "Space Rifle",
-	"Food Van", "Crashed Helicopter", "DJ Deck", "Portable Cabin",
-	"Microwave", "Ferris Wheel", "Barge 01", "Barge 02",
-	"Flatscreen TV", "Coke Brick", "Weed Plant", "Wheelchair",
-	"Safe", "Swiss Ball", "Soccer Ball", "Shopping Cart",
-	"Mannequin", "Gold Cart", "Dildo", "Fan", "Golf Bag",
-	"Arm Chair", "Armour Pickup", "Turd", "Garbage Bin", 
-	"Chair", "Fryer", "Chicken Coop", "Dog Cage",
-	"Windmill", "Cage", "Huge Xmas Tree", "Pallet of Weed",
-	"Cablecar", "Big Radar Dish", "Plane", "Alien Egg",
-	"Tree", "Tree 2", "Coffin Broken", "Coffin",
-	"Dumpster"
+	const char* const object_prop_spawn_misc_name[] = {
+		"Xmas Tree", "Neon Liquor Sign", "Toilet", "Space Rifle",
+		"Food Van", "Crashed Helicopter", "DJ Deck", "Portable Cabin",
+		"Microwave", "Flatscreen TV", "Wheelchair",
+		"Safe", "Swiss Ball", "Soccer Ball", "Shopping Cart",
+		"Gold Cart", "Dildo", "Fan", "Golf Bag",
+		"Arm Chair", "Armour Pickup", "Turd", "Garbage Bin", 
+		"Chair", "Fryer", "Chicken Coop", "Dog Cage",
+		"Cage", "Cablecar", "Alien Egg",
+		"Tree", "Tree 2", "Coffin Broken", "Coffin",
+		"Dumpster", "Pizza Box 1", "Pizza Box 2", 
+		"Panties 1", "Panties 2", "Panties 3",
 	};
+
+	const char* const object_prop_spawn_large_hash[] = {
+		"p_spinning_anus_s", "prop_air_bigradar", "prop_ld_ferris_wheel", "prop_xmas_ext",
+		"prop_windmill_01", "prop_lev_des_barge_01", "prop_lev_des_barge_02", "p_cs_mp_jet_01_s", 
+		"prop_pylon_01", "prop_pylon_02", "prop_pylon_03", "prop_pylon_04",
+	};
+
+	const char* const object_prop_spawn_large_name[] = {
+		"UFO", "Radar Dish", "Ferris Wheel", "Huge Xmas Tree", 
+		"Windmill", "Barge 01", "Barge 02", "Plane", 
+		"Electricity Pylon 1", "Electricity Pylon 2", "Electricity Pylon 3", "Electricity Pylon 4",
+	};
+
+	const char* const object_prop_spawn_drugs_hash[] = {
+		"prop_meth_bag_01", "prop_weed_pallet", "Prop_weed_01", "prop_coke_block_01",
+		"prop_cs_crackpipe", "prop_cs_meth_pipe", 
+	};
+
+	const char* const object_prop_spawn_drugs_name[] = {
+		
+		"Meth Bag", "Pallet of Weed", "Weed Plant", "Coke Brick",
+		"Crack pipe", "Meth Pipe", 
+	};
+
+	const char* const object_prop_spawn_music_hash[] = {
+		"prop_el_guitar_01", "prop_el_guitar_02", "prop_el_guitar_03",
+		"prop_jukebox_01", "prop_jukebox_02", "prop_ghettoblast_02",
+	};
+
+	const char* const object_prop_spawn_music_name[] = {
+		
+		"Electric Guitar 1", "Electric Guitar 2", "Acoustic Guitar",
+		"Jukebox 1", "Jukebox 2", "Boombox",
+	};
+
+	const char* const object_prop_spawn_commericial_hash[] = {
+		"prop_bikini_disp_01", "prop_bikini_disp_02", "prop_bikini_disp_03", "prop_bikini_disp_04", "prop_bikini_disp_05", "prop_bikini_disp_06",
+		"prop_dummy_01", "prop_fleeca_atm", "prop_atm_02", "prop_atm_03", "prop_arcade_01", "prop_arcade_02", 
+	};
+
+	const char* const object_prop_spawn_commericial_name[] = {
+		
+		"Bikini Mannequin Blue", "Bikini Mannequin Red", "Bikini Mannequin Green", "Bikini Mannequin Pink", "Bikini Mannequin Yellow", "Bikini Mannequin Orange",
+		"Mannequin", "ATM Fleeca", "ATM 2", "ATM 3", "Arcade", "Arcade 2", 
+	};
+
+	const char* const object_prop_spawn_construction_hash[] = {
+		"prop_metal_plates01", "prop_metal_plates02", 
+		"prop_generator_02a", "prop_generator_03a", "prop_generator_04",
+		"prop_byard_bench01", "prop_byard_bench02", "prop_hydro_platform_01",
+	};
+
+	const char* const object_prop_spawn_construction_name[] = {
+		"Metal Construction Plate", "Metal Construction Plates",
+		"Generator 1", "Generator 2", "Generator 3",
+		"Construction Trestle 1", "Construction Trestle 2", "Scissor Lift",
+	};
+
+	const char* const object_prop_spawn_stunt_misc_hash[] = {
+		"stt_prop_corner_sign_01", "stt_prop_corner_sign_02", "stt_prop_corner_sign_03",
+		"stt_prop_corner_sign_04", "stt_prop_corner_sign_05", "stt_prop_corner_sign_06", "stt_prop_corner_sign_07",
+		"stt_prop_corner_sign_08", "stt_prop_corner_sign_09", "stt_prop_corner_sign_10", "stt_prop_corner_sign_11",
+		"stt_prop_corner_sign_12", "stt_prop_corner_sign_13", "stt_prop_corner_sign_14",
+		"stt_prop_hoop_constraction_01a", "stt_prop_hoop_small_01", "stt_prop_hoop_tyre_01a",
+		"stt_prop_stunt_bowling_ball", "stt_prop_stunt_bowling_pin", "stt_prop_stunt_bowlpin_stand", "stt_prop_stunt_domino",
+		"stt_prop_stunt_soccer_ball", "stt_prop_stunt_soccer_goal", "stt_prop_stunt_soccer_lball", "stt_prop_stunt_soccer_sball",
+		"prop_skate_flatramp", "prop_skate_funbox", "prop_skate_halfpipe", "prop_skate_kickers", "prop_skate_quartpipe", "prop_skate_rail", "prop_skate_spiner",
+		
+	};
+
+	const char* const object_prop_spawn_stunt_misc_name[] = {
+		"Sign 5", "Sign 10", "Sign 50",
+		"Sign 100", "Sign Caution Slow", "Sign U-Turn Left", "Sign U-Turn Right",
+		"Sign Turn Left", "Sign Turn Right", "Sign Chicane Right", "Sign Chicane Left",
+		"Sign Exclaimation", "Sign Arrow Right", "Sign Arrow Left",
+		"Hoop Big Metal", "Hoop Small", "Hoop Big Tyre",
+		"Bowling Ball", "Bowling Pin", "Bowling Pin Stand", "Domino",
+		"Soccer Ball M", "Soccer Goal", "Soccer Ball L", "Soccer Ball S",
+		"Skate Flat Ramp", "Skate Funbox", "Skate Halfpipe", "Skate Kickers", "Skate Quarterpipe", "Skate Rail", "Skate Spine",
+	};
+
+	const char* const object_prop_spawn_stunt_ramp_hash[] = {
+		"stt_prop_ramp_adj_flip_m", "stt_prop_ramp_adj_flip_mb", "stt_prop_ramp_adj_flip_s", 
+		"stt_prop_ramp_adj_flip_sb", "stt_prop_ramp_adj_hloop", "stt_prop_ramp_adj_loop", "stt_prop_ramp_multi_loop_rb", "stt_prop_ramp_jump_l", 
+		"stt_prop_ramp_jump_m", "stt_prop_ramp_jump_s", "stt_prop_ramp_jump_xl", "stt_prop_ramp_jump_xs", "stt_prop_ramp_jump_xxl",
+		"stt_prop_stunt_jump_l", "stt_prop_stunt_jump_lb", "stt_prop_stunt_jump_s", "stt_prop_stunt_jump_sb", 
+		"stt_prop_stunt_jump_loop", "stt_prop_stunt_jump_m", "stt_prop_stunt_jump_mb",
+		//"stt_prop_stunt_ramp","stt_prop_stunt_wideramp",
+		"stt_prop_ramp_spiral_l_l", "stt_prop_ramp_spiral_l_m", "stt_prop_ramp_spiral_l_s", "stt_prop_ramp_spiral_l_xxl",
+		"stt_prop_ramp_spiral_l",  "stt_prop_ramp_spiral_m", "stt_prop_ramp_spiral_s", "stt_prop_ramp_spiral_xxl",
+		"prop_jetski_ramp_01", "prop_mp_ramp_01", "prop_mp_ramp_02", "prop_mp_ramp_03",
+	};
+
+	const char* const object_prop_spawn_stunt_ramp_name[] = {
+		"Stunt Flip Medium Right", "Stunt Flip Medium Left", "Stunt Flip Small Right", 
+		"Stunt Flip Small Left", "Half Loop", "Loop", "Multi Loop", "Stunt Ramp Curve L", 
+		"Stunt Ramp Curve M", "Stunt Ramp Curve S", "Stunt Ramp Curve XL", "Stunt Ramp Curve XS", "Stunt Ramp Curve XXL",
+		"Stunt Ramp L", "Stunt Ramp XL", "Stunt Ramp S", "Stunt Ramp S2", 
+		"Ramp + Loop", "Stunt Ramp M", "Stunt Ramp M2",
+		//"Huge Stunt Ramp", "Huge Stunt Ramp Wide",
+		"Spiral Right", "Spiral Right Medium", "Spiral Right Small", "Spiral Right XXL",
+		"Spiral Left Large",  "Spiral Left Medium", "Spiral Left Small", "Spiral Left XXL",
+		"Jetski Ramp", "Ramp 1", "Ramp 2", "Ramp 3",
+	};
+
+	const char* const object_prop_spawn_stunt_platform_hash[] = {
+		"stt_prop_stunt_bblock_huge_01", "stt_prop_stunt_bblock_huge_02", "stt_prop_stunt_bblock_huge_03", "stt_prop_stunt_bblock_huge_04", 
+		"stt_prop_stunt_bblock_huge_05", "stt_prop_stunt_bblock_hump_01", "stt_prop_stunt_bblock_hump_02", 
+		"stt_prop_stunt_bblock_lrg1", "stt_prop_stunt_bblock_lrg2", "stt_prop_stunt_bblock_lrg3", "stt_prop_stunt_bblock_mdm1", 
+		"stt_prop_stunt_bblock_mdm2", "stt_prop_stunt_bblock_mdm3",
+		"stt_prop_stunt_bblock_sml1", "stt_prop_stunt_bblock_sml2", "stt_prop_stunt_bblock_sml3", 
+		"stt_prop_stunt_bblock_xl1", "stt_prop_stunt_bblock_xl2", "stt_prop_stunt_bblock_xl3", "stt_prop_stunt_landing_zone_01",
+		"stt_prop_stunt_bblock_qp", "stt_prop_stunt_bblock_qp2", "stt_prop_stunt_bblock_qp3", 
+	};
+
+	const char* const object_prop_spawn_stunt_platform_name[] = {
+		"Huge Platform Square", "Huge Platform Rectangle", "Huge Platform Square L", "Huge Platform Squre XL", 
+		"Huge Platform Rectangle XL", "Huge Platform Hump", "Huge Platform Hump 2", 
+		"Platform L1", "Platform L2", "Platform L3", "Platform M1", 
+		"Platform M2", "Platform M3",  "Platform S1", "Platform S2", "Platform S3", 
+		"Platform Long 1", "Platform Long 2", "Platform Long 3", "Huge Platform Landingzone",
+		"Huge Quarter Pipe 1", "Huge Quarter Pipe 2", "Huge Quarter Pipe 3",
+	};
+
+	const char* const object_prop_spawn_stunt_tube_hash[] = {
+		"stt_prop_stunt_tube_s", "stt_prop_stunt_tube_xs", "stt_prop_stunt_tube_xxs", "stt_prop_stunt_tube_speed",
+		"stt_prop_stunt_tube_crn_30d", "stt_prop_stunt_tube_crn_5d", "stt_prop_stunt_tube_crn", "stt_prop_stunt_tube_crn2", 
+		"stt_prop_stunt_tube_crn_15d", "stt_prop_stunt_tube_cross", 
+		"stt_prop_stunt_tube_end", "stt_prop_stunt_tube_ent", "stt_prop_stunt_tube_fn_01", "stt_prop_stunt_tube_fn_02", 
+		"stt_prop_stunt_tube_fn_03", "stt_prop_stunt_tube_fn_04", "stt_prop_stunt_tube_fn_05", "stt_prop_stunt_tube_fork", 
+		"stt_prop_stunt_tube_gap_01", "stt_prop_stunt_tube_gap_02", "stt_prop_stunt_tube_gap_03", "stt_prop_stunt_tube_hg", 
+		"stt_prop_stunt_tube_jmp", "stt_prop_stunt_tube_jmp2", "stt_prop_stunt_tube_l", "stt_prop_stunt_tube_m", "stt_prop_stunt_tube_qg", 
+	};
+
+	const char* const object_prop_spawn_stunt_tube_name[] = {
+		"Stunt Tube S", "Stunt Tube XS", "Stunt Tube XXS", "Stunt Tube Speed Boost",
+		"Stunt Tube Turn 30 Degrees", "Stunt Turn Tube 5 Degrees", "Stunt Turn Tube 90 Degrees", "Stunt Turn Tube 45 Degrees", 
+		"Stunt Tube Turn 15 Degrees", "Stunt Turn Tube Cross", 
+		"Stunt Tube End", "Stunt Tube Entrance", "Stunt Tube Spinner", "Stunt Tube Double Spinner", 
+		"Stunt Tube Spinner Closed 1/2", "Stunt Tube Spinner Closed 3/4", "Stunt Tube Double Spinner Closed 1/2", "Stunt Tube Fork", 
+		"Stunt Tube Gap", "Stunt Tube Gap 2", "Stunt Tube Gap 3", "Stunt Tube Closed 1/2", 
+		"Stunt Tube Ramp 1", "Stunt Tube Jump", "Stunt Tube XL", "Stunt Tube M", "Stunt Tube Closed 3/4", 
+	};
+
+	const char* const object_prop_spawn_stunt_track_hash[] = {
+		"stt_prop_track_straight_bar_l", "stt_prop_track_straight_lm_bar", "stt_prop_track_straight_bar_m", "stt_prop_track_straight_bar_s",
+		"stt_prop_track_straight_l", "stt_prop_track_straight_lm", "stt_prop_track_straight_m", "stt_prop_track_straight_s",
+		"stt_prop_race_start_line_01", "stt_prop_race_start_line_01b", "stt_prop_race_start_line_02", 
+		"stt_prop_race_start_line_02b", "stt_prop_race_start_line_03", "stt_prop_race_start_line_03b",
+		"stt_prop_track_bend2_bar_l", 
+		"stt_prop_track_bend2_bar_l_b", "stt_prop_track_bend2_l", "stt_prop_track_bend2_l_b", "stt_prop_track_bend_15d", 
+		"stt_prop_track_bend_15d_bar", "stt_prop_track_bend_180d", "stt_prop_track_bend_180d_bar", "stt_prop_track_bend_30d", 
+		"stt_prop_track_bend_30d_bar", "stt_prop_track_bend_5d", "stt_prop_track_bend_5d_bar", "stt_prop_track_bend_bar_l", 
+		"stt_prop_track_bend_bar_l_b", "stt_prop_track_bend_bar_m", "stt_prop_track_bend_l", "stt_prop_track_bend_l_b", 
+		"stt_prop_track_bend_m", "stt_prop_track_block_01", "stt_prop_track_block_02", "stt_prop_track_block_03", 
+		"stt_prop_track_chicane_l", "stt_prop_track_chicane_l_02", "stt_prop_track_chicane_r", "stt_prop_track_chicane_r_02", 
+		"stt_prop_track_cross", "stt_prop_track_cross_bar", "stt_prop_track_fork",
+	};
+
+	const char* const object_prop_spawn_stunt_track_name[] = {
+		"Track Barrier XL", "Track Barrier L", "Track Barrier M", "Track Barrier S",
+		"Track XL", "Track L", "Track M", "Track S", 
+		"Track Start 1 Short", "Track Start 1 Long", "Track Start 2 Short", 
+		"Track Start 2 Long", "Track Start 3 Short", "Track Start 3 Long",
+		"Track Turn 90 Degrees Barrier", 
+		"Track Turn 90 Degrees Barrier 2", "Track Turn 90 Degrees 1", "Track Turn 90 Degrees 2", "Track Turn 15 Degrees", 
+		"Track Turn 15 Degrees Barrier", "Track Turn 180 Degrees", "Track Turn 180 Degrees Barrier", "Track Turn 30 Degrees", 
+		"Track Turn 30 Degrees Barrier", "Track Turn 15 Degrees", "Track Turn 15 Degrees Barrier", "Track Turn 90 Degrees Barrier Small 1", 
+		"Track Turn 90 Degrees Barrier Small 2", "Track Turn 45 Degrees Barrier Small", "Track Turn 90 Degrees Small 1", "Track Turn 90 Degrees Small 2", 
+		"Track Turn 45 Degrees Small", "Track Narrowing", "Track Narrowing 2", "Track Narrowing 3", 
+		"Track Chicane Left L", "Track Chicane Left S", "Track Chicane Right L", "Track Chicane Right S", 
+		"Track Cross", "Track Cross Barrier", "Track Fork",
+	};
+
+	const char* const object_prop_spawn_traffic_hash[] = {
+		"prop_mp_barrier_01", "prop_mp_barrier_01b", "prop_barrier_wat_01a", "prop_barriercrash_03", "prop_barriercrash_04",
+		"prop_barier_conc_01b", "prop_barier_conc_01c", "prop_barier_conc_02b", "prop_barier_conc_02c", "prop_barier_conc_03a", "prop_barier_conc_04a", "prop_barier_conc_05a", "prop_barier_conc_05b",
+		"prop_mp_barrier_02", "prop_mp_barrier_02b", "prop_mp_arrow_barrier_01",
+		"prop_roadcone01a", "prop_roadcone01b", "prop_roadcone01c", "prop_roadcone02a", "prop_roadcone02b", "prop_roadcone02c",  "prop_mp_cone_04", "prop_barrier_wat_03b",
+	};
+
+	const char* const object_prop_spawn_traffic_name[] = {
+		"Road Barrier 1", "Road Barrier 2", "Road Barrier 3", "Crash Barrier 1", "Crash Barrier 2",
+		"Concrete Barrier Small 1", "Concrete Barrier Small 2", "Concrete Barrier Medium 1", "Concrete Barrier Medium 2", "Concrete Barrier End 1", "Concrete Barrier End 2", "Concrete Barrier Large 1", "Concrete Barrier Large 2", 
+		"Roadblock 1", "Roadblock 2", "Roadblock Arrow",
+		"Traffic Cone 1", "Traffic Cone 1b", "Traffic Cone 1c", "Traffic Cone 2a", "Traffic Cone 2b", "Traffic Cone 2c",  "Traffic Cone 3", "Traffic Cone 4",
+	};
+
+	/*const char* const object_prop_spawn_stunt_test[] = {
+		"stt_prop_stunt_target", 
+		"stt_prop_stunt_target_small", "stt_prop_stunt_track_bumps", "stt_prop_stunt_track_cutout", "stt_prop_stunt_track_dwlink", 
+		"stt_prop_stunt_track_dwlink_02", "stt_prop_stunt_track_dwsh15", "stt_prop_stunt_track_dwshort", "stt_prop_stunt_track_dwslope15", 
+		"stt_prop_stunt_track_dwslope30", "stt_prop_stunt_track_dwslope45", "stt_prop_stunt_track_dwturn", "stt_prop_stunt_track_dwuturn", 
+		"stt_prop_stunt_track_exshort", "stt_prop_stunt_track_fork", "stt_prop_stunt_track_funlng", "stt_prop_stunt_track_funnel", 
+		"stt_prop_stunt_track_hill", "stt_prop_stunt_track_hill2", "stt_prop_stunt_track_jump", "stt_prop_stunt_track_link", 
+		"stt_prop_stunt_track_otake", "stt_prop_stunt_track_sh15", "stt_prop_stunt_track_sh30", "stt_prop_stunt_track_sh45", 
+		"stt_prop_stunt_track_sh45_a", "stt_prop_stunt_track_short", "stt_prop_stunt_track_slope15", "stt_prop_stunt_track_slope30", 
+		"stt_prop_stunt_track_slope45", "stt_prop_stunt_track_start", "stt_prop_stunt_track_start_02", "stt_prop_stunt_track_straight", 
+		"stt_prop_stunt_track_straightice", "stt_prop_stunt_track_st_01", "stt_prop_stunt_track_st_02", "stt_prop_stunt_track_turn", 
+		"stt_prop_stunt_track_turnice", "stt_prop_stunt_track_uturn", "stt_prop_track_fork_bar", "stt_prop_track_funnel", 
+		"stt_prop_track_funnel_ads_01a", "stt_prop_track_funnel_ads_01b", "stt_prop_track_funnel_ads_01c", "stt_prop_track_jump_01a", 
+		"stt_prop_track_jump_01b", "stt_prop_track_jump_01c", "stt_prop_track_jump_02a", "stt_prop_track_jump_02b", "stt_prop_track_jump_02c", 
+		"stt_prop_track_link", "stt_prop_track_slowdown", "stt_prop_track_slowdown_t1", "stt_prop_track_slowdown_t2", "stt_prop_track_speedup", 
+		"stt_prop_track_speedup_t1", "stt_prop_track_speedup_t2", "stt_prop_track_start", "stt_prop_track_start_02", "stt_prop_track_stop_sign", 
+		"stt_prop_track_tube_01", "stt_prop_track_tube_02", "stt_prop_tyre_wall_01", "stt_prop_tyre_wall_010", "stt_prop_tyre_wall_011", 
+		"stt_prop_tyre_wall_012", "stt_prop_tyre_wall_013", "stt_prop_tyre_wall_014", "stt_prop_tyre_wall_015", "stt_prop_tyre_wall_02", 
+		"stt_prop_tyre_wall_03", "stt_prop_tyre_wall_04", "stt_prop_tyre_wall_05", "stt_prop_tyre_wall_06", "stt_prop_tyre_wall_07", 
+		"stt_prop_tyre_wall_08", "stt_prop_tyre_wall_09", "stt_prop_tyre_wall_0l010", "stt_prop_tyre_wall_0l012", "stt_prop_tyre_wall_0l013", 
+		"stt_prop_tyre_wall_0l014", "stt_prop_tyre_wall_0l015", "stt_prop_tyre_wall_0l018", "stt_prop_tyre_wall_0l019", "stt_prop_tyre_wall_0l020", 
+		"stt_prop_tyre_wall_0l04", "stt_prop_tyre_wall_0l05", "stt_prop_tyre_wall_0l06", "stt_prop_tyre_wall_0l07", "stt_prop_tyre_wall_0l08", 
+		"stt_prop_tyre_wall_0l1", "stt_prop_tyre_wall_0l16", "stt_prop_tyre_wall_0l17", "stt_prop_tyre_wall_0l2", "stt_prop_tyre_wall_0l3", 
+		"stt_prop_tyre_wall_0r010", "stt_prop_tyre_wall_0r011", "stt_prop_tyre_wall_0r012", "stt_prop_tyre_wall_0r013", "stt_prop_tyre_wall_0r014", 
+		"stt_prop_tyre_wall_0r015", "stt_prop_tyre_wall_0r016", "stt_prop_tyre_wall_0r017", "stt_prop_tyre_wall_0r018", "stt_prop_tyre_wall_0r019", 
+		"stt_prop_tyre_wall_0r04", "stt_prop_tyre_wall_0r05", "stt_prop_tyre_wall_0r06", "stt_prop_tyre_wall_0r07", "stt_prop_tyre_wall_0r08",
+		"stt_prop_tyre_wall_0r09", "stt_prop_tyre_wall_0r1", "stt_prop_tyre_wall_0r2", "stt_prop_tyre_wall_0r3", "stt_prop_wallride_01",
+		"stt_prop_wallride_01b", "stt_prop_wallride_02", "stt_prop_wallride_02b", "stt_prop_wallride_04", "stt_prop_wallride_05",
+		"stt_prop_wallride_05b", "stt_prop_wallride_45l", "stt_prop_wallride_45la", "stt_prop_wallride_45r", "stt_prop_wallride_45ra", 
+		"stt_prop_wallride_90l", "stt_prop_wallride_90lb", "stt_prop_wallride_90r", "stt_prop_wallride_90rb"
+	};*/
 
 	const char* const weather_enum[] = {
 	"CLEAR", "EXTRASUNNY", "CLOUDS",

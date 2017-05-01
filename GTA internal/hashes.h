@@ -29,11 +29,46 @@ namespace hash
 	extern const char* const radio_station_hash[20];
 	extern const char* const radio_station_name[20];
 
-	extern const char* const object_prop_money_hash[38];
-	extern const char* const object_prop_money_name[38];
+	extern const char* const object_prop_money_hash[27];
+	extern const char* const object_prop_money_name[27];
 
-	extern const char* const object_prop_spawn_hash[47];
-	extern const char* const object_prop_spawn_name[47];
+	extern const char* const object_prop_spawn_misc_hash[40];
+	extern const char* const object_prop_spawn_misc_name[40];
+
+	extern const char* const object_prop_spawn_large_hash[12];
+	extern const char* const object_prop_spawn_large_name[12];
+
+	extern const char* const object_prop_spawn_drugs_hash[6];
+	extern const char* const object_prop_spawn_drugs_name[6];
+
+	extern const char* const object_prop_spawn_music_hash[6];
+	extern const char* const object_prop_spawn_music_name[6];
+
+	extern const char* const object_prop_spawn_commericial_hash[12];
+	extern const char* const object_prop_spawn_commericial_name[12];
+
+	extern const char* const object_prop_spawn_construction_hash[8];
+	extern const char* const object_prop_spawn_construction_name[8];
+
+	extern const char* const object_prop_spawn_stunt_misc_hash[32];
+	extern const char* const object_prop_spawn_stunt_misc_name[32];
+
+	extern const char* const object_prop_spawn_stunt_ramp_hash[32];
+	extern const char* const object_prop_spawn_stunt_ramp_name[32];
+
+	extern const char* const object_prop_spawn_stunt_platform_hash[23];
+	extern const char* const object_prop_spawn_stunt_platform_name[23];
+
+	extern const char* const object_prop_spawn_stunt_track_hash[42];
+	extern const char* const object_prop_spawn_stunt_track_name[42];
+
+	extern const char* const object_prop_spawn_stunt_tube_hash[27];
+	extern const char* const object_prop_spawn_stunt_tube_name[27];
+
+	extern const char* const object_prop_spawn_traffic_hash[24];
+	extern const char* const object_prop_spawn_traffic_name[24];
+
+	//extern const char* const object_prop_spawn_stunt_test[129];
 
 	extern const char* const weather_enum[12];
 

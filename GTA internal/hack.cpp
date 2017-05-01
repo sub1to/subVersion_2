@@ -296,23 +296,26 @@ bool	CHack::refresh()
 			BYTE	flags	= 0;
 			int		colours	= -1;
 
-			if(CMenu::getFeature(FEATURE_S_IN_VEHICLE)->m_bOn)
-				flags	|= 0x01;
-			if(CMenu::getFeature(FEATURE_S_MP_BYPASS)->m_bOn)
-				flags	|=	0x02;
-			if(CMenu::getFeature(FEATURE_S_VEH_MOD)->m_bOn)
-				flags	|= 0x04;
-			if(CMenu::getFeature(FEATURE_S_LICENSE)->m_bOn)
-				flags	|= 0x08;
+			constexpr eFeatures	flagFeats[]	= {
+				FEATURE_S_IN_VEHICLE,
+				FEATURE_S_MP_BYPASS,
+				FEATURE_S_VEH_MOD,
+				FEATURE_S_LICENSE
+			};
+
+			for(int i = 0; i < sizeof(flagFeats) / sizeof(*flagFeats); ++i)
+				flags	|= !!CMenu::getFeature(FEATURE_S_IN_VEHICLE)->m_bOn	<< i;
 
 			CFeat* feat		= CMenu::getFeature(FEATURE_S_COLOR_1);
 			CFeat* feat2	= CMenu::getFeature(FEATURE_S_COLOR_2);
 			if(feat->m_bOn || feat2->m_bOn)
+			{
 				colours	= 0;
-			if(feat->m_bOn)
-				colours	|=	(int) feat->getValue();
-			if(feat2->m_bOn)
-				colours	|=	((int) feat2->getValue()) << 0x08;
+				if(feat->m_bOn)
+					colours	|=	(int) feat->getValue();
+				if(feat2->m_bOn)
+					colours	|=	((int) feat2->getValue()) << 0x08;
+			}
 
 			if(script::spawn_vehicle(&m_requestedVehicle.front()[0], nullptr, flags, colours))
 				m_requestedVehicle.pop();
@@ -636,7 +639,7 @@ bool	CHack::refresh()
 
 		//money drop 40k
 		feat = CMenu::getFeature(FEATURE_U_MONEY_DROP_40K);
-		if(feat->m_bOn && curClock - feat->m_clockTick > 0x60 && script::drop_money_on_entity(playerPed, 40000))
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0x100 && script::drop_money_on_entity(playerPed, 40000))
 			feat->m_clockTick = curClock;
 
 		//ped drop
@@ -972,7 +975,7 @@ bool	CHack::refresh()
 			if(curClock - m_clockPlayerInfo > 0x400 && CMenu::getActiveParent() == plrFeat->m_iId)
 			{
 				char	msg[0xFF];
-				CPed*	cp			= util::ped_handle_to_ptr(remotePed);
+				CPed*	cp			= util::handle_to_ptr<CPed>(remotePed);
 				if(cp != nullptr && cp->pCPlayerInfo != nullptr)
 				{
 					//name
@@ -1043,7 +1046,7 @@ bool	CHack::refresh()
 
 			//drop 40k
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_MONEY_DROP_40K, i);
-			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x60 && script::drop_money_on_entity(remotePed, 40000))
+			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x100 && script::drop_money_on_entity(remotePed, 40000))
 				plrFeat->m_clockTick = curClock;
 
 			//Track player

@@ -32,3 +32,11 @@ typedef	std::vector<std::string>	vec_str;
 typedef std::queue<int>				queue_int;
 typedef std::queue<std::string>		queue_str;
 typedef std::deque<int>				deque_int;
+
+struct MemoryPool
+{
+    uintptr_t ListAddr;
+    char* BoolAdr;
+    int MaxCount;
+    int ItemSize;
+};

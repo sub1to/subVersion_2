@@ -25,8 +25,18 @@ namespace util
 {
 	float	deg_to_rad(float deg);
 	int		random_int(int start, int end);
-	CPed*	ped_handle_to_ptr(Ped ped);
 	bool	to_clipboard(char* str);
+
+	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle);
+
+	template <typename rT>
+	rT*	handle_to_ptr(int handle)
+	{
+		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, handle);
+		if(ptr == 0)
+			return nullptr;
+		return *reinterpret_cast<rT**>(ptr + 8);
+	}
 
 	template <class T>
 	void	clear_queue(std::queue<T>& q)
@@ -78,7 +88,7 @@ namespace script
 	void	draw_esp_on_entity(Entity e, std::string text, bool bBox = true, bool bHealth = false, bool bDist = false, float fMaxDist = 5000.f);
 	Object	trap_player_in_cage(Ped ped);
 
-	void	remove_nearby_objects();
+	//void	remove_nearby_objects();
 	Object	attach_object_to_entity(Entity e, char* object, int bone = -1);
 	void	attach_entities(Entity e, Entity t, int bone = -1, v3 pos = {0.f, -.26f, .1f}, v3 rot = {0.f, 0.f, 0.f});
 	void	detach_entity(Entity e);

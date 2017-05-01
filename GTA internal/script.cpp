@@ -52,7 +52,7 @@ namespace util
 		return pool->ListAddr + index * pool->ItemSize;
 	}
 
-	CPed*	ped_handle_to_ptr(Ped ped)
+	/*CPed*	ped_handle_to_ptr(Ped ped)
 	{
 		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, ped);
 		if(ptr == 0)
@@ -66,7 +66,7 @@ namespace util
 		if(ptr == 0)
 			return nullptr;
 		return *reinterpret_cast<CVehicle**>(ptr + 8);
-	}
+	}*/
 
 	bool	to_clipboard(char* str)
 	{
@@ -93,7 +93,7 @@ namespace script
 
 	bool is_ped_in_any_vehicle(Ped ped)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		CPed* pPed	= util::handle_to_ptr<CPed>(ped);
 		if(pPed == nullptr || !pPed->isInVehicle())
 			return false;
 		return true;
@@ -101,7 +101,7 @@ namespace script
 
 	v3	get_entity_coords(Entity e)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(e);
+		CPed* pPed	= util::handle_to_ptr<CPed>(e);
 		if(pPed == nullptr || pPed->pCNavigation == nullptr)
 			return {};
 		return pPed->pCNavigation->v3Pos;
@@ -109,7 +109,7 @@ namespace script
 
 	float	get_ped_health(Ped ped)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		CPed* pPed	= util::handle_to_ptr<CPed>(ped);
 		if(pPed == nullptr)
 			return {};
 		return pPed->fHealth;
@@ -117,7 +117,7 @@ namespace script
 
 	bool	set_ped_health(Ped ped, float value)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		CPed* pPed	= util::handle_to_ptr<CPed>(ped);
 		if(pPed == nullptr)
 			return false;
 		pPed->fHealth	= value;
@@ -126,7 +126,7 @@ namespace script
 
 	float	get_ped_max_health(Ped ped)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		CPed* pPed	= util::handle_to_ptr<CPed>(ped);
 		if(pPed == nullptr)
 			return {};
 		return pPed->fHealthMax;
@@ -134,7 +134,7 @@ namespace script
 
 	float	get_ped_armor(Ped ped)
 	{
-		CPed* pPed	= util::ped_handle_to_ptr(ped);
+		CPed* pPed	= util::handle_to_ptr<CPed>(ped);
 		if(pPed == nullptr)
 			return {};
 		return pPed->fArmor;
@@ -142,7 +142,7 @@ namespace script
 
 	float	get_vehicle_health(Vehicle veh)
 	{
-		CVehicle* pVeh	= util::vehicle_handle_to_ptr(veh);
+		CVehicle* pVeh	= util::handle_to_ptr<CVehicle>(veh);
 		if(pVeh == nullptr)
 			return {};
 		return pVeh->fHealth;
@@ -836,7 +836,7 @@ namespace script
 			PED::SET_PED_COMPONENT_VARIATION(playerPed, group, value, 0, PED::GET_PED_PALETTE_VARIATION(playerPed, group));
 	}
 
-	void remove_nearby_objects()
+	/*void remove_nearby_objects()
 	{
 		v3 playerPosition = get_entity_coords(PLAYER::PLAYER_PED_ID());
 		for(int j = 0; j < sizeof(hash::object_prop_spawn_hash) / sizeof(hash::object_prop_spawn_hash[0]); j++)
@@ -847,7 +847,7 @@ namespace script
 			if(request_control_of_entity(obj))
 				ENTITY::DELETE_ENTITY(&obj);
 		}
-	}
+	}*/
 
 	void clown_particle_effect_on_entity(Entity e)
 	{
@@ -1203,12 +1203,11 @@ namespace script
 		//if(NETWORK::NETWORK_IS_SESSION_STARTED())
 		//	return false;
 		v3		pos			= get_entity_coords(e);
-		Hash	modelHash	= amount > 2000 ? 0x113FD533 : $(prop);	// 0x113FD533 = prop_money_bag_01
+		Hash	modelHash	= amount > 2000 ? 0x113FD533U : $(prop);	// 0x113FD533 = prop_money_bag_01
 		STREAMING::REQUEST_MODEL(modelHash);
 		if(!STREAMING::HAS_MODEL_LOADED(modelHash))
 			return false;
-		Pickup pickup	= OBJECT::CREATE_AMBIENT_PICKUP(0xce6fdd6b, pos.x, pos.y, pos.z + 2.5f, 0, amount, modelHash, 0, 1);	//0xce6fdd6b = PICKUP_MONEY_CASE
-		ENTITY::SET_ENTITY_HAS_GRAVITY(pickup, true);
+		OBJECT::CREATE_AMBIENT_PICKUP(0xce6fdd6bU, pos.x, pos.y, pos.z + 2.f, 0, amount, modelHash, 0, 1);	//0xce6fdd6b = PICKUP_MONEY_CASE
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(modelHash);
 		return true;
 	}
@@ -1536,7 +1535,7 @@ namespace script
 				{
 					if(!request_control_of_entity(ent))
 						return;
-					CPed* cped = util::ped_handle_to_ptr(ent);
+					CPed* cped = util::handle_to_ptr<CPed>(ent);
 					if(cped != nullptr && cped != CHack::m_pCPedPlayer && cped->fHealth > 100.f && cped->fHealth < 250)
 					{
 						cped->iCash = 2000;
@@ -1644,7 +1643,7 @@ namespace script
 				clones[player].pop_front();
 			}
 			clones[player].push_back(ped);
-		CPed*	cped	= util::ped_handle_to_ptr(ped);
+		CPed*	cped	= util::handle_to_ptr<CPed>(ped);
 		v3		pos		= cped->v3VisualPos;
 		teleport_entity_to_coords(ped, { pos.x, pos.y, pos.z + 2.f }, false);
 		cped->fHealth	= 0.f;
@@ -1686,6 +1685,7 @@ namespace script
 		}
 		return false;
 	}
+
 
 	int	get_online_player_index()
 	{

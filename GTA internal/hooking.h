@@ -24,14 +24,6 @@
 
 typedef void(__cdecl *NativeHandler)(scrNativeCallContext* context);	// Native function handler type
 
-struct MemoryPool
-{
-    uintptr_t ListAddr;
-    char* BoolAdr;
-    int MaxCount;
-    int ItemSize;
-};
-
 struct NativeRegistration
 {
 	NativeRegistration*	nextRegistration;

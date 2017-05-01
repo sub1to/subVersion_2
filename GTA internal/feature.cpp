@@ -448,13 +448,50 @@ namespace feature
 				CMenu::addFeature(-1, *(parent + 1), hash::ped_misc_name[i], feat_spawn, hash::ped_misc_hash[i], spwn_ped);
 
 		*parent = CMenu::addFeature(2, -1, "Objects", feat_parent);
-			for(int j = 0; j < sizeof(hash::object_prop_spawn_hash) / sizeof(hash::object_prop_spawn_hash[0]); j++)
-				CMenu::addFeature(-1, *parent, hash::object_prop_spawn_name[j], feat_spawn, hash::object_prop_spawn_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Stunt Track", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_track_hash) / sizeof(hash::object_prop_spawn_stunt_track_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_track_name[j], feat_spawn, hash::object_prop_spawn_stunt_track_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Stunt Tube", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_tube_hash) / sizeof(hash::object_prop_spawn_stunt_tube_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_tube_name[j], feat_spawn, hash::object_prop_spawn_stunt_tube_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Stunt Ramp", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_ramp_hash) / sizeof(hash::object_prop_spawn_stunt_ramp_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_ramp_name[j], feat_spawn, hash::object_prop_spawn_stunt_ramp_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Stunt Platform", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_platform_hash) / sizeof(hash::object_prop_spawn_stunt_platform_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_platform_name[j], feat_spawn, hash::object_prop_spawn_stunt_platform_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Stunt Misc", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_misc_hash) / sizeof(hash::object_prop_spawn_stunt_misc_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_misc_name[j], feat_spawn, hash::object_prop_spawn_stunt_misc_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Traffic", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_traffic_hash) / sizeof(hash::object_prop_spawn_traffic_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_traffic_name[j], feat_spawn, hash::object_prop_spawn_traffic_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Construction", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_construction_hash) / sizeof(hash::object_prop_spawn_construction_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_construction_name[j], feat_spawn, hash::object_prop_spawn_construction_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Large", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_large_hash) / sizeof(hash::object_prop_spawn_large_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_large_name[j], feat_spawn, hash::object_prop_spawn_large_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Misc", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_misc_hash) / sizeof(hash::object_prop_spawn_misc_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_misc_name[j], feat_spawn, hash::object_prop_spawn_misc_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Drugs", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_drugs_hash) / sizeof(hash::object_prop_spawn_drugs_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_drugs_name[j], feat_spawn, hash::object_prop_spawn_drugs_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Music", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_music_hash) / sizeof(hash::object_prop_spawn_music_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_music_name[j], feat_spawn, hash::object_prop_spawn_music_hash[j], spwn_object);
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Commericial", feat_parent);
+			for(int j = 0; j < sizeof(hash::object_prop_spawn_commericial_hash) / sizeof(hash::object_prop_spawn_commericial_hash[0]); j++)
+				CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_commericial_name[j], feat_spawn, hash::object_prop_spawn_commericial_hash[j], spwn_object);
+			//*(parent + 1) = CMenu::addFeature(-1, *parent, "Test", feat_parent);
+			//for(int j = 0; j < sizeof(hash::object_prop_spawn_stunt_test) / sizeof(hash::object_prop_spawn_stunt_test[0]); j++)
+			//	CMenu::addFeature(-1, *(parent + 1), hash::object_prop_spawn_stunt_test[j], feat_spawn, hash::object_prop_spawn_stunt_test[j], spwn_object);
 
 		*parent	= CMenu::addFeature(2, -1, "Editor", feat_parent);
 			CMenu::indexFeature(FEATURE_E_EDITOR_MODE, CMenu::addFeature(-1, *parent, "Editor Mode", feat_toggle, "editorEnable"));
 			CMenu::indexFeature(FEATURE_E_DELETE, CMenu::addFeature(-1, *parent, "Delete", feat_action));
-			CMenu::indexFeature(FEATURE_E_DISTANCE, CMenu::addFeature(-1, *parent, "Distance", feat_action_value, "editorDist", 10.f, 50.f, 5.f));
+			CMenu::indexFeature(FEATURE_E_DISTANCE, CMenu::addFeature(-1, *parent, "Distance", feat_action_value, "editorDist", 5.f, 50.f, 5.f));
 			CMenu::indexFeature(FEATURE_E_TEXT_TYPE, CMenu::addFeature(-1, *parent, "Display Type", feat_toggle, "editorTxtType"));
 			CMenu::indexFeature(FEATURE_E_TEXT_POS, CMenu::addFeature(-1, *parent, "Display Coords", feat_toggle, "editorTxtPos"));
 			CMenu::indexFeature(FEATURE_E_FREEZE, CMenu::addFeature(-1, *parent, "Freeze Position", feat_toggle, "editorFreeze"));
