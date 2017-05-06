@@ -78,7 +78,7 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	feature::populate();	//add the features
 
 	//init renderer and create thread
-	CRender::initialze(g_hModule, "subVersion 2.0.5 | by sub1to");
+	CRender::initialze(g_hModule, "subVersion 2.0.6 | by sub1to");
 	g_hThreadRender	= CreateThread(	NULL,
 									0,
 									threadRender,
@@ -201,6 +201,8 @@ void killProcess()
 {
 	g_bKillProcess = true;
 
+	CLog::msg("Cleanup started");
+
 	while(WaitForSingleObject(g_hThreadRender, 0) == WAIT_TIMEOUT)
 		Sleep(1); 
 
@@ -217,6 +219,8 @@ void killProcess()
 	CHooking::cleanup();
 	CRender::uninitialze();
 	CMenu::uninitialze();
+
+	CLog::msg("Cleanup finished");
 
 	FreeLibraryAndExitThread(g_hModule, 0);
 }

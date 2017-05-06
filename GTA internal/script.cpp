@@ -1324,23 +1324,58 @@ namespace script
 			teleport_entity_to_coords(e, get_coords_above_coords(get_entity_coords(e), -.2f * speed), false);
 	}
 
+	bool trigger_bot()
+	{
+		static bool		down	= false;
+		static clock_t	tmr;
+		Ped				ped		= get_entity_crosshair(0x03);
+		
+		if((!down && ped != NULL) || (down && clock() - tmr > 0x40))
+		{
+			INPUT			input;
+			input.type				= INPUT_MOUSE;
+			input.mi.dx				= 0;
+			input.mi.dy				= 0;
+			input.mi.mouseData		= 0;
+			input.mi.dwExtraInfo	= 0;
+			input.mi.time			= 0;
+			input.mi.dwFlags		= down ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_LEFTDOWN;
+			down					= !down;
+			SendInput(1, &input, sizeof(INPUT));
+		}
 
-	Entity	get_entity_crosshair()
+		return !down;
+	}
+
+	/*
+		flag
+			0x01	Peds only
+			0x02	Alive only
+	*/
+	Entity	get_entity_crosshair(int flag)
 	{
 		Entity e	= NULL;
 		Player player = PLAYER::PLAYER_ID();
 		//if(PLAYER::IS_PLAYER_FREE_AIMING(player) && PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
 		if(PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
 		{
-			if(ENTITY::IS_ENTITY_A_PED(e) && is_ped_in_any_vehicle(e))
+			if(ENTITY::IS_ENTITY_A_PED(e))
 			{
-				Vehicle v = PED::GET_VEHICLE_PED_IS_IN(e, false);
-				if(ENTITY::IS_ENTITY_A_VEHICLE(v))
-					e = v;
+				if(is_ped_in_any_vehicle(e))
+				{
+					Vehicle v = PED::GET_VEHICLE_PED_IS_IN(e, false);
+					if(ENTITY::IS_ENTITY_A_VEHICLE(v))
+						e = v;
+				}
 			}
-			return e;
+			if(flag & 0x01 && !ENTITY::IS_ENTITY_A_PED(e))
+				e	= NULL;
+			if(flag & 0x02 && ENTITY::IS_ENTITY_DEAD(e))
+				e	= NULL;
 		}
-		return NULL;
+		else
+			e	= NULL;
+		return e;
 	}
 
 	/*
@@ -1892,7 +1927,7 @@ namespace script
  
 			STATS::STAT_SET_INT(0xe5fd50e2, 100, 1); // MP1_NUMBER_SLIPSTREAMS_IN_RACE
 		}
-		notify_above_map("Heist Vehicles Unlocked", 0);
+		notify_above_map("Vehicles Unlocked", 0);
 	}
 
 	void unlocks_trophies()

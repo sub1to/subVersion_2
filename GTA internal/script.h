@@ -136,6 +136,9 @@ namespace script
 
 	void	noclip(Entity e, int action, float speed = 1.f, bool freeCam = false, bool restore = false);
 
+	bool	trigger_bot();
+
+	Entity	get_entity_crosshair(int flag = 0);
 	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, v3 rot = {0.f, 0.f, 0.f}, Entity ent = NULL);
 
 	void	ped_scenario(Ped p, char* anim, bool r);

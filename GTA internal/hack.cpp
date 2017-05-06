@@ -500,6 +500,13 @@ bool	CHack::refresh()
 				feat->m_bRestored	= true;
 		}*/
 
+		//trigger bot
+		feat = CMenu::getFeature(FEATURE_W_TRIGGERBOT);
+		if(feat->m_bOn || !feat->m_bRestored)
+		{
+			feat->m_bRestored	= script::trigger_bot();
+		}
+
 		//santa outfit
 		feat = CMenu::getFeature(FEATURE_C_SANTA);
 		if(!feat->m_bSet && feat->m_bOn)

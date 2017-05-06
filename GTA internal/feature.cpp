@@ -197,6 +197,8 @@ namespace feature
 				for(int i = 0; i < sizeof(hash::weapon_hash) / sizeof(hash::weapon_hash[0]); i++)
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], dspwn_weapon);
 
+		CMenu::indexFeature(FEATURE_W_TRIGGERBOT, CMenu::addFeature(-1, *parent, "Trigger Bot", feat_toggle, "trgBot"));
+
 		*parent	= CMenu::addFeature(0, -1, "Weather & Time", feat_parent);
 			CMenu::indexFeature(FEATURE_T_PAUSE_CLOCK, CMenu::addFeature(-1, *parent, "Pause Clock", feat_toggle, "timePause"));
 			CMenu::indexFeature(FEATURE_T_SET_HOUR, CMenu::addFeature(-1, *parent, "Set Hour", feat_action_value, "timeHour", 0.f, 23.f, 1.f));

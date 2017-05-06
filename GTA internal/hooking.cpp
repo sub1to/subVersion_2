@@ -40,18 +40,20 @@ void			antiCheatBypass(bool);
 bool			hookNatives();
 void			findPatterns();
 
-static	std::vector<void*>	g_eventPtrs;
-static	unsigned char		g_eventRestore[REVENT_END]	= { 0 };
+//static	std::vector<void*>	g_eventPtrs;
+static void*				g_eventPtr[REVENT_END]		= { nullptr };
+static unsigned char		g_eventRestore[REVENT_END]	= { 0 };
 
 /*
 	//Hooking public functions
 */
 void CHooking::init()
 {
-	CLog::msg("Initializing");
+	CLog::msg("Initializing hooks");
+
+	InitializeCriticalSection(&m_critSec);
 	CCrossMap::init();
 	findPatterns();
-	InitializeCriticalSection(&m_critSec);
 
 	while(*CHooking::m_gameState != GameStatePlaying)
 		Sleep(100);
@@ -61,7 +63,7 @@ void CHooking::init()
 
 	antiCheatBypass(true);
 
-	CLog::msg("Ready");
+	CLog::msg("Hooks ready");
 }
 
 void CHooking::onTick()
@@ -84,7 +86,7 @@ void CHooking::cleanup()
 {
 	antiCheatBypass(false);
 	DeleteCriticalSection(&m_critSec);
-	CLog::msg("Unloading");
+	CLog::msg("Cleanup up hooks");
 	for(int i = 0; i < m_hookedNative.size(); i++)
 		if(MH_DisableHook(m_hookedNative[i]) != MH_OK && MH_RemoveHook(m_hookedNative[i]) != MH_OK)
 			CLog::msg("Failed to unhook");
@@ -122,15 +124,15 @@ __int64* CHooking::getGlobalPtr(int index)
 
 void CHooking::defuseEvent(eRockstarEvent e, bool b)
 {
-	static const BYTE	retn	= 0xC3;
-	BYTE*				ptr		= (BYTE*) g_eventPtrs[e];
+	static const BYTE	ret	= 0xC3;
+	BYTE*				ptr	= (BYTE*) g_eventPtr[e];
 	if(b)
 	{
-		if (g_eventRestore[e] == 0)
+		if(g_eventRestore[e] == 0)
 			g_eventRestore[e] = ptr[0];
-		*ptr = retn;
+		*ptr = ret;
 	}
-	else if (g_eventRestore[e] != 0)
+	else if(g_eventRestore[e] != 0)
 		*ptr = g_eventRestore[e];
 }
 
@@ -240,7 +242,8 @@ bool hookNatives()
 void findPatterns()
 {
 	CPattern pattern_gameState	("\x83\x3D\x00\x00\x00\x00\x00\x8A\xD9\x74\x0A",													"xx?????xxxx");
-	CPattern pattern_world		("\x48\x8B\x05\x00\x00\x00\x00\x45\x00\x00\x00\x00\x48\x8B\x48\x08\x48\x85\xC9\x74\x07",			"xxx????x????xxxxxxxxx");
+	//CPattern pattern_world		("\x48\x8B\x05\x00\x00\x00\x00\x45\x00\x00\x00\x00\x48\x8B\x48\x08\x48\x85\xC9\x74\x07",			"xxx????x????xxxxxxxxx");
+	CPattern pattern_world		("\x48\x8B\x05\x00\x00\x00\x00\x4C\x8B\x68\x08\x4C\x89\xAD\xD8\x03\x00\x00\x4D\x85\xED\x0F\x84\x93\x04\x00\x00\x8D\x4B\x0F\x48\x8D",	"xxx????xxxxxxxxxxxxxxxxxxxxxxxxx");
 	CPattern pattern_blip		("\x4C\x8D\x05\x00\x00\x00\x00\x0F\xB7\xC1",														"xxx????xxx");
 	CPattern pattern_native		("\x76\x61\x49\x8B\x7A\x40\x48\x8D\x0D",															"xxxxxxxxx");
 	CPattern pattern_modelCheck	("\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x8B\x48\x50",												"xxxxx????xxx");
@@ -302,7 +305,8 @@ void findPatterns()
 			{
 				if(++match == 3)
 				{
-					g_eventPtrs.push_back((void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7));
+					g_eventPtr[found]	= (void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7);
+					//g_eventPtrs.push_back((void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7));
 					++found;
 					j	= match	= 0;
 				}
