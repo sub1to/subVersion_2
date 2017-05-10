@@ -41,6 +41,7 @@ const char* INI_DEFAULT	=
 "HotTeleport=F5\n"
 "HotNoclip=F6\n"
 "HotEditor=F7\n"
+"HotHealth=F8\n"
 "SuperRun=LSHIFT\n"
 "NoClipForward=W\n"
 "NoClipBack=S\n"

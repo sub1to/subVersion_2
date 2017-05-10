@@ -46,8 +46,9 @@
 #pragma comment(lib, "minhook/lib/libMinHook.x64.md.140_xp.lib")
 #include "minhook/include/MinHook.h"
 
-#define MAX_PLAYERS					0x20
-#define MAX_SPAWNED_PEDS			0x10
+#define MAX_PLAYERS				0x20
+#define MAX_SPAWNED_PEDS		0x10
+#define get_array_size(array)	(sizeof(array) / sizeof(array[0]))
 
 #include "vector.h"
 #include "hashes.h"

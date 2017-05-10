@@ -54,6 +54,7 @@ namespace feature
 			CMenu::indexFeature(FEATURE_P_INVISIBLE, CMenu::addFeature(-1, *parent, "Invisible", feat_toggle, "playerInvis"));
 			CMenu::indexFeature(FEATURE_P_VISIBLE_LOCAL, CMenu::addFeature(-1, *parent, "Player Visible Locally", feat_toggle, "playerVisLoc"));
 			CMenu::indexFeature(FEATURE_P_OFFRADAR, CMenu::addFeature(-1, *parent, "Off Radar", feat_toggle));
+			CMenu::indexFeature(FEATURE_P_GIVE_HEALTH, CMenu::addFeature(-1, *parent, "Give Health", feat_action));
 			CMenu::indexFeature(FEATURE_P_CLEAN_PLAYER, CMenu::addFeature(-1, *parent, "Clean", feat_action));
 			CMenu::indexFeature(FEATURE_P_WANTED, CMenu::addFeature(-1, *parent, "Wanted", feat_slider, "wanted", 0.f, 5.f, .2f));
 			CMenu::indexFeature(FEATURE_P_NEVERWANTED, CMenu::addFeature(-1, *parent, "Never Wanted", feat_toggle, "neverWanted"));
@@ -87,8 +88,8 @@ namespace feature
 			CMenu::indexFeature(FEATURE_V_STOP, CMenu::addFeature(-1, *parent, "Stop", feat_action));
 			CMenu::indexFeature(FEATURE_V_INVISIBLE, CMenu::addFeature(-1, *parent, "Invisible", feat_toggle, "vehicleInvis"));
 			CMenu::indexFeature(FEATURE_V_RAINBOW, CMenu::addFeature(-1, *parent, "Rainbow Car", feat_toggle, "vehRainbow"));
-			CMenu::indexFeature(FEATURE_V_COLOR_PRESET, CMenu::addFeature(-1, *parent, "Preset Colors Primary", feat_action_value, "vehPresetColor", 0.f, 160.f, 1.f));
-			CMenu::indexFeature(FEATURE_V_COLOR_PRESET2, CMenu::addFeature(-1, *parent, "Preset Colors Secondary", feat_action_value, "vehPresetColor2", 0.f, 160.f, 1.f));
+			CMenu::indexFeature(FEATURE_V_COLOR_PRESET, CMenu::addFeature(-1, *parent, "Colors Primary", feat_action_value_str, "vehPresetColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+			CMenu::indexFeature(FEATURE_V_COLOR_PRESET2, CMenu::addFeature(-1, *parent, "Colors Secondary", feat_action_value_str, "vehPresetColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 			CMenu::indexFeature(FEATURE_V_BULLETPROOFTIRES, CMenu::addFeature(-1, *parent, "Bulletproof Tires", feat_toggle, "vehBulletproofTires"));
 			CMenu::indexFeature(FEATURE_V_DEFORMATION, CMenu::addFeature(-1, *parent, "Deformation", feat_slider, "vehDeform", 0.f, 1.f));
 			CMenu::indexFeature(FEATURE_V_ACCELERATION, CMenu::addFeature(-1, *parent, "Acceleration", feat_slider, "vehAccel", 1.f, 10.f));
@@ -177,9 +178,10 @@ namespace feature
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Weapon Modifiers", feat_parent);
 			CMenu::indexFeature(FEATURE_W_SPREAD, CMenu::addFeature(-1, *(parent + 1), "No Spread", feat_toggle, "noSpread"));	
 			CMenu::indexFeature(FEATURE_W_RECOIL, CMenu::addFeature(-1, *(parent + 1), "No Recoil", feat_toggle, "noRecoil"));	
-			CMenu::indexFeature(FEATURE_W_RELOAD, CMenu::addFeature(-1, *(parent + 1), "Quick Reload", feat_slider, "quickReload", 1.f, 10.f));
-			CMenu::indexFeature(FEATURE_W_DAMAGE, CMenu::addFeature(-1, *(parent + 1), "Bullet Damage", feat_slider, "bulletDamage", 1.f, 10.f));
+			CMenu::indexFeature(FEATURE_W_RELOAD, CMenu::addFeature(-1, *(parent + 1), "Quick Reload", feat_slider, "quickReload", 1.f, 10.f, .05f));
+			CMenu::indexFeature(FEATURE_W_DAMAGE, CMenu::addFeature(-1, *(parent + 1), "Bullet Damage", feat_slider, "bulletDamage", 1.f, 10.f, .05f));
 			CMenu::indexFeature(FEATURE_W_AMMO, CMenu::addFeature(-1, *(parent + 1), "Infinite Ammo", feat_toggle, "infAmmo"));
+			CMenu::indexFeature(FEATURE_W_NO_RELOAD, CMenu::addFeature(-1, *(parent + 1), "No Reload", feat_toggle, "noReload"));
 			//CMenu::indexFeature(FEATURE_W_RANGE, CMenu::addFeature(-1, *(parent + 1), "Range", feat_slider, "weapRange", 1.f, 10.f));
 			CMenu::indexFeature(FEATURE_W_SPINUP, CMenu::addFeature(-1, *(parent + 1), "No Spin-Up", feat_toggle, "weapSpin"));
 			CMenu::indexFeature(FEATURE_W_EXPLOSIVEAMMO, CMenu::addFeature(-1, *(parent + 1), "Explosive Ammo", feat_toggle, "explAmmo"));
@@ -190,14 +192,14 @@ namespace feature
 
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Give Weapons", feat_parent);
 				CMenu::addFeature(-1, *(parent + 1), "Give All", feat_spawn, "", spwn_weapon_all);
-				for(int i = 0; i < sizeof(hash::weapon_hash) / sizeof(hash::weapon_hash[0]); i++)
+				for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], spwn_weapon);
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Remove Weapons", feat_parent);
 				CMenu::addFeature(-1, *(parent + 1), "Remove All", feat_spawn, "", dspwn_weapon_all);
-				for(int i = 0; i < sizeof(hash::weapon_hash) / sizeof(hash::weapon_hash[0]); i++)
+				for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], dspwn_weapon);
 
-		CMenu::indexFeature(FEATURE_W_TRIGGERBOT, CMenu::addFeature(-1, *parent, "Trigger Bot", feat_toggle, "trgBot"));
+			CMenu::indexFeature(FEATURE_W_TRIGGERBOT, CMenu::addFeature(-1, *parent, "Trigger Bot", feat_value_str, "trgBot", 0.f, 1.f, 1.f, hash::triggerbot_enum));
 
 		*parent	= CMenu::addFeature(0, -1, "Weather & Time", feat_parent);
 			CMenu::indexFeature(FEATURE_T_PAUSE_CLOCK, CMenu::addFeature(-1, *parent, "Pause Clock", feat_toggle, "timePause"));
@@ -247,6 +249,7 @@ namespace feature
 			CMenu::indexFeature(FEATURE_I_MENU_PADDING_X, CMenu::addFeature(-1, *parent, "Padding X", feat_value, "uiPaddingX", 0.f, 4000.f, 50.f));
 			CMenu::indexFeature(FEATURE_I_MENU_PADDING_Y, CMenu::addFeature(-1, *parent, "Padding Y", feat_value, "uiPaddingY", 0.f, 4000.f, 50.f));
 			CMenu::indexFeature(FEATURE_I_SAVE_INI, CMenu::addFeature(-1, *parent, "Save settings to ini", feat_action));
+			CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR, CMenu::addFeature(-1, *parent, "Custom Crosshair", feat_value_str, "uiXHair", 0.f, (float) get_array_size(hash::crosshair_type) - 1, 1.f, hash::crosshair_type));
 
 
 		*parent	= CMenu::addFeature(1, -1, "Online Players", feat_parent);
@@ -317,9 +320,11 @@ namespace feature
 
 		*parent	= CMenu::addFeature(1, -1, "ESP Options", feat_parent);
 			CMenu::indexFeature(FEATURE_O_ESP_MAX_DIST, CMenu::addFeature(-1, *parent, "Max Distance", feat_action_value, "espMaxDist", 500.f, 10000.f, 500.f));
-			CMenu::indexFeature(FEATURE_O_ESP_DIST, CMenu::addFeature(-1, *parent, "Display Distance", feat_toggle, "espDist"));
 			CMenu::indexFeature(FEATURE_O_ESP_HEALTH, CMenu::addFeature(-1, *parent, "Display Health Bar", feat_toggle, "espHealth"));
 			CMenu::indexFeature(FEATURE_O_ESP_BOX, CMenu::addFeature(-1, *parent, "Display Box", feat_toggle, "espBox"));
+			CMenu::indexFeature(FEATURE_O_ESP_DIST, CMenu::addFeature(-1, *parent, "Display Distance Text", feat_toggle, "espDist"));
+			CMenu::indexFeature(FEATURE_O_ESP_HEALTH_TEXT, CMenu::addFeature(-1, *parent, "Display Health Text", feat_toggle, "espHealthText"));
+			CMenu::indexFeature(FEATURE_O_ESP_GOD, CMenu::addFeature(-1, *parent, "Display God Text", feat_toggle, "espGod"));
 
 		CMenu::indexFeature(FEATURE_O_ATTACH_BONE, CMenu::addFeature(1, -1, "Attach Bone Index", feat_value_str, "boneAttach", 0.f, (float) (sizeof(hash::ped_bone_name) / sizeof(*hash::ped_bone_name)) - 1, 1.f, hash::ped_bone_name));
 	
@@ -330,8 +335,8 @@ namespace feature
 				CMenu::indexFeature(FEATURE_S_SP_BYPASS, CMenu::addFeature(-1, *(parent + 1), "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
 				CMenu::indexFeature(FEATURE_S_MP_BYPASS, CMenu::addFeature(-1, *(parent + 1), "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));
 				CMenu::indexFeature(FEATURE_S_LICENSE, CMenu::addFeature(-1, *(parent + 1), "Custom License", feat_toggle, "spawnLicense"));
-				CMenu::indexFeature(FEATURE_S_COLOR_1, CMenu::addFeature(-1, *(parent + 1), "Primary Color", feat_value, "spawnColor", 0.f, 160.f, 1.f));
-				CMenu::indexFeature(FEATURE_S_COLOR_2, CMenu::addFeature(-1, *(parent + 1), "Secondary Color", feat_value, "spawnColor2", 0.f, 160.f, 1.f));
+				CMenu::indexFeature(FEATURE_S_COLOR_1, CMenu::addFeature(-1, *(parent + 1), "Primary Color", feat_value_str, "spawnColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_S_COLOR_2, CMenu::addFeature(-1, *(parent + 1), "Secondary Color", feat_value_str, "spawnColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 
 			*(parent + 1)		= CMenu::addFeature(-1, *parent, "Sports", feat_parent);
 			for(int i = 0; i < sizeof(hash::vehicle_sport_hash) / sizeof(hash::vehicle_sport_hash[0]); i++)

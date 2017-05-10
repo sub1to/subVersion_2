@@ -65,6 +65,7 @@ Copyright 2017 sub1to
 		F5		Teleport to waypoint
 		F6		Toggle Noclip
 		F7		Toggle Editor Mode
+		F8		Give Health
 		
 		Left Shift	Super Run / NoClip Up
 		Left Ctrl	NoClip Down
@@ -84,9 +85,10 @@ Copyright 2017 sub1to
 /////////
 
 MikeRohsoft			Shared lots of information <3
+john				Rather nitpicky
 Gelox_				Weißwurscht
 BluhhBluhhTom			Destroys worlds
-Sheogorath			Is Sheo
+Sheogorath			:snail:
 KingRain			Denies the existence of Lord Gaben.
 d3sk1ng				Better than burgerking.
 Dom				Mod

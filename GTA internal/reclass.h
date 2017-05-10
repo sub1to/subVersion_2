@@ -341,7 +341,8 @@ public:
 	float fLockOnRange; //0x0258 
 	float fWeaponRange; //0x025C 
 	char pad_0x0260[0x44]; //0x0260
-	float fRecoil; //0x02A4 
+	DWORD dwRecoil; //0x02A4 
+	DWORD dwRecoilFP; //0x02A8 
 
 }; //Size=0x02A8
 

@@ -21,6 +21,84 @@
 #ifndef SCRIPT_H
 #define SCRIPT_H
 
+enum ePedSpawn : unsigned
+{
+	PEDSPAWN_NORMAL		= 0,
+	PEDSPAWN_BODYGUARD	= 1,
+	PEDSPAWN_ARMY		= 2,
+};
+
+enum eVehSpawn : unsigned
+{
+	VEHSPAWN_WARP		= 1 << 0,
+	VEHSPAWN_MP_BYPASS	= 1 << 1,
+	VEHSPAWN_UPGRADE	= 1 << 2,
+	VEHSPAWN_LICENSE	= 1 << 3,
+};
+
+enum eNoclipAction : unsigned
+{
+	NOCLIP_FORWARD		= 1 << 0,
+	NOCLIP_BACK			= 1 << 1,
+	NOCLIP_LEFT			= 1 << 2,
+	NOCLIP_RIGHT		= 1 << 3,
+	NOCLIP_UP			= 1 << 4,
+	NOCLIP_DOWN			= 1 << 5,
+};
+
+enum eChaosAction : unsigned
+{
+	CHAOSMODE_BOUNCE		= 0,
+	CHAOSMODE_ASCENTION		= 1,
+	CHAOSMODE_ARMAGEDDON	= 2,
+	CHAOSMODE_MAYHEM		= 3,
+	CHAOSMODE_FORCEFIELD	= 4,
+	CHAOSMODE_GRAVITYFIELD	= 5,
+	CHAOSMODE_SMASH			= 6,
+	CHAOSMODE_MASSACRE		= 7,
+	CHAOSMODE_ENERGYFIELD	= 8,
+};
+
+enum eEspFlag : unsigned
+{
+	ESP_BOX			= 1 << 0,
+	ESP_HEALTHBAR	= 1 << 1,
+	ESP_TEXT_DIST	= 1 << 2,
+	ESP_TEXT_HEALTH	= 1 << 3,
+	ESP_TEXT_GOD	= 1 << 4,
+};
+
+enum eTrgBot : unsigned
+{
+	TRGBOT_PEDS		= 1 << 0,
+	TRGBOT_PLAYERS	= 1 << 1,
+};
+
+enum eEditorAction : unsigned
+{
+	EDIT_ACTION_RESET	= 1 << 0,
+	EDIT_ACTION_LOCK	= 1 << 1,
+	EDIT_ACTION_DELETE	= 1 << 2,
+};
+
+enum eEditorFlag : unsigned
+{
+	EDITOR_FLAG_TEXT_TYPE	= 1 << 0,
+	EDITOR_FLAG_TEXT_POS	= 1 << 1,
+	EDITOR_FLAG_COLLISION	= 1 << 2,
+	EDITOR_FLAG_FREEZE		= 1 << 3,
+	EDITOR_FLAG_THROW		= 1 << 4,
+	EDITOR_FLAG_REL_ROT		= 1 << 5,
+	EDITOR_FLAG_INVISIBLE	= 1 << 6,
+	EDITOR_FLAG_ROT			= 1 << 7,
+};
+
+enum eXHair : unsigned
+{
+	XHAIR_PEDS_ONLY		= 1 << 0,
+	XHAIR_ALIVE_ONLY	= 1 << 1,
+};
+
 namespace util
 {
 	float	deg_to_rad(float deg);
@@ -73,9 +151,9 @@ namespace script
 	void	teleport_to_ped_car(Ped p);
 	void	get_in_closest_car();
 	void	teleport_to_entity(Entity e);
-	bool	teleport_player_to_me(Ped p, Player player);
-	bool	teleport_player_to_sea(Ped p, Player player);
-	void	teleport_player_to_air(Ped p);
+	bool	teleport_player_to_me(Player player);
+	bool	teleport_player_to_sea(Player player);
+	void	teleport_player_to_air(Player player);
 	v3		get_coords_infront_player(float dist);
 	v3		get_coords_above_player(float dist);
 	v3		get_coords_infront_of_cam(float dist);
@@ -85,8 +163,8 @@ namespace script
 	void		show_ingame_keyboard(char* title, char* default_text = nullptr);
 	std::string	get_ingame_keyboard_result();
 
-	void	draw_esp_on_entity(Entity e, std::string text, bool bBox = true, bool bHealth = false, bool bDist = false, float fMaxDist = 5000.f);
-	Object	trap_player_in_cage(Ped ped);
+	void	draw_esp_on_player(Player player, char* text, int flag = 0, float fMaxDist = 5000.f);
+	Object	trap_player_in_cage(Player player);
 
 	//void	remove_nearby_objects();
 	Object	attach_object_to_entity(Entity e, char* object, int bone = -1);
@@ -125,7 +203,9 @@ namespace script
 	bool	smash_vehicles();
 	bool	black_hole(int sec);
 
-	bool	drop_money_on_entity(Entity e, int amount = 2000, const char* const prop = "prop_money_bag_01");
+	bool	drop_money_on_player(Player player, int amount = 2000, const char* const prop = "prop_money_bag_01");
+	void	ped_money_drop(Player player, clock_t* tmr);
+	void	stealth_money(int mils, bool remove = false);
 
 	void	set_time(int h, int m);
 	void	set_weather(std::string w);
@@ -133,17 +213,18 @@ namespace script
 
 	void	draw_speedometer(Vehicle v, bool mph = false);
 	void	draw_fps();
+	void	draw_crosshair(int flag = 0);
 
 	void	noclip(Entity e, int action, float speed = 1.f, bool freeCam = false, bool restore = false);
 
-	bool	trigger_bot();
+	bool	trigger_bot(uint32_t flag);
 
 	Entity	get_entity_crosshair(int flag = 0);
 	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, v3 rot = {0.f, 0.f, 0.f}, Entity ent = NULL);
 
 	void	ped_scenario(Ped p, char* anim, bool r);
 
-	bool	send_assasins_after_player(Player p, Ped ped);
+	bool	send_assasins_after_player(Player p);
 
 	void	shoot_ped(Ped ped, DWORD bone = hash::ped_bone_hash[0], bool owned = false);
 	void	explode_ped(Ped ped, int type);
@@ -153,13 +234,10 @@ namespace script
 
 	void	spectate_player(Ped p, bool b = false);
 
-	void	ped_money_drop(Ped playerPed, clock_t* tmr);
-	void	stealth_money(int mils, bool remove = false);
-
-	bool	animate_player(Ped remotePed, std::string dict, std::string anim, bool freeze = false, bool restore = false);
+	bool	animate_player(Player player, std::string dict, std::string anim, bool freeze = false, bool restore = false);
 	bool	animate_local_player(Ped playerPed, std::string dict, std::string anim, bool restore = false);
 
-	bool	player_dead_clone(Player player, Ped p, bool erase = false);
+	bool	player_dead_clone(Player player, bool erase = false);
 
 	bool	give_player_wanted_level(Player player, int reportCount);
 

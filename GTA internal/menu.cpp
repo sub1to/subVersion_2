@@ -47,6 +47,13 @@ plrFeatIndex			CMenu::m_plrFeatIndex[MAX_PLAYERS]	= { };
 	//CMenu functions
 */
 
+void resetIni()
+{
+	std::ofstream file;
+	file.open(CMenu::m_iniParser.m_szFile, std::ios::out | std::ios::trunc);
+	file << INI_DEFAULT;
+}
+
 bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 {
 	char*	appdata	= nullptr;
@@ -65,39 +72,56 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 
 	attr	= GetFileAttributesA(&m_iniParser.m_szFile[0]);
 	if(attr == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND)
-	{
-		std::ofstream file;
-		file.open(m_iniParser.m_szFile, std::ios::out | std::ios::trunc);
-		file << INI_DEFAULT;
-	}
+		resetIni();
 
 	m_iniParser.read();
 
-	//keys
-	m_keyIndex[KEY_EXIT]			= strToVk(m_iniParser.getValue<std::string>("Exit", "Keys"));
-	m_keyIndex[KEY_EXIT]			= strToVk(m_iniParser.getValue<std::string>("Exit", "Keys"));
-	m_keyIndex[KEY_MENU]			= strToVk(m_iniParser.getValue<std::string>("Menu", "Keys"));
-	m_keyIndex[KEY_MENU_UP]			= strToVk(m_iniParser.getValue<std::string>("MenuUp", "Keys"));
-	m_keyIndex[KEY_MENU_DOWN]		= strToVk(m_iniParser.getValue<std::string>("MenuDown", "Keys"));
-	m_keyIndex[KEY_MENU_LEFT]		= strToVk(m_iniParser.getValue<std::string>("MenuLeft", "Keys"));
-	m_keyIndex[KEY_MENU_RIGHT]		= strToVk(m_iniParser.getValue<std::string>("MenuRight", "Keys"));
-	m_keyIndex[KEY_MENU_SELECT]		= strToVk(m_iniParser.getValue<std::string>("MenuSelect", "Keys"));
-	m_keyIndex[KEY_MENU_BACK]		= strToVk(m_iniParser.getValue<std::string>("MenuBack", "Keys"));
-	m_keyIndex[KEY_MENU_TAB_NEXT]	= strToVk(m_iniParser.getValue<std::string>("MenuTabNext", "Keys"));
-	m_keyIndex[KEY_MENU_TAB_PREV]	= strToVk(m_iniParser.getValue<std::string>("MenuTabPrev", "Keys"));
-	m_keyIndex[KEY_MENU_SAVE]		= strToVk(m_iniParser.getValue<std::string>("MenuSave", "Keys"));
-	m_keyIndex[KEY_HOT_TELEPORT]	= strToVk(m_iniParser.getValue<std::string>("HotTeleport", "Keys"));
-	m_keyIndex[KEY_HOT_NOCLIP]		= strToVk(m_iniParser.getValue<std::string>("HotNoclip", "Keys"));
-	m_keyIndex[KEY_HOT_EDITOR]		= strToVk(m_iniParser.getValue<std::string>("HotEditor", "Keys"));
-	m_keyIndex[KEY_SUPERRUN]		= strToVk(m_iniParser.getValue<std::string>("SuperRun", "Keys"));
-	m_keyIndex[KEY_NOCLIP_FORWARD]	= strToVk(m_iniParser.getValue<std::string>("NoClipForward", "Keys"));
-	m_keyIndex[KEY_NOCLIP_BACK]		= strToVk(m_iniParser.getValue<std::string>("NoClipBack", "Keys"));
-	m_keyIndex[KEY_NOCLIP_LEFT]		= strToVk(m_iniParser.getValue<std::string>("NoClipLeft", "Keys"));
-	m_keyIndex[KEY_NOCLIP_RIGHT]	= strToVk(m_iniParser.getValue<std::string>("NoClipRight", "Keys"));
-	m_keyIndex[KEY_NOCLIP_UP]		= strToVk(m_iniParser.getValue<std::string>("NoClipUp", "Keys"));
-	m_keyIndex[KEY_NOCLIP_DOWN]		= strToVk(m_iniParser.getValue<std::string>("NoClipDown", "Keys"));
-	m_keyIndex[KEY_EDITOR_ACTION]	= strToVk(m_iniParser.getValue<std::string>("EditorAction", "Keys"));
-	m_keyIndex[KEY_EDITOR_DELETE]	= strToVk(m_iniParser.getValue<std::string>("EditorDelete", "Keys"));
+	struct keyInit
+	{
+		uint32_t	index;
+		char		iniKey[0x20];
+	};
+
+	constexpr keyInit	keys[]	= 
+	{
+		{ KEY_EXIT,				"Exit" },
+		{ KEY_MENU,				"Menu" },
+		{ KEY_MENU_UP,			"MenuUp" },
+		{ KEY_MENU_DOWN,		"MenuDown" },
+		{ KEY_MENU_LEFT,		"MenuLeft" },
+		{ KEY_MENU_RIGHT,		"MenuRight" },
+		{ KEY_MENU_SELECT,		"MenuSelect" },
+		{ KEY_MENU_BACK,		"MenuBack" },
+		{ KEY_MENU_TAB_NEXT,	"MenuTabNext" },
+		{ KEY_MENU_TAB_PREV,	"MenuTabPrev" },
+		{ KEY_MENU_SAVE,		"MenuSave" },
+		{ KEY_HOT_TELEPORT,		"HotTeleport" },
+		{ KEY_HOT_NOCLIP,		"HotNoclip" },
+		{ KEY_HOT_EDITOR,		"HotEditor" },
+		{ KEY_HOT_HEALTH,		"HotHealth" },
+		{ KEY_SUPERRUN,			"SuperRun" },
+		{ KEY_NOCLIP_FORWARD,	"NoClipForward" },
+		{ KEY_NOCLIP_BACK,		"NoClipBack" },
+		{ KEY_NOCLIP_LEFT,		"NoClipLeft" },
+		{ KEY_NOCLIP_RIGHT,		"NoClipRight" },
+		{ KEY_NOCLIP_UP,		"NoClipUp" },
+		{ KEY_NOCLIP_DOWN,		"NoClipDown" },
+		{ KEY_EDITOR_ACTION,	"EditorAction" },
+		{ KEY_EDITOR_DELETE,	"EditorDelete" },
+	};
+
+	for(int i = 0; i < sizeof(keys) / sizeof(*keys); ++i)
+	{
+		std::string	str	= m_iniParser.getValue<std::string>(keys[i].iniKey, "Keys");
+		if(str.empty())
+		{
+			resetIni();
+			m_iniParser.read();
+			i	= 0;
+			continue;
+		}
+		m_keyIndex[keys[i].index]			= strToVk(str);
+	}
 
 	return true;
 }
@@ -159,31 +183,27 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 void CMenu::checkKeys()
 {
 	if(checkKeyState(m_keyIndex[KEY_MENU], 1))
-	{
 		toggleMenu();
-		return;
-	}
 	
-	//hotkeys
-	if(checkKeyState(m_keyIndex[KEY_HOT_TELEPORT], 1))
+	struct hotKey
 	{
-		getFeature(FEATURE_TP_WAYPOINT)->toggle();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_HOT_NOCLIP], 1))
+		eKeys		key;
+		eFeatures	feature;
+	};
+
+	constexpr hotKey	hotKeys[]	= 
 	{
-		getFeature(FEATURE_U_NOCLIP)->toggle();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_HOT_EDITOR], 1))
+		{ KEY_HOT_TELEPORT,		FEATURE_TP_WAYPOINT },
+		{ KEY_HOT_NOCLIP,		FEATURE_U_NOCLIP },
+		{ KEY_HOT_EDITOR,		FEATURE_E_EDITOR_MODE },
+		{ KEY_HOT_HEALTH,		FEATURE_P_GIVE_HEALTH },
+		{ KEY_EDITOR_DELETE,	FEATURE_E_DELETE },
+	};
+
+	for(int i = 0; i < sizeof(hotKeys) / sizeof(*hotKeys); ++i)
 	{
-		getFeature(FEATURE_E_EDITOR_MODE)->toggle();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_EDITOR_DELETE], 1))
-	{
-		getFeature(FEATURE_E_DELETE)->toggle();
-		return;
+		if(checkKeyState(m_keyIndex[hotKeys[i].key], 1))
+			getFeature(hotKeys[i].feature)->toggle();
 	}
 
 	//if menu is not active, no need to check other keys
@@ -193,37 +213,29 @@ void CMenu::checkKeys()
 		return;
 	}
 
-	//menu navigation
-	if(checkKeyState(m_keyIndex[KEY_MENU_DOWN], 1))
+	struct menuKey
 	{
-		menuDown();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_UP], 1))
+		eKeys	key;
+		void	(*fn)();
+	};
+
+	constexpr menuKey	menuKeys[]	= 
 	{
-		menuUp();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_RIGHT], 1))
-	{
-		menuRight();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_LEFT], 1))
-	{
-		menuLeft();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_TAB_NEXT], 1))
-	{
-		menuTabRight();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_TAB_PREV], 1))
-	{
-		menuTabLeft();
-		return;
-	}
+		{ KEY_MENU_DOWN,		&menuDown },
+		{ KEY_MENU_UP,			&menuUp }, 
+		{ KEY_MENU_RIGHT,		&menuRight }, 
+		{ KEY_MENU_LEFT,		&menuLeft }, 
+		{ KEY_MENU_TAB_NEXT,	&menuTabRight }, 
+		{ KEY_MENU_TAB_PREV,	&menuTabLeft }, 
+		{ KEY_MENU_SELECT,		&menuSelect }, 
+		{ KEY_MENU_BACK,		&menuBack }, 
+	};
+
+	for(int i = 0; i < sizeof(menuKeys) / sizeof(*menuKeys); ++i)
+		if(checkKeyState(m_keyIndex[menuKeys[i].key], 1))
+			menuKeys[i].fn();
+
+
 	if(checkKeyState(m_keyIndex[KEY_MENU_SAVE], 1))
 	{
 		CFeatTeleport* tp	= dynamic_cast<CFeatTeleport*>(CMenu::getFeatureCur(CMenu::getActiveFeature()));
@@ -235,16 +247,6 @@ void CMenu::checkKeys()
 		m_iniParser.setValue<float>(tp->m_szIniKey + "_x", tp->m_v3Pos.x, "Teleport");
 		m_iniParser.setValue<float>(tp->m_szIniKey + "_y", tp->m_v3Pos.y, "Teleport");
 		m_iniParser.setValue<float>(tp->m_szIniKey + "_z", tp->m_v3Pos.z, "Teleport");
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_SELECT], 1))
-	{
-		CMenu::menuSelect();
-		return;
-	}
-	if(checkKeyState(m_keyIndex[KEY_MENU_BACK], 1))
-	{
-		CMenu::menuBack();
 		return;
 	}
 }

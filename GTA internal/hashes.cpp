@@ -21,30 +21,62 @@
 
 namespace hash
 {
-	const char* const weapon_hash[] = {
-	"WEAPON_KNIFE", "WEAPON_NIGHTSTICK", "WEAPON_HAMMER", "WEAPON_BAT", "WEAPON_GOLFCLUB", "WEAPON_CROWBAR",
-	"WEAPON_PISTOL", "WEAPON_COMBATPISTOL", "WEAPON_APPISTOL", "WEAPON_PISTOL50", "WEAPON_MICROSMG", "WEAPON_SMG",
-	"WEAPON_ASSAULTSMG", "WEAPON_ASSAULTRIFLE", "WEAPON_CARBINERIFLE", "WEAPON_ADVANCEDRIFLE", "WEAPON_MG",
-	"WEAPON_COMBATMG", "WEAPON_PUMPSHOTGUN", "WEAPON_SAWNOFFSHOTGUN", "WEAPON_ASSAULTSHOTGUN", "WEAPON_BULLPUPSHOTGUN",
-	"WEAPON_STUNGUN", "WEAPON_SNIPERRIFLE", "WEAPON_COMBATPDW", "WEAPON_HEAVYSNIPER", "WEAPON_GRENADELAUNCHER", "WEAPON_GRENADELAUNCHER_SMOKE",
-	"WEAPON_RPG", "WEAPON_MINIGUN", "WEAPON_GRENADE", "WEAPON_STICKYBOMB", "WEAPON_SMOKEGRENADE", "WEAPON_BZGAS",
-	"WEAPON_MOLOTOV", "WEAPON_FIREEXTINGUISHER", "WEAPON_PETROLCAN", "WEAPON_KNUCKLE", "WEAPON_MARKSMANPISTOL",
-	"WEAPON_SNSPISTOL", "WEAPON_SPECIALCARBINE", "WEAPON_HEAVYPISTOL", "WEAPON_BULLPUPRIFLE", "WEAPON_HOMINGLAUNCHER",
-	"WEAPON_PROXMINE", "WEAPON_SNOWBALL", "WEAPON_VINTAGEPISTOL", "WEAPON_DAGGER", "WEAPON_FIREWORK", "WEAPON_MUSKET",
-	"WEAPON_MARKSMANRIFLE", "WEAPON_HEAVYSHOTGUN", "WEAPON_GUSENBERG", "WEAPON_HATCHET", "WEAPON_RAILGUN", "WEAPON_FLASHLIGHT", "WEAPON_MACHINEPISTOL", "WEAPON_MACHETE"
+	const char* const weapon_hash[] =
+	{
+		"WEAPON_PISTOL", "WEAPON_COMBATPISTOL", "WEAPON_APPISTOL", "WEAPON_PISTOL50", "WEAPON_HEAVYPISTOL", "WEAPON_MARKSMANPISTOL",
+		"WEAPON_REVOLVER", "WEAPON_SNSPISTOL", "WEAPON_VINTAGEPISTOL", "WEAPON_STUNGUN", "WEAPON_FLAREGUN", 
+		
+		"WEAPON_MICROSMG", "WEAPON_SMG", "WEAPON_ASSAULTSMG", "WEAPON_MG", "WEAPON_COMBATMG", "WEAPON_COMBATPDW",
+		"WEAPON_GUSENBERG", "WEAPON_MACHINEPISTOL", "WEAPON_MINISMG", 
+		
+		"WEAPON_ASSAULTRIFLE", "WEAPON_CARBINERIFLE", "WEAPON_ADVANCEDRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_BULLPUPRIFLE",
+		"WEAPON_COMPACTRIFLE", 
+
+		"WEAPON_PUMPSHOTGUN", "WEAPON_SAWNOFFSHOTGUN", "WEAPON_ASSAULTSHOTGUN", "WEAPON_BULLPUPSHOTGUN",
+		"WEAPON_HEAVYSHOTGUN", "WEAPON_AUTOSHOTGUN", "WEAPON_DBSHOTGUN", "WEAPON_MUSKET",
+		
+		"WEAPON_SNIPERRIFLE", "WEAPON_HEAVYSNIPER", "WEAPON_MARKSMANRIFLE",
+		
+		"WEAPON_GRENADELAUNCHER", "WEAPON_RPG", "WEAPON_HOMINGLAUNCHER", "WEAPON_MINIGUN",
+		"WEAPON_RAILGUN", "WEAPON_FIREWORK", "WEAPON_COMPACTLAUNCHER",
+		
+		"WEAPON_GRENADE", "WEAPON_STICKYBOMB", "WEAPON_PROXMINE", "WEAPON_SMOKEGRENADE", "WEAPON_BZGAS",
+		"WEAPON_MOLOTOV", "WEAPON_FIREEXTINGUISHER", "WEAPON_PETROLCAN", "WEAPON_PIPEBOMB",
+
+		"WEAPON_KNIFE", "WEAPON_NIGHTSTICK", "WEAPON_HAMMER", "WEAPON_BAT", "WEAPON_GOLFCLUB", "WEAPON_CROWBAR",
+		"WEAPON_POOLCUE", "WEAPON_WRENCH", "WEAPON_FLASHLIGHT", "WEAPON_SWITCHBLADE", "WEAPON_BATTLEAXE", "WEAPON_BOTTLE",
+		"WEAPON_DAGGER", "WEAPON_HATCHET", "WEAPON_MACHETE", "WEAPON_SNOWBALL", "WEAPON_KNUCKLE",
+
+		"GADGET_PARACHUTE",
 	};
 
-	const char* const weapon_name[] = {
-	"Knife", "Nightstick", "Hammer", "Baseball Bat", "Golf Club", "Crowbar",
-	"Pistol", "Combat Pistol", "AP Pistol", ".50 Pistol", "Micro SMG", "SMG",
-	"Assault SMG", "Assault Rifle", "Carbine Rifle", "Advanced Rifle", "MG",
-	"Combat MG", "Pump Shotgun", "Sawed Off Shotgun", "Assault Shotgun", "Bullpup Shotgun",
-	"Stungun", "Sniper Rifle", "Combat PDW", "Heavy Sniper", "Grenade Launcher", "Flare Gun",
-	"RPG", "Minigun", "Grenade", "Sticky Bomb", "Smoke Grenade", "BZ Gas",
-	"Molotov", "Fire Extinguisher", "Petrol Can", "Knuckle", "Marksman Pistol",
-	"SNS Pistol", "Special Carbine", "Heavy Pistol", "Bullpup Rifle", "Homing Launcher",
-	"Prox Mine", "Snowball", "Vintage Pistol", "Dagger", "Firework Launcher", "Musket",
-	"Marksman Rifle", "Heavy Shotgun", "Gusenberg", "Hatchet", "Railgun", "Flashlight", "Machine Pistol", "Machete"
+	const char* const weapon_name[] =
+	{
+		"Pistol", "Combat Pistol", "AP Pistol", ".50 Pistol", "Heavy Pistol", "Marksman Pistol",
+		"Revolver", "SNS Pistol", "Vintage Pistol", "Stungun", "Flare Gun",
+		
+		"Micro SMG", "SMG", "Assault SMG", "MG", "Combat MG", "Combat PDW",
+		"Gusenberg", "Machine Pistol", "Mini SMG",
+		
+		"Assault Rifle", "Carbine Rifle", "Advanced Rifle", "Special Carbine", "Bullpup Rifle",
+		"Compact Rifle",
+
+		"Pump Shotgun", "Sawed Off Shotgun", "Assault Shotgun", "Bullpup Shotgun",
+		"Heavy Shotgun", "Auto Shotgun", "DB Shotgun", "Musket",
+		
+		"Sniper Rifle", "Heavy Sniper", "Marksman Rifle",
+		
+		"Grenade Launcher", "RPG", "Homing Launcher", "Minigun",
+		"Railgun", "Firework Launcher", "Compact Launcher", 
+
+		"Grenade", "Sticky Bomb", "Prox Mine", "Smoke Grenade", "BZ Gas",
+		"Molotov", "Fire Extinguisher", "Petrol Can", "Pipe Bomb",
+
+		"Knife", "Nightstick", "Hammer", "Baseball Bat", "Golf Club", "Crowbar",
+		"Pool Cue", "Wrench", "Flashlight", "Switch Blade", "Battle Axe", "Bottle",
+		"Dagger", "Hatchet", "Machete", "Snowball", "Knuckle",
+
+		"Parachute",
 	};
 
 	const char* const radio_station_hash[] = {
@@ -809,17 +841,62 @@ namespace hash
 	"Plane Rocket", "Vehicle Bullet", "Gas Tank"
 	};
 
+	const char* const triggerbot_enum[] = {
+		"Peds", "Players"
+	};
+
+	const char* const veh_color_enum[] = 
+	{
+		"Mtlc Black",
+		"Mtlc Graphite Black", "Mtlc Black Steal", "Mtlc Dark Silver", "Mtlc Silver", "Mtlc Blue Silver",
+		"Mtlc Steel Gray", "Mtlc Shadow Silver", "Mtlc Stone Silver", "Mtlc Midnight Silver", "Mtlc Gun Metal",
+		"Mtlc Antrct Grey", "Matte Black", "Matte Gray", "Matte Light Grey", "Util Black",
+		"Util Black Poly", "Util Dark silver", "Util Silver", "Util Gun Metal", "Util ShadowSilver",
+		"Worn Black", "Worn Graphite", "Worn Silver Grey", "Worn Silver", "Worn Blue Silver",
+		"Worn ShadowSilver", "Mtlc Red", "Mtlc Torino Red", "Mtlc Formula Red", "Mtlc Blaze Red",
+		"Mtlc Graceful Red", "Mtlc Garnet Red", "Mtlc Desert Red", "Mtlc Cabernet Red", "Mtlc Candy Red", 
+		"Mtlc Snrs Orange", "Mtlc Classic Gold", "Mtlc Orange", "Matte Red", "Matte Dark Red", 
+		"Matte Orange", "Matte Yellow", "Util Red", "Util Bright Red", "Util Garnet Red", 
+		"Worn Red", "Worn Golden Red", "Worn Dark Red", "Mtlc Dark Green", "Mtlc Racing Green", 
+		"Mtlc Sea Green", "Mtlc Olive Green", "Mtlc Green", "Mtlc Gas BlueGreen", "Matte Lime Green", 
+		"Util Dark Green", "Util Green", "Worn Dark Green ", "Worn Green", "Worn Sea Wash", 
+		"Mtlc Midnight Blue", "Mtlc Dark Blue", "Mtlc Saxony Blue", "Mtlc Blue", "Mtlc Mariner Blue", 
+		"Mtlc Harbor Blue", "Mtlc Diamond Blue", "Mtlc Surf Blue", "Mtlc Nautical Blue", "Mtlc Bright Blue", 
+		"Mtlc Purple Blue", "Mtlc Spinnaker Blue", "Mtlc Ultra Blue", "Mtlc Bright Blue", "Util Dark Blue", 
+		"Util Midnight Blue", "Util Blue", "Util Sea Foam Blue", "Uil Lightning blue", "Util Maui Blue Poly", 
+		"Util Bright Blue", "Matte Dark Blue", "Matte Blue", "Matte MidnightBlue", "Worn Dark Blue", 
+		"Worn Blue", "Worn Light Blue", "Mtlc Taxi Yellow", "Mtlc Race Yellow", "Mtlc Bronze", 
+		"Mtlc Yellow Bird", "Mtlc Lime", "Mtlc Champagne", "Mtlc Pueblo Beige", "Mtlc Dark Ivory", 
+		"Mtlc Choco Brown", "Mtlc Golden Brown", "Mtlc Light Brown", "Mtlc Straw Beige", "Mtlc Moss Brown", 
+		"Mtlc Biston Brown", "Mtlc Beechwood", "Mtlc Dark Wood", "Mtlc Choco Orange", "Mtlc Beach Sand", 
+		"Mtlc Sun Blch Sand", "Mtlc Cream", "Util Brown", "Util Medium Brown", "Util Light Brown", 
+		"Mtlc White", "Mtlc Frost White", "Worn Honey Beige", "Worn Brown", "Worn Dark Brown", 
+		"Worn Straw Beige", "Brushed Steel", "Brushed Black Steel", "Brushed Aluminium", "Chrome", 
+		"Worn Off White", "Util Off White", "Worn Orange", "Worn Light Orange", "Mtlc Scurcr Green", 
+		"Worn Taxi Yellow", "Police Blue", "Matte Green", "Matte Brown", "Worn Orange", 
+		"Matte White", "Worn White", "Worn Olive Green", "Pure White", "Hot Pink", 
+		"Salmon pink", "Mtlc Vermillion Pink", "Orange", "Green", "Blue", 
+		"Mtlc Black Blue", "Mtlc Black Purple", "Mtlc Black Red", "Hunter Green", "Mtlc Purple", 
+		"Mtlc V Dark Blue", "Modshop Black", "Matte Purple", "Matte Dark Purple", "Mtlc Lava Red", 
+		"Matte Forest Green", "Matte Olive Drab", "Matte Dsrt Brown", "Matte Dsrt Tan", "Matte Flg Green", 
+		"Default Alloy", "Epsilon Blue", "Gold", "Gold Satin", "Gold Spec", 
+	};
+
 	const char* const ped_spawn_type[] = {
 	"Ped", "Bodyguard", "Hostile"
 	};
 
 	const char* const chaos_mode_type[] = {
 	"Bounce", "Ascention", "Armageddon", "Mayhem", "Forcefield",
-	"Gravity Field", "Smash", "Massacre"
+	"Gravity Field", "Smash", "Massacre", "Energy Field"
 	};
 
 	const char* const noclip_type[] = {
 	"Keyboard", "Cam"
+	};
+
+	const char* const crosshair_type[] = {
+	"Always", "Aiming"
 	};
 
 

@@ -32,6 +32,13 @@ struct NativeRegistration
 	uint64_t			hashes[7];
 };
 
+struct threeBytes
+{
+	BYTE	byte[3];
+
+	bool	empty();
+};
+
 class CHooking
 {
 	public:
@@ -51,6 +58,8 @@ class CHooking
 		static NativeHandler	getNativeHandler(uint64_t origHash);
 		static __int64*			getGlobalPtr(int index);
 		static void				defuseEvent(eRockstarEvent e, bool toggle);
+		static void				toggleNoReload(bool);
+		static void				toggleInfAmmo(bool);
 };
 
 #endif

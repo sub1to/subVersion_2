@@ -35,14 +35,32 @@ CRITICAL_SECTION							CHooking::m_critSec;
 /*
 	//Private declarations
 */
-bool			initHooks();
-void			antiCheatBypass(bool);
-bool			hookNatives();
-void			findPatterns();
+bool	initHooks();
+void	antiCheatBypass(bool);
+bool	hookNatives();
+void	findPatterns();
+void	nop_three_bytes(threeBytes* address, threeBytes& restore, bool toggle);
 
-//static	std::vector<void*>	g_eventPtrs;
+static threeBytes*			m_infAmmo;
+static threeBytes*			m_noReload;
 static void*				g_eventPtr[REVENT_END]		= { nullptr };
 static unsigned char		g_eventRestore[REVENT_END]	= { 0 };
+
+/*
+	//threeBytes public functions
+*/
+
+bool	threeBytes::empty()
+{
+	bool	r = true;
+	for(int i = 0; i < 3; ++i)
+		if(this->byte[i] != 0)
+		{
+			r = false;
+			break;
+		}
+	return r;
+}
 
 /*
 	//Hooking public functions
@@ -86,7 +104,7 @@ void CHooking::cleanup()
 {
 	antiCheatBypass(false);
 	DeleteCriticalSection(&m_critSec);
-	CLog::msg("Cleanup up hooks");
+	CLog::msg("Cleaning up hooks");
 	for(int i = 0; i < m_hookedNative.size(); i++)
 		if(MH_DisableHook(m_hookedNative[i]) != MH_OK && MH_RemoveHook(m_hookedNative[i]) != MH_OK)
 			CLog::msg("Failed to unhook");
@@ -136,6 +154,18 @@ void CHooking::defuseEvent(eRockstarEvent e, bool b)
 		*ptr = g_eventRestore[e];
 }
 
+void	CHooking::toggleNoReload(bool b)
+{
+	static threeBytes	restore	= { 0 };
+	nop_three_bytes(m_noReload, restore, b);
+}
+
+void	CHooking::toggleInfAmmo(bool b)
+{
+	static threeBytes	restore	= { 0 };
+	nop_three_bytes(m_infAmmo, restore, b);
+}
+
 /*
 	//Hooking private functions
 */
@@ -159,6 +189,18 @@ void antiCheatBypass(bool b = true)
 	CHooking::defuseEvent(REVENT_REQUEST_PICKUP_EVENT, b);
 	CHooking::defuseEvent(REVENT_REPORT_MYSELF_EVENT, b);
 	CHooking::defuseEvent(REVENT_REPORT_CASH_SPAWN_EVENT, b);
+}
+
+void nop_three_bytes(threeBytes* address, threeBytes& restore, bool toggle)
+{
+	if(toggle)
+	{
+		if(restore.empty())
+			restore	= *address;
+		mem_nop(address, 3);
+	}
+	else if(!restore.empty())
+		memcpy_s(address, sizeof(address), restore.byte, 3);
 }
 
 template <typename T>
@@ -253,6 +295,8 @@ void findPatterns()
 	CPattern pattern_playerList	("\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",	"xxx????x????xxxx????xxx");
 	CPattern pattern_entityPool	("\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",										"xxx????xxxxxxx");
 	CPattern pattern_eventHook	("\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xBA\x03",	"xxxxx????xxx????xxx????xxx????xx");
+	CPattern pattern_ammo		("\x41\x2B\xD1\xE8",																				"xxxx");
+	CPattern pattern_magazine	("\x41\x2B\xC9\x3B\xC8\x0F",																		"xxxxxx");
 
 	        //    address = FindPattern("\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10", "xxx????xxxxxxxx");
            // PedPoolAddress = reinterpret_cast<uintptr_t *>(*reinterpret_cast<int *>(address + 3) + address + 7);
@@ -283,6 +327,12 @@ void findPatterns()
 
 	ptr	= pattern_entityPool.find(1).get(0).get<char>(3);
 	ptr	== nullptr ?	killProcess("Failed to find entity pool pattern")			: CHooking::m_entityPool	= (MemoryPool**)			(ptr + *(uint32_t*) ptr + 4);
+
+	ptr	= pattern_ammo.find(1).get(0).get<char>(0);
+	ptr == nullptr ?	killProcess("Failed to find infinite ammo pattern")			: m_infAmmo					= (threeBytes*)				ptr;
+
+	ptr	= pattern_magazine.find(1).get(0).get<char>(0);
+	ptr == nullptr ?	killProcess("Failed to find no reload pattern")				: m_noReload				= (threeBytes*)				ptr;
 
 	ptr	= pattern_modelCheck.find(0).get(0).get<char>(0);
 	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern") : mem_nop(ptr, 24);

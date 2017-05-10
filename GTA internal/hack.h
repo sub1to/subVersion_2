@@ -21,9 +21,13 @@
 #ifndef HACK_H
 #define HACK_H
 
+class	CHack;
+class	CPlayerMem;
+
 class CHack
 {
 	public:
+		//animation 'queue'
 		static std::string			m_szRequestedAnim;
 		static std::string			m_szRequestedAnimDict;
 
@@ -109,6 +113,41 @@ class CHack
 		}
 
 		static void	checkAllPlayerFeature(eFeatures feature, ePlrFeats plrFeature, int flag);
+};
+
+struct CPlayer
+{
+	bool		m_active;
+	int			m_pedId,
+				m_teamId;
+	CPed*		m_pCPed;
+};
+
+class CPlayerMem
+{
+	public:
+		static void		update_players();
+
+		static Player	player_id();
+		static Ped		player_ped_id();
+		static Ped		get_player_ped(Player player);
+		static int		get_player_team(Player player);
+		static CPed*	get_player_cped(Player player);
+		static bool		is_player_in_any_vehicle(Player player);
+		static v3		get_player_coords(Player player);
+		static float	get_player_health(Player player);
+		static float	get_player_max_health(Player player);
+		static float	get_player_armour(Player player);
+		static bool		is_player_god(Player player);
+		static int		get_player_from_ped(Ped ped);
+	private:
+		CPlayerMem() {};
+		~CPlayerMem() {};
+
+		static bool		is_player_valid(Player player);
+
+		static int		m_localPlayerId;
+		static CPlayer	m_player[0x20];		//player buffer
 };
 
 #endif

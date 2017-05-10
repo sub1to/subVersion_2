@@ -130,15 +130,17 @@ bool	CHack::refresh()
 	{
 		clock_t	curClock	= clock();
 
-		//init player, playerPed and playerVeh
-		Player	player		= PLAYER::PLAYER_ID();
-		Ped		playerPed	= PLAYER::PLAYER_PED_ID();
+		//init
+		CPlayerMem::update_players();
+		Player	player		= CPlayerMem::player_id();
+		Ped		playerPed	= CPlayerMem::player_ped_id();
+		CPed*	playerCPed	= CPlayerMem::get_player_cped(player);
 
 		if(!PLAYER::IS_PLAYER_PLAYING(player))
 			return false;
 
 		//bool	playerInVeh	= PED::IS_PED_IN_ANY_VEHICLE(playerPed, true) > 0;
-		bool	playerInVeh	= script::is_ped_in_any_vehicle(playerPed);
+		bool	playerInVeh	= playerCPed->isInVehicle();
 		Vehicle playerVeh = NULL;
 		bool	playerVehDriver = false;
 		if(playerInVeh)
@@ -206,6 +208,11 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(FEATURE_I_FPS_COUNTER);
 		if(feat->m_bOn)
 			script::draw_fps();
+
+		//draw crosshair
+		feat = CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR);
+		if(feat->m_bOn)
+			script::draw_crosshair((int) feat->getValue());
 		
 		//spawned ped cleanup
 		feat = CMenu::getFeature(FEATURE_S_PED_CLEANUP);
@@ -369,7 +376,7 @@ bool	CHack::refresh()
 				PED::SET_PED_INTO_VEHICLE(playerPed, tmpVeh, script::get_free_seat(tmpVeh));
 			tmpVeh = NULL;
 			script::ped_give_all_weapons(playerPed);
-			m_pCPedPlayer->fHealthMax = 328.f;
+			m_pCPedPlayer->fHealth	= m_pCPedPlayer->fHealthMax	= 328.f;
 			m_bModelWeapons = true;
 		}
 
@@ -411,6 +418,20 @@ bool	CHack::refresh()
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			int flags	= 0;
+
+			constexpr eKeys	noclipKeys[] = {
+				KEY_NOCLIP_FORWARD,
+				KEY_NOCLIP_BACK,
+				KEY_NOCLIP_LEFT,
+				KEY_NOCLIP_RIGHT,
+				KEY_NOCLIP_UP,
+				KEY_NOCLIP_DOWN,
+			};
+
+			for(int i = 0; i < get_array_size(noclipKeys); ++i)
+				flags	|= !!CMenu::checkKeyState(CMenu::m_keyIndex[noclipKeys[i]]) << i;
+
+			/*
 			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_FORWARD]))	//w
 				flags	|= 0x01;
 			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_BACK]))	//s
@@ -423,6 +444,7 @@ bool	CHack::refresh()
 				flags	|= 0x10;
 			if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_NOCLIP_DOWN]))	//l ctrl
 				flags	|= 0x20;
+			*/
 			script::noclip(playerInVeh ? playerVeh : playerPed, flags, CMenu::getFeature(FEATURE_U_NOCLIP_SPEED)->getValue(), feat->getValue() > 0.f, !feat->m_bOn);
 			feat->m_bSet = true;
 		}
@@ -451,6 +473,19 @@ bool	CHack::refresh()
 				a	|= 0x01;
 
 			//flags
+			constexpr	eFeatures editorFlags[] = {
+				FEATURE_E_TEXT_TYPE,
+				FEATURE_E_TEXT_POS,
+				FEATURE_E_COLLISION,
+				FEATURE_E_FREEZE,
+				FEATURE_E_THROW_MODE,
+				FEATURE_E_ROTATION_RELATIVE,
+				FEATURE_E_INVISIBLE,
+			};
+
+			for(int i = 0; i < get_array_size(editorFlags); ++i)
+				f	|= !!CMenu::getFeature(editorFlags[i])->m_bOn << i;
+			/*
 			if(CMenu::getFeature(FEATURE_E_TEXT_TYPE)->m_bOn)
 				f	|=	0x01;
 			if(CMenu::getFeature(FEATURE_E_TEXT_POS)->m_bOn)
@@ -465,6 +500,7 @@ bool	CHack::refresh()
 				f	|=	0x20;
 			if(CMenu::getFeature(FEATURE_E_INVISIBLE)->m_bOn)
 				f	|=	0x40;
+			*/
 
 			v3		rot;
 			if(CMenu::getFeature(FEATURE_E_ROTATION_ENABLE)->m_bOn)
@@ -489,23 +525,11 @@ bool	CHack::refresh()
 														e);
 			feat->m_bSet = true;
 		}
-		
-		//anti afk
-		/*feat = CMenu::getFeature(FEATURE_P_ANTI_AFK);
-		if(!feat->m_bSet && (feat->m_bOn || (!feat->m_bOn && !feat->m_bRestored)))
-		{
-			script::ped_scenario(playerPed, hash::anti_afk_hash[(int) feat->getValue()], !feat->m_bOn);
-			feat->m_bSet		= true;
-			if(!feat->m_bOn)
-				feat->m_bRestored	= true;
-		}*/
 
 		//trigger bot
 		feat = CMenu::getFeature(FEATURE_W_TRIGGERBOT);
 		if(feat->m_bOn || !feat->m_bRestored)
-		{
-			feat->m_bRestored	= script::trigger_bot();
-		}
+			feat->m_bRestored	= script::trigger_bot(1 << (int) feat->getValue());
 
 		//santa outfit
 		feat = CMenu::getFeature(FEATURE_C_SANTA);
@@ -559,10 +583,17 @@ bool	CHack::refresh()
 		
 		//inf ammo
 		feat = CMenu::getFeature(FEATURE_W_AMMO);
-		if(!feat->m_bSet || (feat->m_bOn && curClock - feat->m_clockTick > 0xFF))
+		if(!feat->m_bSet)
 		{
-			WEAPON::SET_PED_INFINITE_AMMO_CLIP(playerPed, feat->m_bOn);
-			feat->m_clockTick = curClock;
+			CHooking::toggleInfAmmo(feat->m_bOn);
+			feat->m_bSet = true;
+		}
+
+		//inf ammo
+		feat = CMenu::getFeature(FEATURE_W_NO_RELOAD);
+		if(!feat->m_bSet)
+		{
+			CHooking::toggleNoReload(feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
@@ -640,13 +671,13 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(FEATURE_U_MONEY_DROP_2K);
 		if(feat->m_bOn && curClock - feat->m_clockTick > 0x60)
 		{
-			script::drop_money_on_entity(playerPed, 2000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
+			script::drop_money_on_player(player, 2000, hash::object_prop_money_hash[(int) feat->getValue()]);//"prop_alien_egg_01");
 			feat->m_clockTick = curClock;
 		}
 
 		//money drop 40k
 		feat = CMenu::getFeature(FEATURE_U_MONEY_DROP_40K);
-		if(feat->m_bOn && curClock - feat->m_clockTick > 0x100 && script::drop_money_on_entity(playerPed, 40000))
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0x100 && script::drop_money_on_player(player, 40000))
 			feat->m_clockTick = curClock;
 
 		//ped drop
@@ -654,7 +685,7 @@ bool	CHack::refresh()
 		if(feat->m_bOn || !feat->m_bSet)
 		{
 			if(feat->m_bOn)
-				script::ped_money_drop(playerPed, &feat->m_clockTick);
+				script::ped_money_drop(player, &feat->m_clockTick);
 			else
 				util::clear_queue(m_nearbyPed);
 			feat->m_bSet		= true;
@@ -935,9 +966,12 @@ bool	CHack::refresh()
 			iAttachBone = hash::ped_bone_hash[(int) feat->getValue()];
 
 		//esp settings
-		bool	bEspDist	= CMenu::getFeature(FEATURE_O_ESP_DIST)->m_bOn;
-		bool	bEspHealth	= CMenu::getFeature(FEATURE_O_ESP_HEALTH)->m_bOn;
-		bool	bEspBox		= CMenu::getFeature(FEATURE_O_ESP_BOX)->m_bOn;
+		int		iEspFlags	= 0;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_BOX)->m_bOn << 0;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_HEALTH)->m_bOn << 1;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_DIST)->m_bOn << 2;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_HEALTH_TEXT)->m_bOn << 3;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_GOD)->m_bOn << 4;
 		float	fEspMaxDist	= CMenu::getFeature(FEATURE_O_ESP_MAX_DIST)->getValue();
 		
 		//online players
@@ -948,7 +982,7 @@ bool	CHack::refresh()
 			//update players
 			std::string szName = "!Invalid!";
 			Ped remotePed	= 0;
-			remotePed	= PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i);
+			remotePed	= CPlayerMem::get_player_ped(i);
 
 			if (remotePed > 0 && remotePed != playerPed)
 			{
@@ -1003,7 +1037,7 @@ bool	CHack::refresh()
 					CMenu::getPlrFeature(PLRFEAT_INFO_COORDS, i)->m_szName = msg;
 
 					//dist
-					sprintf_s(msg, "Distance: %.3f", cp->v3VisualPos.getDist(script::get_entity_coords(playerPed)));
+					sprintf_s(msg, "Distance: %.3f", cp->v3VisualPos.getDist(CPlayerMem::get_player_coords(player)));
 					CMenu::getPlrFeature(PLRFEAT_INFO_DISTANCE, i)->m_szName = msg;
 
 					//health/armor
@@ -1037,7 +1071,7 @@ bool	CHack::refresh()
 			if(plrFeat->m_bOn || !plrFeat->m_bSet)
 			{
 				if(plrFeat->m_bOn)
-					script::ped_money_drop(remotePed, &plrFeat->m_clockTick);
+					script::ped_money_drop(i, &plrFeat->m_clockTick);
 				else
 					util::clear_queue(m_nearbyPed);
 				plrFeat->m_bSet		= true;
@@ -1047,19 +1081,19 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_MONEY_DROP_2K, i);
 			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x60)
 			{
-				script::drop_money_on_entity(remotePed, 2000, hash::object_prop_money_hash[(int) plrFeat->getValue()]);
+				script::drop_money_on_player(i, 2000, hash::object_prop_money_hash[(int) plrFeat->getValue()]);
 				plrFeat->m_clockTick = curClock;
 			}
 
 			//drop 40k
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_MONEY_DROP_40K, i);
-			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x100 && script::drop_money_on_entity(remotePed, 40000))
+			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0x100 && script::drop_money_on_player(i, 40000))
 				plrFeat->m_clockTick = curClock;
 
 			//Track player
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TRACK, i);
 			if(plrFeat->m_bOn || CMenu::getFeature(FEATURE_A_TRACK)->m_bOn)
-				script::draw_esp_on_entity(remotePed, szName, bEspBox, bEspHealth, bEspDist, fEspMaxDist);
+				script::draw_esp_on_player(i, &szName[0], iEspFlags, fEspMaxDist);
 
 			//Specate player
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_SPECTATE, i);
@@ -1089,7 +1123,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_ME, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && curClock - plrFeat->m_clockTick > 0x80)
 			{
-				if(script::teleport_player_to_me(remotePed, i))
+				if(script::teleport_player_to_me(i))
 					plrFeat->m_bSet = true;
 				plrFeat->m_clockTick = curClock;
 			}
@@ -1098,7 +1132,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_SEA, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet && curClock - plrFeat->m_clockTick > 0x80)
 			{
-				if(script::teleport_player_to_sea(remotePed, i))
+				if(script::teleport_player_to_sea(i))
 					plrFeat->m_bSet = true;
 				plrFeat->m_clockTick = curClock;
 			}
@@ -1107,7 +1141,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_TP_TO_AIR, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
-				script::teleport_player_to_air(remotePed);
+				script::teleport_player_to_air(i);
 				plrFeat->m_bSet = true;
 			}
 			
@@ -1277,7 +1311,7 @@ bool	CHack::refresh()
 					AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
 				if(curClock - plrFeat->m_clockTick > 200)
 				{
-					m_remotePlayerAttach[i].push_back(script::trap_player_in_cage(remotePed));
+					m_remotePlayerAttach[i].push_back(script::trap_player_in_cage(i));
 					plrFeat->m_clockTick = curClock;
 					plrFeat->m_bSet = true;
 				}
@@ -1295,7 +1329,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_CHRISFORMAGE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
-				if(script::send_assasins_after_player(i, remotePed))
+				if(script::send_assasins_after_player(i))
 					plrFeat->m_bSet = true;
 			}
 
@@ -1303,7 +1337,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_FREEZE, i);
 			if(!plrFeat->m_bSet && plrFeat->m_bOn)
 			{
-				if(script::animate_player(remotePed, "mini@strip_club@pole_dance@pole_a_2_stage", "pole_a_2_stage", true))
+				if(script::animate_player(i, "mini@strip_club@pole_dance@pole_a_2_stage", "pole_a_2_stage", true))
 					plrFeat->m_bSet			= true;
 			}
 
@@ -1312,7 +1346,7 @@ bool	CHack::refresh()
 			if(!plrFeat->m_bSet && (plrFeat->m_bOn || !plrFeat->m_bRestored))
 			{
 				plrFeat->m_bRestored	= plrFeat->m_bOn ? false : true;
-				if(script::animate_player(remotePed, hash::ped_anim_dict[(int) plrFeat->getValue() * 2 + 1], hash::ped_anim_dict[(int) plrFeat->getValue() * 2], false, !plrFeat->m_bOn))
+				if(script::animate_player(i, hash::ped_anim_dict[(int) plrFeat->getValue() * 2 + 1], hash::ped_anim_dict[(int) plrFeat->getValue() * 2], false, !plrFeat->m_bOn))
 					plrFeat->m_bSet			= true;
 			}
 
@@ -1320,7 +1354,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_DEAD_CLONES, i);
 			if((plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 500) || !plrFeat->m_bSet)
 			{
-				script::player_dead_clone(i, remotePed, !plrFeat->m_bOn);
+				script::player_dead_clone(i, !plrFeat->m_bOn);
 				plrFeat->m_bSet			= true;
 				plrFeat->m_clockTick	= curClock;
 			}
@@ -1355,9 +1389,16 @@ bool	CHack::refresh()
 		if(m_pCPlayerInfo != m_pCWorld->CPedLocalPlayer->pCPlayerInfo)
 			m_pCPlayerInfo = m_pCWorld->CPedLocalPlayer->pCPlayerInfo;
 
-		if(	CMenu::getFeature(FEATURE_P_GOD)->m_bOn ||
-			CMenu::getFeature(FEATURE_P_TRUEGOD)->m_bOn)		m_pCPedPlayer->giveHealth();
-		if(	CMenu::getFeature(FEATURE_P_ANTINPC)->m_bOn)		killNpc();
+		feat	= CMenu::getFeature(FEATURE_P_GIVE_HEALTH);
+		if(	CMenu::getFeature(FEATURE_P_GOD)->m_bOn
+		||	CMenu::getFeature(FEATURE_P_TRUEGOD)->m_bOn
+		||	(feat->m_bOn && !feat->m_bSet))
+		{
+			m_pCPedPlayer->giveHealth();
+			feat->m_bSet	= true;
+		}
+		if(CMenu::getFeature(FEATURE_P_ANTINPC)->m_bOn)
+			killNpc();
 
 		checkFeature<BYTE>	(	FEATURE_P_TRUEGOD,
 								(m_pCPedPlayer->btGodMode | 0x01) ^ 0x01,
@@ -1448,8 +1489,9 @@ bool	CHack::refresh()
 				m_CVehicleHandling	= *m_pCVehicleHandling;
 			}
 
-			if(	CMenu::getFeature(FEATURE_V_GOD)->m_bOn ||
-				CMenu::getFeature(FEATURE_V_TRUEGOD)->m_bOn)
+			
+			if(	CMenu::getFeature(FEATURE_V_GOD)->m_bOn
+			||	CMenu::getFeature(FEATURE_V_TRUEGOD)->m_bOn)
 				m_pCVehicle->giveHealth();
 
 			checkFeature<BYTE>	(	FEATURE_V_TRUEGOD,
@@ -1532,16 +1574,22 @@ bool	CHack::refresh()
 					m_pCWeapon->fVehicleReloadTime	= m_CWeapon.fVehicleReloadTime;
 					m_pCWeapon->fAnimReloadRate		= m_CWeapon.fAnimReloadRate;
 					m_pCWeapon->fSpread				= m_CWeapon.fSpread;
-					m_pCWeapon->fRecoil				= m_CWeapon.fRecoil;
+					m_pCWeapon->dwRecoil			= m_CWeapon.dwRecoil;
+					m_pCWeapon->dwRecoilFP			= m_CWeapon.dwRecoilFP;
 				}
 				m_pCWeapon	= m_pCWorld->CPedLocalPlayer->pCWeaponManager->CWeaponCur;
 				m_CWeapon	= *m_pCWeapon;
 			}
 
-			checkFeature<float>	(	FEATURE_W_RECOIL,
-									m_CWeapon.fRecoil,
-									0.f,
-									&m_pCWeapon->fRecoil);
+			checkFeature<DWORD>	(	FEATURE_W_RECOIL,
+									m_CWeapon.dwRecoil,
+									0,
+									&m_pCWeapon->dwRecoil);
+
+			checkFeature<DWORD>	(	FEATURE_W_RECOIL,
+									m_CWeapon.dwRecoilFP,
+									0,
+									&m_pCWeapon->dwRecoilFP);
 
 			checkFeature<float>	(	FEATURE_W_SPREAD,
 									m_CWeapon.fSpread,
@@ -1597,4 +1645,135 @@ bool	CHack::refresh()
 		}
 	}
 	return 1;
+}
+
+
+/*
+	//CPlayerMem private
+*/
+int			CPlayerMem::m_localPlayerId;
+CPlayer		CPlayerMem::m_player[0x20];		//player buffer
+
+bool CPlayerMem::is_player_valid(Player player)
+{
+	bool r	= false;
+	if(player >= 0 && player < 0x20)
+		r	= m_player[player].m_active;
+	return r;
+}
+
+/*
+	//CPlayerMem public
+*/
+void CPlayerMem::update_players()
+{
+	m_localPlayerId	= PLAYER::PLAYER_ID();
+	for(int i = 0; i < MAX_PLAYERS; i++)
+	{
+		Ped ped	= PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i);
+		if(ped <= 0)
+		{
+			m_player[i].m_active	= false;
+			continue;
+		}
+		m_player[i].m_active	= true;
+		m_player[i].m_pedId		= ped;
+		m_player[i].m_teamId	= PLAYER::GET_PLAYER_TEAM(i);
+		m_player[i].m_pCPed		= util::handle_to_ptr<CPed>(ped);
+	}
+}
+
+Player CPlayerMem::player_id()
+{
+	return m_localPlayerId;
+}
+
+Player CPlayerMem::player_ped_id()
+{
+	return m_player[m_localPlayerId].m_pedId;
+}
+
+Ped CPlayerMem::get_player_ped(Player player)
+{
+	Ped	r	= 0;
+	if(is_player_valid(player))
+		r	= m_player[player].m_pedId;
+	return r;
+}
+
+int CPlayerMem::get_player_team(Player player)
+{
+	int	r	= -1;
+	if(is_player_valid(player))
+		r	= m_player[player].m_teamId;
+	return r;
+}
+
+CPed* CPlayerMem::get_player_cped(Player player)
+{
+	CPed*	r	= nullptr;
+	if(is_player_valid(player))
+		r	= m_player[player].m_pCPed;
+	return r;
+}
+
+bool CPlayerMem::is_player_in_any_vehicle(Player player)
+{
+	bool	r	= false;
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr)
+		r	= m_player[player].m_pCPed->isInVehicle();
+	return r;
+}
+
+v3 CPlayerMem::get_player_coords(Player player)
+{
+	v3	r	= { 0, 0, 0 };
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr && m_player[player].m_pCPed->pCNavigation != nullptr)
+		r	= m_player[player].m_pCPed->pCNavigation->v3Pos;
+	return r;
+}
+
+float CPlayerMem::get_player_health(Player player)
+{
+	float	r	= 0.f;
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr)
+		r	= m_player[player].m_pCPed->fHealth;
+	return r;
+}
+
+float CPlayerMem::get_player_max_health(Player player)
+{
+	float	r	= 0.f;
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr)
+		r	= m_player[player].m_pCPed->fHealthMax;
+	return r;
+}
+
+float CPlayerMem::get_player_armour(Player player)
+{
+	float	r	= 0.f;
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr)
+		r	= m_player[player].m_pCPed->fArmor;
+	return r;
+}
+
+bool CPlayerMem::is_player_god(Player player)
+{
+	bool	r	= false;
+	if(is_player_valid(player) && m_player[player].m_pCPed != nullptr)
+		r	= m_player[player].m_pCPed->isGod();
+	return r;
+}
+
+int CPlayerMem::get_player_from_ped(Ped ped)
+{
+	int	r	= -1;
+	for(int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		if(!is_player_valid(i) || m_player[i].m_pedId != ped)
+			continue;
+		r	= i;
+		break;
+	}
+	return r;
 }

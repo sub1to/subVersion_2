@@ -23,8 +23,8 @@
 
 namespace hash
 {
-	extern const char* const weapon_hash[58];
-	extern const char* const weapon_name[58];
+	extern const char* const weapon_hash[71];
+	extern const char* const weapon_name[71];
 
 	extern const char* const radio_station_hash[20];
 	extern const char* const radio_station_name[20];
@@ -164,10 +164,13 @@ namespace hash
 
 
 	extern const char* const explosion_enum[35];
+	extern const char* const triggerbot_enum[2];
+	extern const char* const veh_color_enum[161];
 
 	extern const char* const ped_spawn_type[3];
-	extern const char* const chaos_mode_type[8];
+	extern const char* const chaos_mode_type[9];
 	extern const char* const noclip_type[2];
+	extern const char* const crosshair_type[2];
 
 	//extern const char* const anti_afk_hash[3];
 	//extern const char* const anti_afk_name[3];
