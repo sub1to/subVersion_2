@@ -4,14 +4,14 @@ static NativeManagerContext g_context;
 
 static UINT64 g_hash;
 
-void nativeInit(UINT64 hash) {
-
+void nativeInit(UINT64 hash)
+{
 	g_context.Reset();
 	g_hash = hash;
 }
 
-void nativePush64(UINT64 value) {
-
+void nativePush64(UINT64 value)
+{
 	g_context.Push(value);
 }
 
