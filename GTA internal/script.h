@@ -66,6 +66,7 @@ enum eEspFlag : unsigned
 	ESP_TEXT_DIST	= 1 << 2,
 	ESP_TEXT_HEALTH	= 1 << 3,
 	ESP_TEXT_GOD	= 1 << 4,
+	ESP_WORLD_LINE	= 1 << 5,
 };
 
 enum eTrgBot : unsigned
@@ -104,6 +105,7 @@ namespace util
 	float	deg_to_rad(float deg);
 	int		random_int(int start, int end);
 	bool	to_clipboard(char* str);
+	bool	world_to_screen(v3 pos, v2& out);
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle);
 
@@ -179,6 +181,9 @@ namespace script
 	void	ped_give_all_weapons(Ped p);
 	void	ped_weapon(Ped p, std::string weapon, bool give = true);
 
+	void	no_reload_toggle(bool);
+	void	infinite_ammo_toggle(bool);
+
 	bool	spawn_ped(char* model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
 	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
 	void	vehicle_bypass(Vehicle vehicle);
@@ -213,7 +218,7 @@ namespace script
 
 	void	draw_speedometer(Vehicle v, bool mph = false);
 	void	draw_fps();
-	void	draw_crosshair(int flag = 0);
+	void	draw_crosshair(CColor color, int flag, int size = 20, int thickness = 2);
 
 	void	noclip(Entity e, int action, float speed = 1.f, bool freeCam = false, bool restore = false);
 
@@ -242,6 +247,7 @@ namespace script
 	bool	give_player_wanted_level(Player player, int reportCount);
 
 	bool	clean_session();
+	bool	crash_player(Player player);
 
 	int		get_online_player_index();
 	void	unlocks_stats();

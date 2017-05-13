@@ -82,6 +82,40 @@ namespace util
 		CloseClipboard();
 		return true;
 	}
+
+	bool	world_to_screen(v3 pos, v2& out)
+	{
+		v3	tmp;
+
+		float*		viewMatrix	= CHooking::m_viewPort->fViewMatrix;
+
+		tmp.x	= (viewMatrix[1] * pos.x) + (viewMatrix[5] * pos.y) + (viewMatrix[9] * pos.z) + viewMatrix[13];		//row 2
+		tmp.y	= (viewMatrix[2] * pos.x) + (viewMatrix[6] * pos.y) + (viewMatrix[10] * pos.z) + viewMatrix[14];	//row 3
+		tmp.z	= (viewMatrix[3] * pos.x) + (viewMatrix[7] * pos.y) + (viewMatrix[11] * pos.z) + viewMatrix[15];	//row 4
+
+		if(tmp.z < 0.001f)
+			return false;
+
+		tmp.z = 1.0f / tmp.z;
+
+		tmp.x *= tmp.z;
+		tmp.y *= tmp.z;
+
+		uint32_t	w	= CHooking::m_resolution->w,
+					h	= CHooking::m_resolution->h;
+
+		out.x	= ((w / 2.f) + (.5f * tmp.x * w + 1.f)) / w;
+		out.y	= ((h / 2.f) - (.5f * tmp.y * h + 1.f)) / h;
+
+		if(out.x > 1.f || out.x < 0.f || out.y > 1.f || out.y < 0.f)
+			return false;
+		return true;
+	}
+
+	float	pixel_to_rel(uint32_t in, bool height)
+	{
+		return (float) (1.0 / (height ? CHooking::m_resolution->h : CHooking::m_resolution->w)) * in;
+	}
 }
 
 namespace script
@@ -497,97 +531,112 @@ namespace script
 		0x08	ESP_TEXT_HEALTH	health text
 		0x10	ESP_TEXT_GOD	god text
 	*/
-	void draw_esp_on_player(Player player, char* text, int flag, float fMaxDist)
+	void draw_esp_on_player(Player player, char* text, int flag, float fDrawDist)
 	{
 		constexpr float	maxDist		= 500.f;
 		v3				pos			= CPlayerMem::get_player_coords(player);
 		v3				playerPos	= CPlayerMem::get_player_coords(CPlayerMem::player_id());
 		float			dist		= pos.getDist(playerPos);
-		float			x[2],
-						y[2];
-		if(dist < fMaxDist && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z -1.f, &x[0], &y[0]) && GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(pos.x, pos.y, pos.z + .8f, &x[1], &y[1]))
+		bool			isClose		= dist < maxDist;
+		v2				screen[2];
+
+		if(dist > fDrawDist)
+			return;
+
+		//set esp color
+		int		team		= CPlayerMem::get_player_team(player);
+		CColor	color		= { 255, 0, 0, 255 };
+		CColor	colorHealth	= { 0, 255, 0, 255 };
+		CColor	colorText	= { 255, 255, 255, 255 };
+		int		localTeam	= CPlayerMem::get_player_team(CPlayerMem::player_id());
+		if(localTeam != -1 && localTeam == team)
 		{
-			//calculate esp size
-			float	wBox, hBox, wBoxHalf, hBoxHalf;		//box size
-			hBox		= y[0] - y[1];
-			if(hBox < 0.f)
-				hBox	*= -1.f;
-			wBox		= hBox / 4;
-			wBoxHalf	= wBox / 2;
-			hBoxHalf	= hBox / 2;
+			color		= colorHealth;
+			colorHealth	= { 255, 0, 0, 255 };
+		}
+		else if(!isClose)
+			color		= { 255, 150, 0, 255 };
 
-			float distScale		= .05f * ((dist > maxDist ? maxDist : dist) / maxDist);
-			float textScale[2]	= {
-				0.25f - distScale,
-				0.2f - distScale,
-			};
+		if(!util::world_to_screen({pos.x, pos.y, pos.z - 1}, screen[0]) || !util::world_to_screen({pos.x, pos.y, pos.z + .8f}, screen[1]))
+			goto LABEL_NOT_ON_SCREEN;
 
-			//set esp color
-			int		team		= CPlayerMem::get_player_team(player);
-			CColor	color		= { 255, 0, 0, 255 };
-			CColor	colorHealth	= { 0, 255, 0, 255 };
-			CColor	colorText	= { 255, 255, 255, 255 };
-			int		localTeam	= CPlayerMem::get_player_team(CPlayerMem::player_id());
-			if(localTeam != -1 && localTeam == team)
+		//calculate esp size
+		float	wBox, hBox, wBoxHalf, hBoxHalf;		//box size
+		hBox		= screen[0].y - screen[1].y;
+		if(hBox < 0.f)
+			hBox	*= -1.f;
+		wBox		= hBox / 4;
+		wBoxHalf	= wBox / 2;
+		hBoxHalf	= hBox / 2;
+
+		float ratio			= (dist > maxDist ? maxDist : dist) / maxDist;
+		float distScale		= .05f * ratio;
+		float textScale[2]	=
+		{
+			0.25f - distScale,
+			0.2f - distScale,
+		};
+		float textSpacingScale		= 0.01f - (.001f * ratio);
+
+		//init player info
+		float maxHealth	= CPlayerMem::get_player_max_health(player);
+		float health	= CPlayerMem::get_player_health(player);
+		float armour	= CPlayerMem::get_player_armour(player);
+
+		//draw text
+		draw_text(text, screen[1].x - wBoxHalf, screen[1].y - 0.02f, 0, textScale[0], color);
+
+		char	msg[0xFF];
+		float	textY	= screen[1].y - 0.006f,				//height of the text
+				textX	= screen[1].x + wBoxHalf + 0.0025f;
+		if(flag & ESP_TEXT_DIST)
+		{
+			sprintf_s(msg, "Dist: %i", (int) dist);
+			draw_text(msg, textX, textY, 0, textScale[1], colorText);
+			textY	+= textSpacingScale;
+		}
+		if(flag & ESP_TEXT_HEALTH)
+		{
+			sprintf_s(msg, "Health: %i/%i", (int) health, (int) maxHealth);
+			draw_text(msg, textX, textY, 0, textScale[1], colorText);
+			textY	+= textSpacingScale;
+			sprintf_s(msg, "Armor: %i/50", (int) armour);
+			draw_text(msg, textX, textY, 0, textScale[1], colorText);
+			textY	+= textSpacingScale;
+		}
+		if(flag & ESP_TEXT_GOD)
+		{
+			sprintf_s(msg, "God: %s", CPlayerMem::is_player_god(player) ? "Yes" : "No");
+			draw_text(msg, textX, textY, 0, textScale[1], colorText);
+			textY	+= textSpacingScale;
+		}
+
+		//draw boxes
+		if(isClose)		// more than 500 distance, the boxes are too small
+		{
+			if(flag & ESP_BOX)
 			{
-				color		= colorHealth;
-				colorHealth	= { 255, 0, 0, 255 };
-			}
-
-			//init player info
-			float maxHealth	= CPlayerMem::get_player_max_health(player);
-			float health	= CPlayerMem::get_player_health(player);
-			float armour	= CPlayerMem::get_player_armour(player);
-
-			//draw text
-			draw_text(text, x[1] - wBoxHalf, y[1] - 0.02f, 0, textScale[0], color);
-
-			char	msg[0xFF];
-			float	textY	= y[1] - 0.005f,				//height of the text
-					textX	= x[1] + wBoxHalf + 0.0025f;
-			if(flag & ESP_TEXT_DIST)
-			{
-				sprintf_s(msg, "Dist: %i", (int) dist);
-				draw_text(msg, textX, textY, 0, textScale[1], colorText);
-				textY	+= 0.01f;
-			}
-			if(flag & ESP_TEXT_HEALTH)
-			{
-				sprintf_s(msg, "Health: %i/%i", (int) health, (int) maxHealth);
-				draw_text(msg, textX, textY, 0, textScale[1], colorText);
-				textY	+= 0.01f;
-				sprintf_s(msg, "Armor: %i/%i", (int) armour, 50);
-				draw_text(msg, textX, textY, 0, textScale[1], colorText);
-				textY	+= 0.01f;
-			}
-			if(flag & ESP_TEXT_GOD)
-			{
-				sprintf_s(msg, "God: %s", CPlayerMem::is_player_god(player) ? "Yes" : "No");
-				draw_text(msg, textX, textY, 0, textScale[1], colorText);
-				textY	+= 0.01f;
-			}
-
-			//draw boxes
-			if(dist < maxDist)		// more than 500 distance, the boxes are too small
-			{
-				if(flag & ESP_BOX)
-				{
 					
-					GRAPHICS::DRAW_RECT(x[1], y[1], wBox, .001f, color.r, color.g, color.b, color.a);		//top
-					GRAPHICS::DRAW_RECT(x[1], y[0], wBox, .001f, color.r, color.g, color.b, color.a);		//bottom
-					GRAPHICS::DRAW_RECT(x[1] - wBoxHalf, y[1] + hBoxHalf, .0006f, hBox, color.r, color.g, color.b, color.a);		//left
-					GRAPHICS::DRAW_RECT(x[1] + wBoxHalf, y[1] + hBoxHalf, .0006f, hBox, color.r, color.g, color.b, color.a);		//right
-				}
+				GRAPHICS::DRAW_RECT(screen[1].x, screen[1].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//top
+				GRAPHICS::DRAW_RECT(screen[1].x, screen[0].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//bottom
+				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//left
+				GRAPHICS::DRAW_RECT(screen[1].x + wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//right
+			}
 
-				if(flag & ESP_HEALTHBAR)
-				{
-					float barMax	= maxHealth + 50.f;
-					float bar		= health + armour;
-					GRAPHICS::DRAW_RECT(x[1] - wBoxHalf - 0.0045f,  y[1] + hBoxHalf, .004f, hBox, color.r, color.g, color.b, color.a);
-					GRAPHICS::DRAW_RECT(x[1] - wBoxHalf - 0.0045f,  y[1] + hBoxHalf + (hBox * (1 - (bar / barMax)) / 2), .002f, hBox * (bar / barMax) - 0.002f, colorHealth.r, colorHealth.g, colorHealth.b, colorHealth.a);
-				}
+			if(flag & ESP_HEALTHBAR)
+			{
+				float barMax	= maxHealth + 50.f;
+				float bar		= health + armour;
+				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf - 0.0045f,  screen[1].y + hBoxHalf, .004f, hBox, color.r, color.g, color.b, color.a);
+				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf - 0.0045f,  screen[1].y + hBoxHalf + (hBox * (1 - (bar / barMax)) / 2), .002f, hBox * (bar / barMax) - 0.002f, colorHealth.r, colorHealth.g, colorHealth.b, colorHealth.a);
 			}
 		}
+
+		LABEL_NOT_ON_SCREEN:
+
+		//draw world line
+		if(flag & ESP_WORLD_LINE)
+			GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z - 1.f, playerPos.x, playerPos.y, playerPos.z, color.r, color.g, color.b, color.a);
 	}
 
 	/*
@@ -780,6 +829,17 @@ namespace script
 			else
 				WEAPON::REMOVE_WEAPON_FROM_PED(p, script::$(weapon));
 		}
+	}
+
+	void	no_reload_toggle(bool toggle)
+	{
+		static threeBytes	restore	= { 0 };
+		CHooking::nop_bytes(CHooking::m_noReload, restore, toggle);
+	}
+	void	infinite_ammo_toggle(bool toggle)
+	{
+		static threeBytes	restore	= { 0 };
+		CHooking::nop_bytes(CHooking::m_infAmmo, restore, toggle);
 	}
 
 	void get_in_closest_car()
@@ -1390,15 +1450,13 @@ namespace script
 		draw_text(&str[0], .005f, .005f, 7, .5f, { 0, 255, 0, 255});
 	}
 
-	void draw_crosshair(int flag)
+	void draw_crosshair(CColor color, int flag, int size, int thickness)
 	{
 		if(flag == 1 && !CAM::IS_AIM_CAM_ACTIVE())
 			return;
 
-		CColor color	= { 255, 0, 0, 255 };
-
-		GRAPHICS::DRAW_RECT(.5f, .5f, .01f, .001f, color.r, color.g, color.b, color.a);	//horizontal
-		GRAPHICS::DRAW_RECT(.5f, .5f, .00075f, .018f, color.r, color.g, color.b, color.a);	//vertical
+		GRAPHICS::DRAW_RECT(.5f, .5f, util::pixel_to_rel(size, false), util::pixel_to_rel(thickness, true), color.r, color.g, color.b, color.a);	//horizontal
+		GRAPHICS::DRAW_RECT(.5f, .5f, util::pixel_to_rel(thickness, false), util::pixel_to_rel(size, true), color.r, color.g, color.b, color.a);	//vertical
 
 		//GRAPHICS::DRAW_RECT(.496f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
 		//GRAPHICS::DRAW_RECT(.504f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
@@ -1796,6 +1854,34 @@ namespace script
 		return false;
 	}
 
+	bool crash_player(Player player)
+	{
+		static const	v3		pos					= { 4500.f, 8000.f, 2000.f };
+		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
+		static			Object	crashObj			= 0;
+		static			int		count[MAX_PLAYERS]	= { 0 };
+		Ped						ped					= CPlayerMem::get_player_ped(player);
+
+		if(crashObj == 0 || !ENTITY::IS_AN_ENTITY(crashObj) || !ENTITY::IS_ENTITY_AN_OBJECT(crashObj))
+		{
+			STREAMING::REQUEST_MODEL(objHash);
+			if(!STREAMING::HAS_MODEL_LOADED(objHash))
+				return false;
+			crashObj	= OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
+		}
+
+		if(get_entity_coords(ped).getDist(pos) < 5.f || count[player] > 0x40)
+		{
+			count[player]	= 0;
+			return true;
+		}
+
+		teleport_player_on_foot(ped, pos.x, pos.y, pos.z);
+		++count[player];
+
+		return false;
+	}
 
 	int	get_online_player_index()
 	{

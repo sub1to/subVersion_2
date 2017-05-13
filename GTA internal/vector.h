@@ -24,6 +24,13 @@ struct Vector3;
 
 namespace vec
 {
+	typedef class v2
+	{
+		public:
+			float	x	= 0,
+					y	= 0;
+	} v2;
+
 	typedef class v3
 	{
 		public:
@@ -83,6 +90,7 @@ namespace vec
 }
 
 typedef vec::v3	v3;
+typedef vec::v2 v2;
 
 #pragma pack(push, 1)
 typedef struct Vector3

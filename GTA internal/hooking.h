@@ -32,12 +32,20 @@ struct NativeRegistration
 	uint64_t			hashes[7];
 };
 
+#pragma pack(push, 1)
 struct threeBytes
 {
 	BYTE	byte[3];
 
 	bool	empty();
 };
+
+struct screenReso
+{
+	uint32_t	w,
+				h;
+};
+#pragma pack(pop)
 
 class CHooking
 {
@@ -51,6 +59,10 @@ class CHooking
 		static __int64**									m_globalBase;
 		static MemoryPool**									m_entityPool;
 		static CRITICAL_SECTION								m_critSec;
+		static threeBytes*									m_infAmmo;
+		static threeBytes*									m_noReload;
+		static CViewPort*									m_viewPort;
+		static screenReso*									m_resolution;
 
 		static void				init();
 		static void				cleanup();
@@ -58,8 +70,19 @@ class CHooking
 		static NativeHandler	getNativeHandler(uint64_t origHash);
 		static __int64*			getGlobalPtr(int index);
 		static void				defuseEvent(eRockstarEvent e, bool toggle);
-		static void				toggleNoReload(bool);
-		static void				toggleInfAmmo(bool);
+
+		template <typename T>
+		static void nop_bytes(T* address, T& restore, bool toggle)
+		{
+			if(toggle)
+			{
+				if(restore.empty())
+					restore	= *address;
+				mem_nop(address, sizeof(T));
+			}
+			else if(!restore.empty())
+				memcpy_s(address, sizeof(address), restore.byte, sizeof(T));
+		}
 };
 
 #endif

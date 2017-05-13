@@ -31,6 +31,10 @@ std::unordered_map<uint64_t,NativeHandler>	CHooking::m_handlerCache;
 __int64**									CHooking::m_globalBase;
 MemoryPool**								CHooking::m_entityPool;
 CRITICAL_SECTION							CHooking::m_critSec;
+threeBytes*									CHooking::m_infAmmo;
+threeBytes*									CHooking::m_noReload;
+CViewPort*									CHooking::m_viewPort;
+screenReso*									CHooking::m_resolution;
 
 /*
 	//Private declarations
@@ -39,10 +43,7 @@ bool	initHooks();
 void	antiCheatBypass(bool);
 bool	hookNatives();
 void	findPatterns();
-void	nop_three_bytes(threeBytes* address, threeBytes& restore, bool toggle);
 
-static threeBytes*			m_infAmmo;
-static threeBytes*			m_noReload;
 static void*				g_eventPtr[REVENT_END]		= { nullptr };
 static unsigned char		g_eventRestore[REVENT_END]	= { 0 };
 
@@ -131,6 +132,12 @@ NativeHandler CHooking::getNativeHandler(uint64_t origHash)
 				}
 
 		m_handlerCache[origHash] = handler;
+
+		/*
+		char msg[0xFF];
+		sprintf_s(msg, "Native 0x%016llx 0x%p", origHash, handler);
+		CLog::msg(msg);
+		//*/
 	}
 	return handler;
 }
@@ -152,18 +159,6 @@ void CHooking::defuseEvent(eRockstarEvent e, bool b)
 	}
 	else if(g_eventRestore[e] != 0)
 		*ptr = g_eventRestore[e];
-}
-
-void	CHooking::toggleNoReload(bool b)
-{
-	static threeBytes	restore	= { 0 };
-	nop_three_bytes(m_noReload, restore, b);
-}
-
-void	CHooking::toggleInfAmmo(bool b)
-{
-	static threeBytes	restore	= { 0 };
-	nop_three_bytes(m_infAmmo, restore, b);
 }
 
 /*
@@ -189,18 +184,6 @@ void antiCheatBypass(bool b = true)
 	CHooking::defuseEvent(REVENT_REQUEST_PICKUP_EVENT, b);
 	CHooking::defuseEvent(REVENT_REPORT_MYSELF_EVENT, b);
 	CHooking::defuseEvent(REVENT_REPORT_CASH_SPAWN_EVENT, b);
-}
-
-void nop_three_bytes(threeBytes* address, threeBytes& restore, bool toggle)
-{
-	if(toggle)
-	{
-		if(restore.empty())
-			restore	= *address;
-		mem_nop(address, 3);
-	}
-	else if(!restore.empty())
-		memcpy_s(address, sizeof(address), restore.byte, 3);
 }
 
 template <typename T>
@@ -297,6 +280,8 @@ void findPatterns()
 	CPattern pattern_eventHook	("\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xBA\x03",	"xxxxx????xxx????xxx????xxx????xx");
 	CPattern pattern_ammo		("\x41\x2B\xD1\xE8",																				"xxxx");
 	CPattern pattern_magazine	("\x41\x2B\xC9\x3B\xC8\x0F",																		"xxxxxx");
+	CPattern pattern_viewport	("\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x2D\x00\x00\x00\x00\x48\x8B\xCD",							"xxx????xxx????xxx");
+	CPattern pattern_resolution	("\x8B\x0D\x00\x00\x00\x00\x49\x8D\x56\x28",														"xx????xxxx");
 
 	        //    address = FindPattern("\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10", "xxx????xxxxxxxx");
            // PedPoolAddress = reinterpret_cast<uintptr_t *>(*reinterpret_cast<int *>(address + 3) + address + 7);
@@ -329,16 +314,22 @@ void findPatterns()
 	ptr	== nullptr ?	killProcess("Failed to find entity pool pattern")			: CHooking::m_entityPool	= (MemoryPool**)			(ptr + *(uint32_t*) ptr + 4);
 
 	ptr	= pattern_ammo.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find infinite ammo pattern")			: m_infAmmo					= (threeBytes*)				ptr;
+	ptr == nullptr ?	killProcess("Failed to find infinite ammo pattern")			: CHooking::m_infAmmo		= (threeBytes*)				ptr;
 
 	ptr	= pattern_magazine.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find no reload pattern")				: m_noReload				= (threeBytes*)				ptr;
+	ptr == nullptr ?	killProcess("Failed to find no reload pattern")				: CHooking::m_noReload		= (threeBytes*)				ptr;
+
+	ptr	= pattern_viewport.find(1).get(0).get<char>(3);
+	ptr == nullptr ?	killProcess("Failed to find viewport pattern")				: CHooking::m_viewPort		= *(CViewPort**)			(ptr + *(uint32_t*) ptr + 4);
+
+	ptr	= pattern_resolution.find(1).get(0).get<char>(2);
+	ptr == nullptr ?	killProcess("Failed to find resolution pattern")			: CHooking::m_resolution	= (screenReso*)				(ptr + *(uint32_t*) ptr + 4);
 
 	ptr	= pattern_modelCheck.find(0).get(0).get<char>(0);
-	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern") : mem_nop(ptr, 24);
+	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern")				: mem_nop(ptr, 24);
 
 	ptr	= pattern_modelSpawn.find(0).get(0).get<char>(8);
-	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern") : mem_nop(ptr, 2);
+	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern")	: mem_nop(ptr, 2);
 
 	ptr	= pattern_eventHook.find(0).get(0).get<char>(0);
 	if(ptr != nullptr)
@@ -356,7 +347,6 @@ void findPatterns()
 				if(++match == 3)
 				{
 					g_eventPtr[found]	= (void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7);
-					//g_eventPtrs.push_back((void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7));
 					++found;
 					j	= match	= 0;
 				}

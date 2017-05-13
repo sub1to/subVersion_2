@@ -230,6 +230,7 @@ uint64_t __HASHMAPDATA[] = {
 	0x3A618A217E5154F0, 0x2F8697C8670CAD58, //graphics::draw_rect
 	0x6C38AF3693A69A91, 0x6A8D4CCECC6DB79B, //graphics::_use_particle_fx_asset_next_call
 	0xDDE23F30CC5A0F03, 0xEAB2A9346EED6163, //graphics::_start_particle_fx_looped_on_entity_bone_2
+	0x6B7256074AE34680, 0x8B7B6E9B27BEE498, //graphics::draw_line
 	0xB3271D7AB655B441, 0x731753D8494ABECD, //stats::stat_set_int
 	0x4851997F37FE9B3C, 0x098CDAAE6268B0D0, //stats::stat_set_float
 	0x4B33C4243DE0C432, 0xCE46AC18A4A47E2D, //stats::stat_set_bool

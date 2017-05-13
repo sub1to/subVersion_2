@@ -71,11 +71,6 @@
 #include "nativeCaller.h"
 #include "hooking.h"
 
-struct CColor
-{
-	BYTE	r,g,b,a;
-};
-
 DWORD	strToVk(std::string str);
 
 void	killProcess();

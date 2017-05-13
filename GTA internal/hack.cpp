@@ -164,45 +164,12 @@ bool	CHack::refresh()
 		CFeat* feat;
 
 		//TEST
-		/*feat = CMenu::getFeature(FEATURE_P_TEST);
+		feat = CMenu::getFeature(FEATURE_P_TEST);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
-			CPed* cp	= util::ped_handle_to_ptr(playerPed);
-			if(cp != nullptr && cp->pCNavigation != nullptr)
-			{
-				char	msg[0xFF];
 
-				//sprintf_s(msg, "Native Heading: %.4f", ENTITY::GET_ENTITY_HEADING(playerPed));
-				//CLog::msg(msg);
-
-				float heading	= cp->pCNavigation->fHeading;
-				float heading2	= cp->pCNavigation->fHeading2;
-				//heading += 1.f;
-				//heading *= 180.f;
-				sprintf_s(msg, "Memory Heading: %.4f", heading);
-				CLog::msg(msg);
-				sprintf_s(msg, "Memory Heading2: %.4f", heading2);
-				CLog::msg(msg);
-
-				v3	nativeRot	= ENTITY::GET_ENTITY_ROTATION(playerPed, 0);
-				v3	memoryRot	= cp->pCNavigation->v3Rotation;
-
-				sprintf_s(msg, "Native Rot X: %.4f", nativeRot.x);
-				CLog::msg(msg);
-				sprintf_s(msg, "Native Rot Y: %.4f", nativeRot.y);
-				CLog::msg(msg);
-				sprintf_s(msg, "Native Rot Z: %.4f", nativeRot.z);
-				CLog::msg(msg);
-
-				sprintf_s(msg, "Memory Rot X: %.4f", memoryRot.x);
-				CLog::msg(msg);
-				sprintf_s(msg, "Memory Rot Y: %.4f", memoryRot.y);
-				CLog::msg(msg);
-				sprintf_s(msg, "Memory Rot Z: %.4f", memoryRot.z);
-				CLog::msg(msg);
-			}
-			feat->m_bSet	= true;
-		}*/
+			//feat->m_bSet	= true;
+		}
 
 		//Fps counter
 		feat = CMenu::getFeature(FEATURE_I_FPS_COUNTER);
@@ -212,7 +179,18 @@ bool	CHack::refresh()
 		//draw crosshair
 		feat = CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR);
 		if(feat->m_bOn)
-			script::draw_crosshair((int) feat->getValue());
+		{
+			int	size		= (int) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_SIZE)->getValue(),
+				thick		= (int) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_THICKNESS)->getValue();
+			CColor color	=
+			{
+				(BYTE) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_COL_R)->getValue(),
+				(BYTE) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_COL_G)->getValue(),
+				(BYTE) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_COL_B)->getValue(),
+				(BYTE) CMenu::getFeature(FEATURE_I_CUSTOM_XHAIR_COL_A)->getValue()
+			};
+			script::draw_crosshair(color, (int) feat->getValue(), size, thick);
+		}
 		
 		//spawned ped cleanup
 		feat = CMenu::getFeature(FEATURE_S_PED_CLEANUP);
@@ -585,7 +563,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(FEATURE_W_AMMO);
 		if(!feat->m_bSet)
 		{
-			CHooking::toggleInfAmmo(feat->m_bOn);
+			script::infinite_ammo_toggle(feat->m_bOn);
 			feat->m_bSet = true;
 		}
 
@@ -593,7 +571,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(FEATURE_W_NO_RELOAD);
 		if(!feat->m_bSet)
 		{
-			CHooking::toggleNoReload(feat->m_bOn);
+			script::no_reload_toggle(feat->m_bOn);
 			feat->m_bSet = true;
 		}
 		
@@ -972,6 +950,7 @@ bool	CHack::refresh()
 		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_DIST)->m_bOn << 2;
 		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_HEALTH_TEXT)->m_bOn << 3;
 		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_GOD)->m_bOn << 4;
+		iEspFlags	|= !!CMenu::getFeature(FEATURE_O_ESP_WORLD_LINE)->m_bOn << 5;
 		float	fEspMaxDist	= CMenu::getFeature(FEATURE_O_ESP_MAX_DIST)->getValue();
 		
 		//online players
@@ -1152,6 +1131,14 @@ bool	CHack::refresh()
 				script::explode_ped(remotePed, (int) plrFeat->getValue());
 				plrFeat->m_bSet = true;
 			}
+
+			//explode loop
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_EXPLODE_LOOP, i);
+			if(plrFeat->m_bOn && curClock - plrFeat->m_clockTick > 0xFF)
+			{
+				script::explode_ped(remotePed, (int) plrFeat->getValue());
+				plrFeat->m_clockTick = curClock;
+			}
 			
 			//Give weapon
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_GIVE_WEAPON, i);
@@ -1247,7 +1234,7 @@ bool	CHack::refresh()
 				{
 					if(script::animate_local_player(playerPed, "rcmpaparazzo_2", "shag_loop_a"))
 					{
-						script::animate_player(remotePed, "rcmpaparazzo_2", "shag_loop_poppy");
+						script::animate_player(i, "rcmpaparazzo_2", "shag_loop_poppy");
 						script::attach_entities(playerPed, remotePed, -1, { 0.f, -.37f, -.2f}, { 60.f, 0.f, 0.f});
 						plrFeat->m_bSet = true;
 					}
@@ -1366,6 +1353,11 @@ bool	CHack::refresh()
 				if(script::give_player_wanted_level(i, 0x14))
 					plrFeat->m_bSet			= true;
 			}
+
+			//crash
+			plrFeat = CMenu::getPlrFeature(PLRFEAT_CRASH, i);
+			if(plrFeat->m_bOn && !plrFeat->m_bSet && script::crash_player(i))
+					plrFeat->m_bSet			= true;
 		}
 
 		//all players

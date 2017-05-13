@@ -41,6 +41,7 @@ class CVehicleHandling;
 class CWantedData;
 class CItemInfo;
 class CAmmo;
+class CViewPort;
 
 class CWorld
 {
@@ -277,8 +278,10 @@ public:
 	__int32 iExternalIP; //0x0044 
 	__int16 iExternalPort; //0x0048 
 	char pad_0x004A[0x32]; //0x004A
-	char sName[32]; //0x007C 
-	char pad_0x009C[0x48]; //0x009C
+	char sName[20]; //0x007C 
+	char pad_0x0090[0x4]; //0x0090
+	__int32 iTeam; //0x0094 
+	char pad_0x0098[0x4C]; //0x0098
 	float fSwimSpeed; //0x00E4 
 	float fRunSpeed; //0x00E8 
 	char pad_0x00EC[0x74]; //0x00EC
@@ -289,14 +292,13 @@ public:
 	CWantedData CWantedData; //0x06F0 
 	char pad_0x079C[0x464]; //0x079C
 	float fStamina; //0x0C00 
-	float fStaminaMax; //0x0C04
+	float fStaminaMax; //0x0C04 
 
 	void removeWanted()
 	{
 		if(CWantedData.dwWantedLevel > 0)
 			CWantedData.dwWantedLevel = 0;
 	}
-
 }; //Size=0x0C08
 
 class CWeaponManager
@@ -454,6 +456,12 @@ public:
 }; //Size=0x0108
 
 
+class CViewPort
+{
+public:
+	char _0x0000[0x24C];
+	float fViewMatrix[0x10];
+};//Size=0x028C
 
 
 
