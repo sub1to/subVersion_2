@@ -126,6 +126,36 @@ void	CHack::checkAllPlayerFeature(eFeatures feature, ePlrFeats plrFeature, int f
 
 bool	CHack::refresh()
 {
+	CFeat* feat;
+
+	//set padding
+	feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_X);
+	if(feat->m_bOn)
+		CRender::m_screen.x = (int) feat->getValue();
+	feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_Y);
+	if(feat->m_bOn)
+		CRender::m_screen.y = (int) feat->getValue();
+
+	//save settings
+	feat = CMenu::getFeature(FEATURE_I_SAVE_INI);
+	if(feat->m_bOn && !feat->m_bSet)
+	{
+		CMenu::m_iniParser.write();
+		feat->m_bSet = true;
+	}
+	//disable parents queue
+	if(CMenu::m_disableParent.size() > 0)
+	{
+		CMenu::getFeature(CMenu::m_disableParent[0])->disableChildren();
+		CMenu::m_disableParent.erase(CMenu::m_disableParent.begin());
+	}
+	//check if parent of active feature is disabled
+	while(CMenu::getActiveParent() != -1 && !CMenu::getFeature(CMenu::getActiveParent())->m_bOn)
+		CMenu::menuBack();
+
+	CMenu::checkKeys();
+	CRender::render();
+
 	if(m_pCWorld->CPedLocalPlayer != nullptr)
 	{
 		clock_t	curClock	= clock();
@@ -160,16 +190,14 @@ bool	CHack::refresh()
 				playerVeh		= m_lastVehicle;
 			else
 				m_lastVehicle	= NULL;
-		
-		CFeat* feat;
 
 		//TEST
-		feat = CMenu::getFeature(FEATURE_P_TEST);
+		/*feat = CMenu::getFeature(FEATURE_P_TEST);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 
 			//feat->m_bSet	= true;
-		}
+		}*/
 
 		//Fps counter
 		feat = CMenu::getFeature(FEATURE_I_FPS_COUNTER);

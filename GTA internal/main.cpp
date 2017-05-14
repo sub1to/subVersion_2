@@ -26,12 +26,12 @@ HANDLE		g_hThreadMain,
 
 bool		g_bKillProcess;
 
-LRESULT	__stdcall	WindowProc(	HWND	hWnd,
+/*LRESULT	__stdcall	WindowProc(	HWND	hWnd,
 								UINT	message,
 								WPARAM	wParam,
-								LPARAM	lParam);
+								LPARAM	lParam);*/
 DWORD __stdcall		mainThread	(LPVOID);
-DWORD __stdcall		threadRender(LPVOID lpParam);
+//DWORD __stdcall		threadRender(LPVOID lpParam);
 
 int __stdcall DllMain
 (
@@ -77,124 +77,30 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 		return 0;
 	feature::populate();	//add the features
 
-	//init renderer and create thread
+	//init renderer
 	CRender::initialze(g_hModule, "subVersion 2.0.6 | by sub1to");
-	g_hThreadRender	= CreateThread(	NULL,
-									0,
-									threadRender,
-									NULL,
-									0,
-									nullptr);
 
 	//init hooking
 	CHooking::init();
 
-	//msg handler loop
-	MSG		msg;
-	bool	restoreActive = true;
-	HWND	hWndTarget		= FindWindowA("grcWindow", "Grand Theft Auto V");
+	HWND	hWndTarget		= FindWindowA("grcWindow", nullptr);
 	while(!g_bKillProcess)
 	{
-		//window message
-		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))	// Check to see if any messages are waiting in the queue
-		{
-			TranslateMessage(&msg);		//Translate the message and dispatch it to WindowProc()
-			DispatchMessage(&msg);
-		}
-
-		if(msg.message == WM_QUIT)
-			break;
-
 		//exit
 		if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_EXIT]) || !CLog::m_fatal.empty())
 		{
 			killProcess();
 			break;
 		}
-
-		HWND	hWnd	= CRender::getHWnd();
 		HWND	hFgWnd	= GetForegroundWindow();
-	
-		//attach render window to gta window
-		RECT rectWnd;
-		GetWindowRect(hWndTarget, &rectWnd);
-		int	x	= rectWnd.left	+ CRender::m_screen.x,
-			y	= rectWnd.top	+ CRender::m_screen.y;
-		SetWindowPos(hWnd, 0, x, y, CRender::m_screen.w, CRender::m_screen.h, SWP_NOREDRAW | SWP_NOZORDER);
-
-		//remove from topmost if gta is not active
-		if(hFgWnd != hWndTarget && hFgWnd != hWnd)
-		{
-			if(CMenu::isMenuActive())
-			{
-				CMenu::toggleMenu();
-				restoreActive = true;
-			}
+		if(hFgWnd != hWndTarget)
 			CMenu::m_bFgWnd	= false;
-		}
-		else if(hWnd == hFgWnd)
-		{
-			ShowWindow(hWndTarget, SW_SHOW);
-			SetForegroundWindow(hWndTarget);
-		}
 		else if(hWndTarget == hFgWnd)
-		{
-			if(!CMenu::isMenuActive() && restoreActive == true)
-				CMenu::toggleMenu();
-			restoreActive = false;
 			CMenu::m_bFgWnd	= true;
-		}
 		Sleep(0x60);
+		
 	}
 	return S_OK;
-}
-
-DWORD __stdcall threadRender(LPVOID lpParam)
-{
-	while(!g_bKillProcess)
-	{
-		CFeat* feat;
-
-		//set scale
-		feat = CMenu::getFeature(FEATURE_I_MENU_SCALE);
-		if(feat->m_bOn && (CRender::m_screen.w != LAYOUT_WIDTH * feat->getValue() || CRender::m_screen.h != LAYOUT_HEIGHT * feat->getValue()))
-		{
-			CRender::m_screen.w	= (int) (LAYOUT_WIDTH * feat->getValue());
-			CRender::m_screen.h	= (int) (LAYOUT_HEIGHT * feat->getValue());
-		}
-
-		//set padding
-		feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_X);
-		if(feat->m_bOn && CRender::m_screen.x != (int) feat->getValue())
-			CRender::m_screen.x = (int) feat->getValue();
-		feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_Y);
-		if(feat->m_bOn && CRender::m_screen.y != (int) feat->getValue())
-			CRender::m_screen.y = (int) feat->getValue();
-
-		//save settings
-		feat = CMenu::getFeature(FEATURE_I_SAVE_INI);
-		if(feat->m_bOn && !feat->m_bSet)
-		{
-			CMenu::m_iniParser.write();
-			feat->m_bSet = true;
-		}
-
-		//disable parents queue
-		if(CMenu::m_disableParent.size() > 0)
-		{
-			CMenu::getFeature(CMenu::m_disableParent[0])->disableChildren();
-			CMenu::m_disableParent.erase(CMenu::m_disableParent.begin());
-		}
-
-		//check if parent of active feature is disabled
-		while(CMenu::getActiveParent() != -1 && !CMenu::getFeature(CMenu::getActiveParent())->m_bOn)
-			CMenu::menuBack();
-
-		CMenu::checkKeys();
-		CRender::render();
-		Sleep(0x10);
-	}
-	return 0;
 }
 
 void killProcess()
@@ -202,9 +108,6 @@ void killProcess()
 	g_bKillProcess = true;
 
 	CLog::msg("Cleanup started");
-
-	while(WaitForSingleObject(g_hThreadRender, 0) == WAIT_TIMEOUT)
-		Sleep(1); 
 
 	CMenu::m_iniParser.write();
 
@@ -217,7 +120,6 @@ void killProcess()
 	Sleep(0xFF);
 
 	CHooking::cleanup();
-	CRender::uninitialze();
 	CMenu::uninitialze();
 
 	CLog::msg("Cleanup finished");

@@ -247,7 +247,7 @@ namespace feature
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
 			CMenu::indexFeature(FEATURE_I_FPS_COUNTER, CMenu::addFeature(-1, *parent, "Fps Counter", feat_toggle, "uiFps"));
 			CMenu::indexFeature(FEATURE_I_SPEED_O_METER, CMenu::addFeature(-1, *parent, "Speed-O-Meter", feat_toggle, "uiSpeedo"));
-			CMenu::indexFeature(FEATURE_I_MENU_SCALE, CMenu::addFeature(-1, *parent, "Menu Scale", feat_slider, "uiScale", 1.f, 2.f, 1.f));
+			//CMenu::indexFeature(FEATURE_I_MENU_SCALE, CMenu::addFeature(-1, *parent, "Menu Scale", feat_slider, "uiScale", 1.f, 2.f, 1.f));
 			CMenu::indexFeature(FEATURE_I_MENU_PADDING_X, CMenu::addFeature(-1, *parent, "Padding X", feat_value, "uiPaddingX", 0.f, 4000.f, 50.f));
 			CMenu::indexFeature(FEATURE_I_MENU_PADDING_Y, CMenu::addFeature(-1, *parent, "Padding Y", feat_value, "uiPaddingY", 0.f, 4000.f, 50.f));
 			CMenu::indexFeature(FEATURE_I_SAVE_INI, CMenu::addFeature(-1, *parent, "Save settings to ini", feat_action));
@@ -255,10 +255,10 @@ namespace feature
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR, CMenu::addFeature(-1, *(parent + 1), "Crosshair Enable", feat_value_str, "uiXHair", 0.f, (float) get_array_size(hash::crosshair_type) - 1, 1.f, hash::crosshair_type));
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_SIZE, CMenu::addFeature(-1, *(parent + 1), "Crosshair Size", feat_action_value, "uiXHairSize", 5.f, 45.f, 2.f));
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_THICKNESS, CMenu::addFeature(-1, *(parent + 1), "Crosshair Thickness", feat_action_value, "uiXHairThickness", 1.f, 10.f, 1.f));
-				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_R, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color R", feat_action_value, "uiXHairColR", 0.f, 255.f, 5.f));
-				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_G, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color G", feat_action_value, "uiXHairColG", 0.f, 255.f, 5.f));
-				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_B, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color B", feat_action_value, "uiXHairColB", 0.f, 255.f, 5.f));
-				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_A, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color A", feat_action_value, "uiXHairColA", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_R, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Red", feat_action_value, "uiXHairColR", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_G, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Green", feat_action_value, "uiXHairColG", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_B, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Blue", feat_action_value, "uiXHairColB", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_A, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Alpha", feat_action_value, "uiXHairColA", 0.f, 255.f, 5.f));
 
 
 		*parent	= CMenu::addFeature(1, -1, "Online Players", feat_parent);

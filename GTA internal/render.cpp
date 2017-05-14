@@ -19,7 +19,14 @@
 
 #include "stdafx.h"
 
-LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+static const CColor LAYOUT_COLOR_BACKGROUND		= { 0x38, 0x78, 0xE2, 0xFF };
+static const CColor LAYOUT_COLOR_BORDER			= { 0x01, 0x01, 0x01, 0xFF };
+static const CColor LAYOUT_COLOR_TEXT			= { 0x01, 0x01, 0x01, 0xFF };
+static const CColor LAYOUT_COLOR_SLIDER_BG		= { 0x28, 0x28, 0x28, 0xFF };
+static const CColor LAYOUT_COLOR_SLIDER_BTN		= { 0x73, 0x73, 0x73, 0xFF };
+static const CColor LAYOUT_COLOR_ACTIVE_BG		= { 0x85, 0xac, 0xed, 0xFF };
+static const CColor LAYOUT_COLOR_ACTIVE_BORDER	= { 0x01, 0x01, 0x01, 0xFF };
+static const CColor LAYOUT_COLOR_SELECTED		= { 0xFF, 0xFF, 0xFF, 0xFF };
 
 /*
 	//CRender static public members
@@ -29,241 +36,153 @@ scrnVars		CRender::m_screen;
 std::string		CRender::m_szWindowTitle;
 
 /*
-	//CRender static protected members
-*/
-HWND					CRender::m_hWnd;
-LPDIRECT3D9				CRender::m_pD3d;			// the pointer to Direct3D interface
-LPDIRECT3DDEVICE9		CRender::m_pD3dDev;		// the pointer to the device
-LPD3DXFONT				CRender::m_pFont[FONT_BUFFER_SIZE];
-int						CRender::m_nFont		= 0;
-D3DPRESENT_PARAMETERS	CRender::m_d3dParam;		//d3d9 device params
-
-/*
 	//CRender functions
 */
 
 bool	CRender::initialze(HMODULE hModule, std::string szWindowTitle)
 {
 	m_szWindowTitle = szWindowTitle;
-	LPCSTR	szWindowClass	= "subVersionOverlay";
-	//Create window
-	WNDCLASSEX wc;
-	ZeroMemory(&wc, sizeof(WNDCLASSEX));
-	wc.cbSize			= sizeof(WNDCLASSEX);
-	wc.style			= CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc		= WindowProc;
-	wc.hInstance		= hModule;
-	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
-	wc.hIcon			= LoadIcon(hModule, MAKEINTRESOURCE(IDI_ICON1));
-	wc.hIconSm			= LoadIcon(hModule, MAKEINTRESOURCE(IDI_ICON1));
-	wc.hbrBackground	= (HBRUSH) CreateSolidBrush(RGB(0, 0, 0));
-	wc.lpszClassName	= szWindowClass;
-
-	RegisterClassEx(&wc);
-	m_hWnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED,		//dwExStyle [in]
-							szWindowClass,											//lpClassName [in, optional]
-							(LPCSTR) m_szWindowTitle.c_str(),						//lpWindowName [in, optional]
-							WS_POPUP,												//dwStyle [in]
-							0,														//x [in]
-							0,														//y [in]
-							LAYOUT_WIDTH,											//nWidth [in]
-							LAYOUT_HEIGHT,											//nHeight [in]
-							nullptr,												//hWndParent [in, optional]
-							nullptr,												//hMenu [in, optional]
-							hModule,												//hInstance [in, optional]		A handle to the instance of the module to be associated with the window.
-							nullptr);												//lpParam [in, optional]
-
-	SetLayeredWindowAttributes(m_hWnd, 0, 0, LWA_ALPHA);
-	SetLayeredWindowAttributes(m_hWnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
-	MARGINS margins {1, 1, 1, 1};
-	DwmExtendFrameIntoClientArea(m_hWnd, &margins);
-	ShowWindow(m_hWnd, SW_SHOWNORMAL);
-
-	//Create d3d9 interface and device
-	m_pD3d	= Direct3DCreate9(D3D_SDK_VERSION);		//interface
-
-	ZeroMemory(&m_d3dParam, sizeof(m_d3dParam));
-	m_d3dParam.Windowed				= true;
-	m_d3dParam.SwapEffect			= D3DSWAPEFFECT_DISCARD;
-	m_d3dParam.hDeviceWindow		= m_hWnd;
-	m_d3dParam.BackBufferHeight		= m_screen.h;
-	m_d3dParam.BackBufferWidth		= m_screen.w;
-	m_d3dParam.MultiSampleQuality	= D3DMULTISAMPLE_NONE;
-	m_d3dParam.BackBufferFormat		= D3DFMT_A8R8G8B8;
-	m_d3dParam.PresentationInterval	= D3DPRESENT_INTERVAL_IMMEDIATE;
-
-	m_pD3d->CreateDevice(	D3DADAPTER_DEFAULT,
-							D3DDEVTYPE_HAL,
-							m_hWnd,
-							D3DCREATE_HARDWARE_VERTEXPROCESSING,
-							&m_d3dParam,
-							&m_pD3dDev);
-
-	createFont("Verdana", 14, true, false);
-	createFont("Verdana", 14, false, false);
-	createFont("Verdana", 18, true, false);
-
 	return true;
-}
-
-void	CRender::uninitialze()
-{
-	releaseFont();
-	m_pD3dDev->Release();    // close and release the 3D device
-    m_pD3d->Release();		// close and release Direct3D
-	DestroyWindow(m_hWnd);
 }
 
 
 bool	CRender::render()
 {
-	m_pD3dDev->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0,0,0,0), 1.f, 0);
-	m_pD3dDev->BeginScene();
+	if(!CMenu::isMenuActive())
+		return false;
 
-	if(CMenu::isMenuActive())
+	int	x	= m_screen.x,
+		y	= m_screen.y,
+		w	= LAYOUT_ELEMENT_WIDTH,
+		h	= LAYOUT_ELEMENT_HEIGHT;
+
+	//Draw header
+	drawBoxBorder(x, y, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
+	drawText(&m_szWindowTitle[0], x, y - 1, w, h, 4, 0.35f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+	y	+=	h;
+
+	//draw tabs
+	int aCat	= CMenu::getActiveCat(),
+		nCat	= CMenu::getFeatureCategoryCount(),
+		xCat	= x;
+	for(int i = 0; i < nCat; i++)
 	{
-		int	x	= 0,
-			y	= 0,
-			w	= LAYOUT_ELEMENT_WIDTH,
-			h	= LAYOUT_ELEMENT_HEIGHT;
+		CFeatCat*	tab	= CMenu::getFeatureCategory(i);
+		int			w	= i == aCat ? (LAYOUT_ELEMENT_WIDTH / (nCat + 1)) * 2 : LAYOUT_ELEMENT_WIDTH / (nCat + 1);
 
-		//Draw header
-		drawBoxBorder(x, y, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
-		drawText(m_szWindowTitle, x, y, w, h, 2, LAYOUT_COLOR_TEXT, DT_CENTER | DT_VCENTER);
-		y	+=	h;
+		drawBoxBorder(	xCat, y, w, h, LAYOUT_BORDER_SIZE,
+								(i == aCat) ? LAYOUT_COLOR_ACTIVE_BG : LAYOUT_COLOR_BACKGROUND,
+								(i == aCat) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
+		drawText(&tab->m_szDisplay[0], xCat, y + 1, w - 1, h, 0, 0.25f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+		xCat += w;
+	}
+	y	+= h;
 
-		//draw tabs
-		int aCat	= CMenu::getActiveCat(),
-			nCat	= CMenu::getFeatureCategoryCount();
-		for(int i = 0; i < nCat; i++)
-		{
-			CFeatCat*	tab	= CMenu::getFeatureCategory(i);
-			int			w	= i == aCat ? (LAYOUT_ELEMENT_WIDTH / (nCat + 1)) * 2 : LAYOUT_ELEMENT_WIDTH / (nCat + 1);
+	//draw features
+	int		nFeat		= CMenu::getFeatureCurCount(),
+			aFeat		= CMenu::getActiveFeature(),
+			xFeat		= x;
+	bool	checkBox	= CMenu::getCheckBox();
 
-			drawBoxBorder(	x, y, w, h, LAYOUT_BORDER_SIZE,
-									(i == aCat) ? LAYOUT_COLOR_ACTIVE_BG : LAYOUT_COLOR_BACKGROUND,
-									(i == aCat) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
-			drawText(tab->m_szDisplay, x, y, w - 1, h, 0, LAYOUT_COLOR_TEXT, DT_CENTER | DT_VCENTER);
-			x += w;
-		}
-		x	= 0;
-		y	+= h;
-
-		//draw features
-		int		nFeat		= CMenu::getFeatureCurCount(),
-				aFeat		= CMenu::getActiveFeature();
-		bool	checkBox	= CMenu::getCheckBox();
-
-		//draw bg for all features
-		drawBoxBorder(	0,
-								LAYOUT_ELEMENT_HEIGHT * 2,
-								LAYOUT_ELEMENT_WIDTH,
-								(nFeat > MAX_MENU_FEATURES_DISPLAYED) ? MAX_MENU_FEATURES_DISPLAYED * LAYOUT_ELEMENT_HEIGHT : LAYOUT_ELEMENT_HEIGHT * nFeat,
-								LAYOUT_BORDER_SIZE,
-								LAYOUT_COLOR_BACKGROUND,
-								LAYOUT_COLOR_BORDER);
+	//draw bg for all features
+	drawBoxBorder(	m_screen.x,
+					m_screen.y + LAYOUT_ELEMENT_HEIGHT * 2,
+					LAYOUT_ELEMENT_WIDTH,
+					(nFeat > MAX_MENU_FEATURES_DISPLAYED) ? MAX_MENU_FEATURES_DISPLAYED * LAYOUT_ELEMENT_HEIGHT : LAYOUT_ELEMENT_HEIGHT * nFeat,
+					LAYOUT_BORDER_SIZE,
+					LAYOUT_COLOR_BACKGROUND,
+					LAYOUT_COLOR_BORDER);
 		
-		//draw individual features
-		for(int i = 0, j = CMenu::getDisplayOffset(); i < nFeat && i < MAX_MENU_FEATURES_DISPLAYED; i++, j++)
+	//draw individual features
+	for(int i = 0, j = CMenu::getDisplayOffset(); i < nFeat && i < MAX_MENU_FEATURES_DISPLAYED; i++, j++)
+	{
+		CFeat*	feature	= CMenu::getFeatureCur(j);
+		xFeat	= x + 8;
+
+		//selected box
+		if(j == aFeat)
+			drawBoxBorder(	xFeat - 6,
+							y + 2,
+							LAYOUT_ELEMENT_WIDTH - (LAYOUT_BORDER_SIZE * 2),
+							LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 2),
+							LAYOUT_BORDER_SIZE,
+							LAYOUT_COLOR_ACTIVE_BG,
+							LAYOUT_COLOR_SELECTED);
+
+		//checkbox
+		if(feature->m_type & feat_toggle)
 		{
-			CFeat*	feature	= CMenu::getFeatureCur(j);
-			x	= 8;
-
-			//selected box
-			if(j == aFeat)
-				drawBoxBorder(	x - 6,
-										y + 2,
-										LAYOUT_ELEMENT_WIDTH - (LAYOUT_BORDER_SIZE * 2),
-										LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 2),
-										LAYOUT_BORDER_SIZE,
-										LAYOUT_COLOR_ACTIVE_BG,
-										LAYOUT_COLOR_SELECTED);
-
-			//checkbox
-			if(feature->m_type & feat_toggle)
-			{
-				drawBoxBorder(	x - 2,
-										y + 5,
-										LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5),
-										LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5),
-										LAYOUT_BORDER_SIZE,
-										(feature->m_bOn == true) ? LAYOUT_COLOR_SELECTED : LAYOUT_COLOR_BACKGROUND,
-										(feature->m_bOn == true) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
-			}
-			if(checkBox)
-				x	+= (LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 3));
-			drawText(feature->m_type & feat_parent ? feature->m_szName + " >>" : feature->m_szName, x, y, 0, LAYOUT_ELEMENT_HEIGHT, 1, LAYOUT_COLOR_TEXT, DT_VCENTER);
+			drawBoxBorder(	xFeat - 2,
+							y + 5,
+							LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5),
+							LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5),
+							LAYOUT_BORDER_SIZE,
+							(feature->m_bOn == true) ? LAYOUT_COLOR_SELECTED : LAYOUT_COLOR_BACKGROUND,
+							(feature->m_bOn == true) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
+		}
+		if(checkBox)
+			xFeat	+= (LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 3));
+		std::string featname = feature->m_type & feat_parent ? feature->m_szName + " >>" : feature->m_szName;
+		drawText(&featname[0], xFeat, y + 2, 0, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_NOSHADOW);
 			
-			//slider & value
-			if(feature->m_type & feat_slider | feat_value)
+		//slider & value
+		if(feature->m_type & feat_slider | feat_value)
+		{
+			int		xSlide	= x + (int) (LAYOUT_ELEMENT_WIDTH * .5f),
+					ySlide	= y + 5,
+					w		= (int) ((LAYOUT_ELEMENT_WIDTH * .5f) - (LAYOUT_BORDER_SIZE * 2)),
+					h		= LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5);
+			if(feature->m_type == feat_slider)
 			{
-				int				x	= (int) (LAYOUT_ELEMENT_WIDTH * .5f),
-								y	= (LAYOUT_ELEMENT_HEIGHT * (i + 2)) + 5,
-								w	= (int) ((LAYOUT_ELEMENT_WIDTH * .5f) - (LAYOUT_BORDER_SIZE * 2)),
-								h	= LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5);
-				if(feature->m_type == feat_slider)
+				float			mod	= (feature->getValue() - feature->getMin()) / (feature->getMax() - feature->getMin());
+				drawBoxBorder(xSlide, ySlide, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_SLIDER_BG, LAYOUT_COLOR_BORDER);
+				drawBoxBorder(xSlide + (int) (mod * (w - h)), ySlide, h, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_SLIDER_BTN, LAYOUT_COLOR_BORDER);
+			}
+			else if(feature->m_type & 1 << 2)
+			{
+				if(feature->m_type & (1 << 8 | 1 << 9))
 				{
-					float			mod	= (feature->getValue() - feature->getMin()) / (feature->getMax() - feature->getMin());
-					drawBoxBorder(x, y, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_SLIDER_BG, LAYOUT_COLOR_BORDER);
-					drawBoxBorder(x + (int) (mod * (w - h)), y, h, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_SLIDER_BTN, LAYOUT_COLOR_BORDER);
+					const char* const * ppCh = feature->getCharArray();
+					char msg[0x20];
+					sprintf_s(msg, "< %s >", *((ppCh) + (int) feature->getValue()));
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
-				else if(feature->m_type & 1 << 2)
+				else
 				{
-					if(feature->m_type & (1 << 8 | 1 << 9))
-					{
-						const char* const * ppCh = feature->getCharArray();
-						drawText((std::string) "< " +  *((ppCh) + (int) feature->getValue()) + " >", x, y - 5, w, LAYOUT_ELEMENT_HEIGHT, 1, LAYOUT_COLOR_TEXT, DT_VCENTER | DT_CENTER);
-					}
-					else
-						drawText("< " + std::to_string((int) feature->getValue()) + " >", x, y - 5, w, LAYOUT_ELEMENT_HEIGHT, 1, LAYOUT_COLOR_TEXT, DT_VCENTER | DT_CENTER);
+					char msg[0x20];
+					sprintf_s(msg, "< %i >", (int) feature->getValue());
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
 			}
-			y	+= h;
 		}
-
-		//draw scrollbar
-		int	max = nFeat - MAX_MENU_FEATURES_DISPLAYED;	//number of features that are not displayed
-		if(max > 0)
-		{
-			int		space = LAYOUT_ELEMENT_HEIGHT * (MAX_MENU_FEATURES_DISPLAYED + 2),
-					height = (space / max <= space / 2) ? space / (max > MAX_MENU_FEATURES_DISPLAYED ? MAX_MENU_FEATURES_DISPLAYED : max) : space / 2;
-					space -= height;
-			float	mod	= (CMenu::getDisplayOffset() / (float) max);
-			drawBoxBorder(LAYOUT_ELEMENT_WIDTH + LAYOUT_BORDER_SIZE , (int) (space * mod), LAYOUT_SCROLLBAR_WIDTH, height, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
-		}
+		y	+= h;
 	}
 
-	m_pD3dDev->EndScene();
-	m_pD3dDev->Present(nullptr, nullptr, nullptr, nullptr);
+	//draw scrollbar
+	int	max = nFeat - MAX_MENU_FEATURES_DISPLAYED;	//number of features that are not displayed
+	if(max > 0)
+	{
+		int		space = LAYOUT_ELEMENT_HEIGHT * (MAX_MENU_FEATURES_DISPLAYED + 2),
+				height = (space / max <= space / 2) ? space / (max > MAX_MENU_FEATURES_DISPLAYED ? MAX_MENU_FEATURES_DISPLAYED : max) : space / 2;
+				space -= height;
+		float	mod	= (CMenu::getDisplayOffset() / (float) max);
+		drawBoxBorder(m_screen.x + LAYOUT_ELEMENT_WIDTH + LAYOUT_BORDER_SIZE , m_screen.y + (int) (space * mod), LAYOUT_SCROLLBAR_WIDTH, height, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
+	}
+
 	return true;
 }
 
-bool	CRender::createFont(char *name, int size, bool bold, bool italic)
+void	CRender::drawBox(int x, int y, int w, int h, CColor color)
 {
-	if(m_nFont >= FONT_BUFFER_SIZE)
-		return false;
-	D3DXCreateFont(m_pD3dDev, size, 0, (bold) ? FW_BOLD : FW_NORMAL, 0, (italic) ? 1 : 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, name, &m_pFont[m_nFont]);
-	m_nFont++;
-	return true;
-}
-
-void	CRender::releaseFont()
-{
-	for(int i = 0; i < m_nFont; i++)
-		if(m_pFont[i] != nullptr)
-			m_pFont[i]->Release();
-	m_nFont = 0;
+	float	relW	= util::pixel_to_rel(w, false);
+	float	relH	= util::pixel_to_rel(h, true);
+	float	relX	= util::pixel_to_rel(x, false) + (relW / 2);
+	float	relY	= util::pixel_to_rel(y, true) + (relH / 2);
+	GRAPHICS::DRAW_RECT(relX, relY, relW, relH, color.r, color.g, color.b, color.a);
 	return;
 }
 
-void	CRender::drawBox(int x, int y, int w, int h, D3DCOLOR color)
-{
-	D3DRECT rect {x, y, x + w, y + h};
-	m_pD3dDev->Clear(1, &rect, D3DCLEAR_TARGET, color, 1.f, 0);
-	return;
-}
-
-void	CRender::drawBoxInline(int x, int y, int w, int h, int size, D3DCOLOR color)
+void	CRender::drawBoxInline(int x, int y, int w, int h, int size, CColor color)
 {
 	drawBox(x,			y,				w,		size,	color);	//top
 	drawBox(x + w - size,	y,				size,	h,		color);	//right
@@ -272,47 +191,30 @@ void	CRender::drawBoxInline(int x, int y, int w, int h, int size, D3DCOLOR color
 	return;
 }
 
-void	CRender::drawBoxBorder(int x, int y, int w, int h, int borderSize, D3DCOLOR color, D3DCOLOR borderColor)
+void	CRender::drawBoxBorder(int x, int y, int w, int h, int borderSize, CColor color, CColor borderColor)
 {
 	drawBox(x, y, w, h, borderColor);
 	drawBox(x + borderSize, y + borderSize, w - (borderSize * 2), h - (borderSize * 2), color);
 }
 
-void	CRender::drawText(std::string str, int x, int y, int font, D3DCOLOR color)
+void	CRender::drawText(char* str, int x, int y, int w, int h, int font, float scale, CColor color, uint32_t flags)
 {
-	LPCSTR	pszStr	= str.c_str();
-	RECT	pos;
-	pos.left	= x;
-	pos.top		= y;
-	m_pFont[font]->DrawTextA(nullptr, pszStr, (int) strlen(pszStr), &pos, DT_NOCLIP, color);
+	float	relX	= util::pixel_to_rel(x, false);
+	float	relY	= util::pixel_to_rel(y, true);
+	if(flags & TEXTFLAG_CENTER)
+		relX += (util::pixel_to_rel(w, false) / 2);
+	UI::SET_TEXT_FONT(font);
+	UI::SET_TEXT_SCALE(scale, scale);
+	UI::SET_TEXT_COLOUR(color.r, color.g, color.b, color.a);
+	UI::SET_TEXT_WRAP(0.0, 1.0); //
+	UI::SET_TEXT_CENTRE(flags & TEXTFLAG_CENTER);
+	if(flags & TEXTFLAG_NOSHADOW)
+		UI::SET_TEXT_DROPSHADOW(0, 0, 0, 0, 0);
+	else
+		UI::SET_TEXT_DROPSHADOW(1, 0, 0, 0, 175);
+	UI::SET_TEXT_EDGE(0, 0, 0, 0, 0);
+	UI::BEGIN_TEXT_COMMAND_DISPLAY_TEXT("STRING"); //
+	UI::ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(str);
+	UI::END_TEXT_COMMAND_DISPLAY_TEXT(relX, relY);
 }
 
-//void	drawText		(std::string str, float x, float y, float w, float h, int font, D3DCOLOR color, DWORD flags = NULL)
-void	CRender::drawText(std::string str, int x, int y, int w, int h, int font, D3DCOLOR color, DWORD flags)
-{
-	LPCSTR	pszStr	= str.c_str();
-	RECT	pos;
-	pos.left	= x;
-	pos.right	= x + w;
-	pos.top		= y;
-	pos.bottom	= y + h;
-	m_pFont[font]->DrawTextA(nullptr, pszStr, (int) strlen(pszStr), &pos, flags | DT_NOCLIP, color);
-}
-
-HWND	CRender::getHWnd()
-{
-	return m_hWnd;
-}
-
-LRESULT __stdcall WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch(message)
-	{
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-		break;
-	}
-
-	return DefWindowProcA(hWnd, message, wParam, lParam);
-}

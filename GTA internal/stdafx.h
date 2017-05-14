@@ -38,10 +38,10 @@
 #include <Dwmapi.h>
 #pragma comment(lib,"Dwmapi.lib")
 
-#pragma comment(lib,"d3d9/d3dx9.lib")
-#pragma comment(lib,"d3d9/d3d9.lib")
-#include "d3d9/d3d9.h"
-#include "d3d9/d3dx9.h"
+//#pragma comment(lib,"d3d9/d3dx9.lib")
+//#pragma comment(lib,"d3d9/d3d9.lib")
+//#include "d3d9/d3d9.h"
+//#include "d3d9/d3dx9.h"
 
 #pragma comment(lib, "minhook/lib/libMinHook.x64.md.140_xp.lib")
 #include "minhook/include/MinHook.h"

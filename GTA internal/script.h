@@ -107,6 +107,7 @@ namespace util
 	bool	to_clipboard(char* str);
 	bool	world_to_screen(v3 pos, v2& out);
 	Hash	$(std::string str);
+	float	pixel_to_rel(uint32_t in, bool height);
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle);
 
@@ -165,11 +166,12 @@ namespace script
 	void		show_ingame_keyboard(char* title, char* default_text = nullptr);
 	std::string	get_ingame_keyboard_result();
 
+	void	draw_text(char* text, float x, float y, int font, float scale, CColor color);
 	void	draw_esp_on_player(Player player, char* text, int flag = 0, float fMaxDist = 5000.f);
 	Object	trap_player_in_cage(Player player);
 
 	//void	remove_nearby_objects();
-	Object	attach_object_to_entity(Entity e, char* object, int bone = -1);
+	//Object	attach_object_to_entity(Entity e, char* object, int bone = -1);
 	void	attach_entities(Entity e, Entity t, int bone = -1, v3 pos = {0.f, -.26f, .1f}, v3 rot = {0.f, 0.f, 0.f});
 	void	detach_entity(Entity e);
 

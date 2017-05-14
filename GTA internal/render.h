@@ -31,17 +31,24 @@
 #define LAYOUT_SCROLLBAR_WIDTH	0x08
 #define LAYOUT_SCROLLBAR_HEIGHT	0x40
 
-#define LAYOUT_COLOR_BACKGROUND		D3DCOLOR_ARGB(0xff, 0x38, 0x78, 0xe2)
-#define LAYOUT_COLOR_BORDER			D3DCOLOR_ARGB(0xff, 1, 1, 1)
-#define LAYOUT_COLOR_TEXT			D3DCOLOR_ARGB(0xff, 1, 1, 1)
-#define LAYOUT_COLOR_SLIDER_BG		D3DCOLOR_ARGB(0xff, 0x28, 0x28, 0x28)
-#define LAYOUT_COLOR_SLIDER_BTN		D3DCOLOR_ARGB(0xff, 0x73, 0x73, 0x73)
-#define LAYOUT_COLOR_ACTIVE_BG		D3DCOLOR_ARGB(0xff, 0x85, 0xac, 0xed)
-#define LAYOUT_COLOR_ACTIVE_BORDER	D3DCOLOR_ARGB(0xff, 1, 1, 1)
-#define LAYOUT_COLOR_SELECTED		D3DCOLOR_ARGB(0xff, 0xff, 0xff, 0xff)
+//#define LAYOUT_COLOR_BACKGROUND		D3DCOLOR_ARGB(0xff, 0x38, 0x78, 0xe2)
+//#define LAYOUT_COLOR_BORDER			D3DCOLOR_ARGB(0xff, 1, 1, 1)
+//#define LAYOUT_COLOR_TEXT			D3DCOLOR_ARGB(0xff, 1, 1, 1)
+//#define LAYOUT_COLOR_SLIDER_BG		D3DCOLOR_ARGB(0xff, 0x28, 0x28, 0x28)
+//#define LAYOUT_COLOR_SLIDER_BTN		D3DCOLOR_ARGB(0xff, 0x73, 0x73, 0x73)
+//#define LAYOUT_COLOR_ACTIVE_BG		D3DCOLOR_ARGB(0xff, 0x85, 0xac, 0xed)
+//#define LAYOUT_COLOR_ACTIVE_BORDER	D3DCOLOR_ARGB(0xff, 1, 1, 1)
+//#define LAYOUT_COLOR_SELECTED		D3DCOLOR_ARGB(0xff, 0xff, 0xff, 0xff)
 
 #define LAYOUT_WIDTH	310
 #define LAYOUT_HEIGHT	300
+
+enum eDrawTextFlags
+{
+	TEXTFLAG_NONE		= 0,
+	TEXTFLAG_CENTER		= 1 << 0,
+	TEXTFLAG_NOSHADOW	= 1 << 1,
+};
 
 struct scrnVars
 {
@@ -58,27 +65,15 @@ class CRender
 		static std::string	m_szWindowTitle;
 
 		static bool	initialze(HMODULE hModule, std::string szWindowTitle);
-		static void	uninitialze();
 
 		static bool	render();
-		static bool	createFont(char *font, int size, bool bold, bool italic);
-		static void	releaseFont();
 
-		static void	drawBox(int x, int y, int w, int h, D3DCOLOR color);
-		static void	drawBoxInline(int x, int y, int w, int h, int size, D3DCOLOR color);
-		static void	drawBoxBorder(int x, int y, int w, int h, int borderSize, D3DCOLOR color, D3DCOLOR borderColor);
-		static void	drawText(std::string str, int x, int y, int font, D3DCOLOR color);
-		static void	drawText(std::string str, int x, int y, int w, int h, int font, D3DCOLOR color, DWORD flags = NULL);
-
-		static HWND	getHWnd();
+		static void	drawBox(int x, int y, int w, int h, CColor color);
+		static void	drawBoxInline(int x, int y, int w, int h, int size, CColor color);
+		static void	drawBoxBorder(int x, int y, int w, int h, int borderSize, CColor color, CColor borderColor);
+		static void	drawText(char*, int x, int y, int w, int h, int font, float scale, CColor color, uint32_t flags = TEXTFLAG_NONE);
 
 	protected:
-		static HWND						m_hWnd;
-		static LPDIRECT3D9				m_pD3d;			// the pointer to Direct3D interface
-		static LPDIRECT3DDEVICE9		m_pD3dDev;		// the pointer to the device
-		static LPD3DXFONT				m_pFont[FONT_BUFFER_SIZE];
-		static int						m_nFont;
-		static D3DPRESENT_PARAMETERS	m_d3dParam;		//d3d9 device params
 
 	private:
 		CRender	() {};		//don't allow construction
