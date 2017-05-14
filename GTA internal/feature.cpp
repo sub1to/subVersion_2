@@ -51,6 +51,7 @@ namespace feature
 			//CMenu::indexFeature(FEATURE_P_TRUEGOD, CMenu::addFeature(-1, *parent, "God", feat_toggle, "trueGodMode"));
 			CMenu::indexFeature(FEATURE_P_TRUEGOD, CMenu::addFeature(-1, *parent, "God", feat_toggle, "trueGodMode"));
 			CMenu::indexFeature(FEATURE_P_GOD, CMenu::addFeature(-1, *parent, "Demi-God", feat_toggle, "godMode"));
+			CMenu::indexFeature(FEATURE_P_QUICK_REGEN, CMenu::addFeature(-1, *parent, "Quick Regen", feat_value, "quickRegen", 1.f, 25.f, 2.f));
 			CMenu::indexFeature(FEATURE_P_INVISIBLE, CMenu::addFeature(-1, *parent, "Invisible", feat_toggle, "playerInvis"));
 			CMenu::indexFeature(FEATURE_P_VISIBLE_LOCAL, CMenu::addFeature(-1, *parent, "Player Visible Locally", feat_toggle, "playerVisLoc"));
 			CMenu::indexFeature(FEATURE_P_OFFRADAR, CMenu::addFeature(-1, *parent, "Off Radar", feat_toggle));
@@ -136,6 +137,7 @@ namespace feature
 		*parent	= CMenu::addFeature(0, -1, "Teleport", feat_parent);
 			CMenu::indexFeature(FEATURE_TP_WAYPOINT, CMenu::addFeature(-1, *parent, "Waypoint", feat_action));
 			CMenu::indexFeature(FEATURE_TP_OBJECTIVE, CMenu::addFeature(-1, *parent, "Objective", feat_action));
+			CMenu::indexFeature(FEATURE_TP_PERSONAL_VEH, CMenu::addFeature(-1, *parent, "Personal Vehicle", feat_action));
 			CMenu::indexFeature(FEATURE_TP_NEARBY_CAR, CMenu::addFeature(-1, *parent, "Nearby car", feat_action));
 
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Interiors", feat_parent);

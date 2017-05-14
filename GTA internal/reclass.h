@@ -144,6 +144,15 @@ public:
 		if(fArmor < 50.f)
 			fArmor = 50.f;
 	}
+
+	void giveHealth(float value)
+	{
+		value	+= fHealth;
+		if(value <= fHealthMax)
+			fHealth	= value;
+		else if(fHealth	< fHealthMax)
+			fHealth	= fHealthMax;
+	}
 }; //Size=0x14F8
 
 /*class CNavigation

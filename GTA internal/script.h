@@ -146,6 +146,7 @@ namespace script
 
 	bool	teleport_to_waypoint();
 	void	teleport_to_objective();
+	void	teleport_to_personal_vehicle();
 	void	teleport_to_coords(v3 coords);
 	void	teleport_entity_to_coords(Entity e, v3 coords, bool particleFX = true);
 	int		get_free_seat(Vehicle v);

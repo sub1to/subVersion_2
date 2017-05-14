@@ -346,16 +346,19 @@ namespace script
 
 	CBlip*	get_blip_waypoint()
 	{
+		CBlip* r = nullptr;
 		for(int i = 0; i < 0x400; i++)
 		{
 			CBlip*	blip	= CHooking::m_blipList->m_Blips[i];
-			if(blip == nullptr)
+			if(	blip == nullptr
+			||	blip->dwColor	!= ColorWaypoint
+			||	blip->iIcon		!= SpriteWaypoint	)
 				continue;
 
-			if(blip->dwColor == ColorWaypoint && blip->iIcon == SpriteWaypoint)
-				return blip;
+			r = blip;
+			break;
 		}
-		return nullptr;
+		return r;
 	}
 
 	bool teleport_to_waypoint()
@@ -392,28 +395,62 @@ namespace script
 
 	CBlip*	get_blip_objective()
 	{
+		CBlip*	r = nullptr;
 		for(int i = 0; i < 0x400; i++)
 		{
 			CBlip*	blip	= CHooking::m_blipList->m_Blips[i];
-			if(blip == nullptr)
-				continue;
 			if
 			(
-				(blip->dwColor	== ColorYellowMission	&& blip->iIcon == SpriteStandard)	||
-				(blip->dwColor	== ColorYellow			&& blip->iIcon == SpriteStandard)	||
-				(blip->dwColor	== ColorWhite			&& blip->iIcon == SpriteRaceFinish)	||
-				(blip->dwColor	== ColorGreen			&& blip->iIcon == SpriteStandard)	||
-				(blip->iIcon	== SpriteCrateDrop)
+				blip == nullptr
+			||	(
+					(blip->dwColor	!= ColorYellowMission	|| blip->iIcon != SpriteStandard)
+				&&	(blip->dwColor	!= ColorYellow			|| blip->iIcon != SpriteStandard)
+				&&	(blip->dwColor	!= ColorWhite			|| blip->iIcon != SpriteRaceFinish)
+				&&	(blip->dwColor	!= ColorGreen			|| blip->iIcon != SpriteStandard)
+				&&	(blip->iIcon	!= SpriteCrateDrop)
+				)
 			)
-				return blip;
+				continue;
+
+			r = blip;
+			break;
 		}
-		return nullptr;
+		return r;
 	}
 
 	void teleport_to_objective()
 	{
 		CBlip* blip = get_blip_objective();
 		blip == nullptr ? notify_above_map("Objective not found.", 0) : teleport_to_coords({ blip->v3Pos.x, blip->v3Pos.y, blip->v3Pos.z + 1.f });
+	}
+
+	CBlip*	get_blip_vehicle()
+	{
+		CBlip*	r = nullptr;
+		for(int i = 0; i < 0x400; i++)
+		{
+			CBlip*	blip	= CHooking::m_blipList->m_Blips[i];
+			if
+			(	
+				blip == nullptr
+			||	(
+					blip->dwColor != ColorVehicle
+				&&	blip->iIcon != SpritePersonalVehicleCar
+				&&	blip->iIcon != SpritePersonalVehicleBike
+				)
+			)
+				continue;
+
+			r = blip;
+			break;
+		}
+		return r;
+	}
+
+	void teleport_to_personal_vehicle()
+	{
+		CBlip* blip = get_blip_vehicle();
+		blip == nullptr ? notify_above_map("Personal vehicle not found.", 0) : teleport_to_coords({ blip->v3Pos.x, blip->v3Pos.y, blip->v3Pos.z + 1.f });
 	}
 
 	void teleport_to_entity(Entity e)

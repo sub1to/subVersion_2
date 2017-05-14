@@ -375,11 +375,19 @@ bool	CHack::refresh()
 				feat->m_clockTick	= curClock;
 		}
 		
-		//tp to waypoint
+		//tp to objective
 		feat = CMenu::getFeature(FEATURE_TP_OBJECTIVE);
 		if(feat->m_bOn && !feat->m_bSet)
 		{
 			script::teleport_to_objective();
+			feat->m_bSet		= true;
+		}
+
+		//tp to vehicle
+		feat = CMenu::getFeature(FEATURE_TP_PERSONAL_VEH);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::teleport_to_personal_vehicle();
 			feat->m_bSet		= true;
 		}
 		
@@ -1024,7 +1032,7 @@ bool	CHack::refresh()
 					CMenu::getPlrFeature(PLRFEAT_INFO_HEALTH, i)->m_szName = msg;
 
 					//is in veh
-					sprintf_s(msg, "In Vehicle: %s", cp->isInVehicle() ? "Yes" : "No");
+					sprintf_s(msg, "In Vehicle: %s", PED::IS_PED_IN_ANY_VEHICLE(remotePed, false) ? "Yes" : "No");
 					CMenu::getPlrFeature(PLRFEAT_INFO_IS_IN_VEH, i)->m_szName = msg;
 
 					//is god
@@ -1389,6 +1397,14 @@ bool	CHack::refresh()
 			m_pCPedPlayer->giveHealth();
 			feat->m_bSet	= true;
 		}
+
+		feat	= CMenu::getFeature(FEATURE_P_QUICK_REGEN);
+		if(feat->m_bOn && curClock - feat->m_clockTick > 0x400)
+		{
+			m_pCPedPlayer->giveHealth(feat->getValue());
+			feat->m_clockTick	= curClock;
+		}
+
 		if(CMenu::getFeature(FEATURE_P_ANTINPC)->m_bOn)
 			killNpc();
 

@@ -45,7 +45,7 @@ uint64_t __HASHMAPDATA[] = {
 	0xE9B09589827545E7, 0xDEF3636CEB1A14E7, //player::report_crime
 	0xFDD179EAF45B556C, 0xFEBDFA40CE0D54BE, //player::get_wanted_level_threshold
 	0x37039302F4E0A008, 0xB58DEBB81964A4E9, //player::get_player_team
-	//0x997ABD671D25CA0B, 0xFD0FE723227D5AB6, //ped::is_ped_in_any_vehicle
+	0x997ABD671D25CA0B, 0xFD0FE723227D5AB6, //ped::is_ped_in_any_vehicle
 	0x9A9112A0FE9A4713, 0x60604E51E30D25B8, //ped::get_vehicle_ped_is_in
 	0x6094AD011A2EA87D, 0xFD05A5AA90984873, //ped::get_vehicle_ped_is_using
 	0x8FE22675A5A45817, 0x266CE9B8FB237C77, //ped::clear_ped_blood_damage
@@ -177,7 +177,6 @@ uint64_t __HASHMAPDATA[] = {
 	0xB28ECA15046CA8B9, 0xE0A4834569DED46F, //audio::get_radio_station_name
 	0x1B9C0099CB942AC6, 0x2F40A4997A9C988D, //audio::set_veh_radio_station
 	0xC69EDA28699D5107, 0xF216A70B97EEFD1C, //audio::set_radio_to_station_name
-	//0x183DADC6AA953186, 0x0CFD29F9D2B7942B, //weapon::set_ped_infinite_ammo_clip
 	0xB282DC6EBD803C75, 0xBA8CA9172F194131, //weapon::give_delayed_weapon_to_ped
 	0xF25DF915FA38C5F3, 0x39DF32F630CC12A7, //weapon::remove_all_ped_weapons
 	0x4899CB088EDF59B8, 0x9CA872E9BF4DF131, //weapon::remove_weapon_from_ped
