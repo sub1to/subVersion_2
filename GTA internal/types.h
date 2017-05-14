@@ -31,6 +31,7 @@ typedef	std::vector<int>			vec_int;
 typedef	std::vector<std::string>	vec_str;
 typedef std::queue<int>				queue_int;
 typedef std::queue<std::string>		queue_str;
+typedef std::queue<DWORD>			queue_dw;
 typedef std::deque<int>				deque_int;
 
 struct MemoryPool

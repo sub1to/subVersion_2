@@ -205,7 +205,8 @@ class CFeatTeleport : public CFeat
 class CFeatSpawn : public CFeat
 {
 	public:
-		std::string	m_szHash;
+		//std::string	m_szHash;
+		DWORD		m_dwHash;
 		spwnType	m_spawnType;
 				CFeatSpawn();
 				~CFeatSpawn();
@@ -341,7 +342,7 @@ class CMenu
 		static int			addFeature(int cat, int parent, std::string name, featType type);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string str1, std::string str2);
-		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, spwnType spawnType);
+		static int			addFeature(int cat, int parent, std::string name, featType type, DWORD hash, spwnType spawnType);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, const char* const enumArray[]);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod);

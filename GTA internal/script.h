@@ -106,6 +106,7 @@ namespace util
 	int		random_int(int start, int end);
 	bool	to_clipboard(char* str);
 	bool	world_to_screen(v3 pos, v2& out);
+	Hash	$(std::string str);
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle);
 
@@ -135,15 +136,13 @@ namespace script
 	void	apply_clothing(Ped playerPed, int group, int var = -1, int texture = -1);
 	void	apply_outfit(eCustomOutfit type);
 
-	bool	apply_model(std::string skinName, bool random = false);
+	bool	apply_model(Hash skin, bool random = false);
 	void	set_player_clothing(int group, int value, bool texture);
 
 	bool	request_control_of_entity(Entity entity);
 
 	void	update_nearby_ped(Ped origin, int c, bool alive = true, queue_int* out = &CHack::m_nearbyPed);
 	void	update_nearby_vehicle(Ped origin, int c, bool driveable = true, queue_int* out = &CHack::m_nearbyVehicle);
-
-	Hash	$(std::string str);
 
 	bool	teleport_to_waypoint();
 	void	teleport_to_objective();
@@ -179,15 +178,15 @@ namespace script
 	Ped		clone_ped_bodyguard(Ped p);
 
 	void	ped_give_all_weapons(Ped p);
-	void	ped_weapon(Ped p, std::string weapon, bool give = true);
+	void	ped_weapon(Ped p, DWORD weapon, bool give = true);
 
 	void	no_reload_toggle(bool);
 	void	infinite_ammo_toggle(bool);
 
-	bool	spawn_ped(char* model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
-	bool	spawn_vehicle(const char* model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
+	bool	spawn_ped(Hash model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
+	bool	spawn_vehicle(Hash model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
 	void	vehicle_bypass(Vehicle vehicle);
-	bool	spawn_object(const char* model, Object* objOut = nullptr);
+	bool	spawn_object(Hash model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
 	void	vehicle_mp_bypass(bool b);
 	bool	upgrade_car(Vehicle v, bool car = true, int colours = -1);
@@ -208,7 +207,7 @@ namespace script
 	bool	smash_vehicles();
 	bool	black_hole(int sec);
 
-	bool	drop_money_on_player(Player player, int amount = 2000, const char* const prop = "prop_money_bag_01");
+	bool	drop_money_on_player(Player player, int amount = 2000, const DWORD hash = 0x113FD533);
 	void	ped_money_drop(Player player, clock_t* tmr);
 	void	stealth_money(int mils, bool remove = false);
 

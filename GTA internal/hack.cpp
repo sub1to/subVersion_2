@@ -48,16 +48,16 @@ int				CHack::m_entityCleanupTries	= 0;
 
 deque_int		CHack::m_remotePlayerAttach[MAX_PLAYERS];
 
-std::string		CHack::m_szRequestedModel	= "";
+DWORD			CHack::m_dwRequestedModel	= 0;
 bool			CHack::m_bModelSet			= true;
 bool			CHack::m_bModelWeapons		= true;
 clock_t			CHack::m_modelClock			= clock();
 
-queue_str		CHack::m_requestedVehicle;
-queue_str		CHack::m_requestedWeapon;
+queue_dw		CHack::m_requestedVehicle;
+queue_dw		CHack::m_requestedWeapon;
 bool			CHack::m_bWeaponGive;
-queue_str		CHack::m_requestedPed;
-queue_str		CHack::m_requestedObject;
+queue_dw		CHack::m_requestedPed;
+queue_dw		CHack::m_requestedObject;
 
 queue_int		CHack::m_nearbyPed;
 queue_int		CHack::m_nearbyVehicle;
@@ -302,20 +302,20 @@ bool	CHack::refresh()
 					colours	|=	((int) feat2->getValue()) << 0x08;
 			}
 
-			if(script::spawn_vehicle(&m_requestedVehicle.front()[0], nullptr, flags, colours))
+			if(script::spawn_vehicle(m_requestedVehicle.front(), nullptr, flags, colours))
 				m_requestedVehicle.pop();
 		}
 			
 		
 		//ped spawn
 		if(!m_requestedPed.empty())
-			if(script::spawn_ped(&m_requestedPed.front()[0], PedTypeHuman, {}, nullptr, CMenu::getFeature(FEATURE_S_PED_RANDOMIZE)->m_bOn, (int) CMenu::getFeature(FEATURE_S_PED_TYPE)->getValue()))
+			if(script::spawn_ped(m_requestedPed.front(), PedTypeHuman, {}, nullptr, CMenu::getFeature(FEATURE_S_PED_RANDOMIZE)->m_bOn, (int) CMenu::getFeature(FEATURE_S_PED_TYPE)->getValue()))
 				m_requestedPed.pop();
 		
 		//weapon spawn
 		if(!m_requestedWeapon.empty())
 		{
-			script::ped_weapon(playerPed, &m_requestedWeapon.front()[0], m_bWeaponGive);
+			script::ped_weapon(playerPed, m_requestedWeapon.front(), m_bWeaponGive);
 			m_requestedWeapon.pop();
 		}
 
@@ -341,7 +341,7 @@ bool	CHack::refresh()
 		{
 			if(playerInVeh)
 				tmpVeh	= playerVeh;
-			if(script::apply_model(m_szRequestedModel))
+			if(script::apply_model(m_dwRequestedModel))
 			{
 				m_bModelSet = true;
 				m_bModelWeapons = false;
@@ -490,7 +490,7 @@ bool	CHack::refresh()
 			}
 
 			Entity e	= NULL;
-			if(!m_requestedObject.empty() && script::spawn_object(&m_requestedObject.front()[0], &e))
+			if(!m_requestedObject.empty() && script::spawn_object(m_requestedObject.front(), &e))
 			{
 				m_requestedObject.pop();
 				feat->m_bRestored = true;
@@ -1160,7 +1160,7 @@ bool	CHack::refresh()
 			plrFeat = CMenu::getPlrFeature(PLRFEAT_REMOVE_WEAPONS, i);
 			if(plrFeat->m_bOn && !plrFeat->m_bSet)
 			{
-				script::ped_weapon(remotePed, "ALL", false);
+				script::ped_weapon(remotePed, 0, false);
 				plrFeat->m_bSet = true;
 			}
 			

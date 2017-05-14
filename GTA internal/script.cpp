@@ -116,6 +116,22 @@ namespace util
 	{
 		return (float) (1.0 / (height ? CHooking::m_resolution->h : CHooking::m_resolution->w)) * in;
 	}
+
+	Hash $(std::string str)
+	{
+		size_t len = str.size();
+		unsigned int hash, i;
+		for(hash = i = 0; i < len; ++i)
+		{
+			hash += tolower(str[i]);
+			hash += (hash << 10);
+			hash ^= (hash >> 6);
+		}
+		hash += (hash << 3);
+		hash ^= (hash >> 11);
+		hash += (hash << 15);
+		return hash;
+	}
 }
 
 namespace script
@@ -222,7 +238,7 @@ namespace script
 			apply_clothing(playerPed, outfit[i][0],	outfit[i][1], outfit[i][2]);
 	}
 
-	bool apply_model(DWORD model, bool random)
+	bool apply_model(Hash model, bool random)
 	{
 		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) && !STREAMING::IS_MODEL_VALID(model))
 			return true;
@@ -246,23 +262,6 @@ namespace script
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 
 		return true;
-	}
-
-	bool can_model_random(std::string model)
-	{
-		std::regex		regexCS("^(cs_|player_).*$");
-		std::smatch		regexMatch; 
-		if(std::regex_search(model, regexMatch, regexCS))
-			return false;
-		return true;
-	}
-
-	bool apply_model(std::string skinName, bool random)
-	{
-		if(!can_model_random(skinName))
-			random = false;
-		DWORD model = $(&skinName[0]);
-		return apply_model(model, random);
 	}
 
 	bool request_control_of_id(Entity netid)
@@ -328,22 +327,6 @@ namespace script
 			out->push(veh[id]);
 		}
 		delete veh;
-	}
-
-	Hash $(std::string str)
-	{
-		size_t len = str.size();
-		unsigned int hash, i;
-		for(hash = i = 0; i < len; ++i)
-		{
-			hash += tolower(str[i]);
-			hash += (hash << 10);
-			hash ^= (hash >> 6);
-		}
-		hash += (hash << 3);
-		hash ^= (hash >> 11);
-		hash += (hash << 15);
-		return hash;
 	}
 
 	void teleport_entity_to_coords(Entity e, v3 pos, bool particleFX)
@@ -479,7 +462,7 @@ namespace script
 	{
 		Ped	ped			= CPlayerMem::get_player_ped(player);
 		v3 remotePos	= CPlayerMem::get_player_coords(player);
-		ped_weapon(ped, "GADGET_PARACHUTE", false);
+		ped_weapon(ped, 0xfbab5776, false); //GADGET_PARACHUTE
 		teleport_player_on_foot(ped, remotePos.x, remotePos.y, remotePos.z + 100.f);
 		clown_particle_effect_on_entity(ped);
 	}
@@ -645,24 +628,23 @@ namespace script
 		1	PEDSPAWN_BODYGUARD	bodyguard
 		2	PEDSPAWN_ARMY		army
 	*/
-	bool spawn_ped(char* model, ePedType pedType, v3 pos, Ped* pedOut, bool random, int flag)
+	bool spawn_ped(Hash model, ePedType pedType, v3 pos, Ped* pedOut, bool random, int flag)
 	{
-		Hash	pedHash	= $(model);
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(pedHash) || !STREAMING::IS_MODEL_VALID(pedHash))
+		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_VALID(model))
 			return true;
-		STREAMING::REQUEST_MODEL(pedHash);
-		if(!STREAMING::HAS_MODEL_LOADED(pedHash))
+		STREAMING::REQUEST_MODEL(model);
+		if(!STREAMING::HAS_MODEL_LOADED(model))
 			return false;
 
-		if(!can_model_random(model))
-			random = false;
+		//if(!can_model_random(model))
+		//	random = false;
 
 		if(pos.empty())
 			pos	= get_coords_infront_player(6.f);
 		pos.x += util::random_int(-2, 2);
 		pos.y += util::random_int(-2, 2);
 
-		Ped		ped	= PED::CREATE_PED(pedType, pedHash, pos.x, pos.y, pos.z, 0.f, true, true);
+		Ped		ped	= PED::CREATE_PED(pedType, model, pos.x, pos.y, pos.z, 0.f, true, true);
 		random ? PED::SET_PED_RANDOM_COMPONENT_VARIATION(ped, true) : PED::SET_PED_DEFAULT_COMPONENT_VARIATION(ped);
 
 		if(pedOut != nullptr)
@@ -679,11 +661,11 @@ namespace script
 			}
 			if(flag == PEDSPAWN_ARMY)
 			{
-				PED::SET_PED_RELATIONSHIP_GROUP_HASH(ped, $("army"));
+				PED::SET_PED_RELATIONSHIP_GROUP_HASH(ped, 0xe3d976f3);	//"army"
 				AI::TASK_WANDER_STANDARD(ped, 10.f, 10);
 			}
 			PED::SET_PED_CAN_SWITCH_WEAPON(ped, false);
-			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, $("WEAPON_APPISTOL"), 9999, 0);
+			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, 0x22d8fe39, 9999, 0);	//WEAPON_APPISTOL
 			PED::SET_PED_COMBAT_ABILITY(ped, 2); //0 poor, 1 average, 2 prof
 
 			CHack::m_pedCleanup.push_back(ped);
@@ -691,7 +673,7 @@ namespace script
 		else
 			ENTITY::SET_PED_AS_NO_LONGER_NEEDED(&ped);
 
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(pedHash);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 		return true;
 	}
 
@@ -702,25 +684,24 @@ namespace script
 			1 << 2	VEHSPAWN_UPGRADE	upgrade
 			1 << 3	VEHSPAWN_LICENSE	license
 	*/
-	bool spawn_vehicle(const char* model, Vehicle* vehOut, BYTE flags, int colours)//bool warp, bool bypass, bool upgrade)
+	bool spawn_vehicle(Hash model, Vehicle* vehOut, BYTE flags, int colours)//bool warp, bool bypass, bool upgrade)
 	{
 		v3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= CPlayerMem::player_ped_id();
-		Hash	vehHash		= $(model);
 	
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(vehHash) || !STREAMING::IS_MODEL_A_VEHICLE(vehHash))
+		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_A_VEHICLE(model))
 			return true;
-		STREAMING::REQUEST_MODEL(vehHash);
-		if(!STREAMING::HAS_MODEL_LOADED(vehHash))
+		STREAMING::REQUEST_MODEL(model);
+		if(!STREAMING::HAS_MODEL_LOADED(model))
 			return false;
 
-		bool	bFly	= (flags & VEHSPAWN_WARP) && (VEHICLE::IS_THIS_MODEL_A_HELI(vehHash) || VEHICLE::IS_THIS_MODEL_A_PLANE(vehHash)) ? true : false;
+		bool	bFly	= (flags & VEHSPAWN_WARP) && (VEHICLE::IS_THIS_MODEL_A_HELI(model) || VEHICLE::IS_THIS_MODEL_A_PLANE(model)) ? true : false;
 		if(bFly)
 			pos.z += 100.f;
-		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(vehHash, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
+		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(model, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
 		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
 		VEHICLE::SET_VEHICLE_IS_STOLEN(veh, false);
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(vehHash);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 
 		if(bFly)
 		{
@@ -736,7 +717,7 @@ namespace script
 		if(vehOut != nullptr)
 			*vehOut = veh;
 		if(flags & VEHSPAWN_UPGRADE)
-			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(vehHash) != 0, colours);
+			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(model) != 0, colours);
 		else if(flags & VEHSPAWN_MP_BYPASS)
 			vehicle_bypass(veh);	//mp bypass
 
@@ -787,20 +768,19 @@ namespace script
 		return true;
 	}
 
-	bool spawn_object(const char* model, Object* objOut)
+	bool spawn_object(Hash model, Object* objOut)
 	{
 		v3		pos	= get_coords_infront_player(10.f);
 		Ped		playerPed	= CPlayerMem::player_ped_id();
-		Hash	objHash		= $(model);
 	
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(objHash))
+		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model))
 			return true;
-		STREAMING::REQUEST_MODEL(objHash);
-		if(!STREAMING::HAS_MODEL_LOADED(objHash))
+		STREAMING::REQUEST_MODEL(model);
+		if(!STREAMING::HAS_MODEL_LOADED(model))
 			return false;
-		Object	obj	= OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
+		Object	obj	= OBJECT::CREATE_OBJECT(model, pos.x, pos.y, pos.z, true, false, false);
 
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 
 		if(objOut != nullptr)
 			*objOut = obj;
@@ -810,12 +790,12 @@ namespace script
 	void ped_give_all_weapons(Ped p)
 	{
 		for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
-			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, $(hash::weapon_hash[i]), 9999, 0);
+			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, hash::weapon_hash[i], 9999, 0);
 	}
 
-	void ped_weapon(Ped p, std::string weapon, bool give)
+	void ped_weapon(Ped p, DWORD weapon, bool give)
 	{
-		if(weapon == "ALL")
+		if(weapon == 0)
 		{
 			if(give)
 				script::ped_give_all_weapons(p);
@@ -825,9 +805,9 @@ namespace script
 		else
 		{
 			if(give)
-				WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, script::$(weapon), 9999, 0);
+				WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, weapon, 9999, 0);
 			else
-				WEAPON::REMOVE_WEAPON_FROM_PED(p, script::$(weapon));
+				WEAPON::REMOVE_WEAPON_FROM_PED(p, weapon);
 		}
 	}
 
@@ -863,7 +843,7 @@ namespace script
 		Ped	ped = PED::CLONE_PED(p, ENTITY::GET_ENTITY_HEADING(p), 1, 1);
 		PED::SET_PED_AS_GROUP_MEMBER(ped, group);
 		PED::SET_PED_CAN_SWITCH_WEAPON(ped, false);
-		WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, $("WEAPON_APPISTOL"), 9999, 0);
+		WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, 0x22d8fe39, 9999, 0);	//$("WEAPON_APPISTOL")
 		PED::SET_PED_COMBAT_ABILITY(ped, 2); //0 poor, 1 average, 2 prof
 		//ENTITY::SET_ENTITY_INVINCIBLE(ped, false);
 		return ped;
@@ -911,7 +891,7 @@ namespace script
 			pos.y = 0.f;
 		bone == -1 ? bone = 0 : bone = PED::GET_PED_BONE_INDEX(e, bone);
 		v3		pos2	= get_coords_infront_player(6.f);
-		Object	obj		= OBJECT::CREATE_OBJECT($("prop_cs_dildo_01"), pos2.x, pos2.y, pos2.z, true, false, false);
+		Object	obj		= OBJECT::CREATE_OBJECT(0xe6cb661e, pos2.x, pos2.y, pos2.z, true, false, false);	//$("prop_cs_dildo_01")
 		ENTITY::ATTACH_ENTITY_TO_ENTITY(e, obj, 0, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, false, false, false, true, 2, true);
 		ENTITY::ATTACH_ENTITY_TO_ENTITY(obj, t, bone, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, false, false, false, true, 2, true);
 		return;
@@ -930,20 +910,20 @@ namespace script
 		return;
 	}
 
-	Object attach_object_to_entity(Entity e, char* object, int bone)
+	/*Object attach_object_to_entity(Entity e, char* object, int bone)
 	{
 		bone == -1 ? bone = 0 : bone = PED::GET_PED_BONE_INDEX(e, bone);
 		v3 pos	= get_coords_infront_player(6.f);
 		Object obj	= OBJECT::CREATE_OBJECT($(object), pos.x, pos.y, pos.z, true, false, false);
 		ENTITY::ATTACH_ENTITY_TO_ENTITY(obj, e, bone, 0.f, bone != 0 ? 0.f : -.25f, 0.f, 0.f, bone != 0 ? 90.f : 0.f, 0.f, false, false, false, true, 2, true);
 		return obj;
-	}
+	}*/
 
 	Object trap_player_in_cage(Player player)
 	{
 		Ped		ped			= CPlayerMem::get_player_ped(player);
 		v3		remotePos	= CPlayerMem::get_player_coords(player);
-		Object obj	= OBJECT::CREATE_OBJECT($("prop_gold_cont_01"), remotePos.x, remotePos.y, remotePos.z -1.f, true, false, false);
+		Object obj	= OBJECT::CREATE_OBJECT(0x392d62aa, remotePos.x, remotePos.y, remotePos.z -1.f, true, false, false);	//$("prop_gold_cont_01")
 		return obj;
 	}
 
@@ -969,48 +949,48 @@ namespace script
 	void clear_badsports()
 	{
 		return;
-		STATS::STAT_SET_INT($("MPPLY_GRIEFING"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_OFFENSIVE_LANGUAGE"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_OFFENSIVE_TAGPLATE"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_OFFENSIVE_UGC"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_BAD_CREW_NAME"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_BAD_CREW_MOTTO"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_BAD_CREW_STATUS"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_BAD_CREW_EMBLEM"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_GAME_EXPLOITS"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_EXPLOITS"), 0, 1);
-		STATS::STAT_SET_INT($("MPPLY_ISPUNISHED"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_GRIEFING"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_LANGUAGE"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_TAGPLATE"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_UGC"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_NAME"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_MOTTO"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_STATUS"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_EMBLEM"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_GAME_EXPLOITS"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_EXPLOITS"), 0, 1);
+		STATS::STAT_SET_INT(util::$("MPPLY_ISPUNISHED"), 0, 1);
 
-		STATS::STAT_SET_INT($("MP0_CHEAT_BITSET"), 0, TRUE);
-		STATS::STAT_SET_INT($("MP0_BAD_SPORT_BITSET"), 0, TRUE);
-		STATS::STAT_SET_BOOL($("MPPLY_IS_HIGH_EARNER"), FALSE, TRUE);
-		STATS::STAT_SET_BOOL($("MPPLY_IS_CHEATER"), FALSE, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_IS_CHEATER_TIME"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_WAS_I_BAD_SPORT"), 0, TRUE);
-		STATS::STAT_SET_FLOAT($("MPPLY_OVERALL_BADSPORT"), 0, TRUE);
-		STATS::STAT_SET_FLOAT($("MPPLY_OVERALL_CHEAT"), 0, TRUE);
-		STATS::STAT_SET_BOOL($("MPPLY_CHAR_IS_BADSPORT"), FALSE, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_BECAME_BADSPORT_NUM"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_BECAME_CHEATER_NUM"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MP0_CHEAT_BITSET"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MP0_BAD_SPORT_BITSET"), 0, TRUE);
+		STATS::STAT_SET_BOOL(util::$("MPPLY_IS_HIGH_EARNER"), FALSE, TRUE);
+		STATS::STAT_SET_BOOL(util::$("MPPLY_IS_CHEATER"), FALSE, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_IS_CHEATER_TIME"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_WAS_I_BAD_SPORT"), 0, TRUE);
+		STATS::STAT_SET_FLOAT(util::$("MPPLY_OVERALL_BADSPORT"), 0, TRUE);
+		STATS::STAT_SET_FLOAT(util::$("MPPLY_OVERALL_CHEAT"), 0, TRUE);
+		STATS::STAT_SET_BOOL(util::$("MPPLY_CHAR_IS_BADSPORT"), FALSE, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_BECAME_BADSPORT_NUM"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_BECAME_CHEATER_NUM"), 0, TRUE);
 		Any date[12];
 		memset(&date, 0, sizeof(date));
-		STATS::STAT_SET_DATE($("MPPLY_BECAME_CHEATER_DT"), &date[0], 7, TRUE);
-		STATS::STAT_SET_DATE($("MPPLY_BECAME_BADSPORT_DT"), &date[0], 7, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_DESTROYED_PVEHICLES"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_BADSPORT_MESSAGE"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_KILLS_PLAYERS_CHEATER"), 69, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_DEATHS_PLAYERS_CHEATER"), 420, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_LAST_REPORT_PENALTY"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_LAST_COMMEND_PENALTY"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_LAST_REPORT_RESTORE"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_LAST_COMMEND_RESTORE"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_REPORT_STRENGTH"), 32, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_COMMEND_STRENGTH"), 32, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_VOTED_OUT"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_VOTED_OUT_DELTA"), 0, TRUE);
-		STATS::STAT_SET_INT($("MPPLY_VOTED_OUT_QUIT"), 0, TRUE);
-		STATS::STAT_SET_BOOL($("MPPLY_WAS_I_BAD_SPORT"), FALSE, TRUE);
-		STATS::STAT_SET_BOOL($("MPPLY_WAS_I_CHEATER"), FALSE, TRUE);
+		STATS::STAT_SET_DATE(util::$("MPPLY_BECAME_CHEATER_DT"), &date[0], 7, TRUE);
+		STATS::STAT_SET_DATE(util::$("MPPLY_BECAME_BADSPORT_DT"), &date[0], 7, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_DESTROYED_PVEHICLES"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_BADSPORT_MESSAGE"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_KILLS_PLAYERS_CHEATER"), 69, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_DEATHS_PLAYERS_CHEATER"), 420, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_LAST_REPORT_PENALTY"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_LAST_COMMEND_PENALTY"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_LAST_REPORT_RESTORE"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_LAST_COMMEND_RESTORE"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_REPORT_STRENGTH"), 32, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_COMMEND_STRENGTH"), 32, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT_DELTA"), 0, TRUE);
+		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT_QUIT"), 0, TRUE);
+		STATS::STAT_SET_BOOL(util::$("MPPLY_WAS_I_BAD_SPORT"), FALSE, TRUE);
+		STATS::STAT_SET_BOOL(util::$("MPPLY_WAS_I_CHEATER"), FALSE, TRUE);
 
 		notify_above_map("Reports have been cleared. GL HF", 0);
 	}
@@ -1238,7 +1218,7 @@ namespace script
 		static clock_t	refreshTmr	= clock();
 		static clock_t	bhTmr	= NULL;
 		if(bh == NULL)
-			if(!spawn_object("prop_alien_egg_01", &bh))
+			if(!spawn_object(0x6b795ebc, &bh))	//"prop_alien_egg_01"
 				return false;
 			else
 			{
@@ -1291,12 +1271,12 @@ namespace script
 		return false;
 	}
 
-	bool	drop_money_on_player(Player player, int amount, const char* const prop)
+	bool	drop_money_on_player(Player player, int amount, DWORD hash)
 	{
 		//if(NETWORK::NETWORK_IS_SESSION_STARTED())
 		//	return false;
 		v3		pos			= CPlayerMem::get_player_coords(player);
-		Hash	modelHash	= amount > 2000 ? 0x113FD533U : $(prop);	// 0x113FD533 = prop_money_bag_01
+		Hash	modelHash	= amount > 2000 ? 0x113FD533U : hash;	// 0x113FD533 = prop_money_bag_01
 		STREAMING::REQUEST_MODEL(modelHash);
 		if(!STREAMING::HAS_MODEL_LOADED(modelHash))
 			return false;
@@ -1713,7 +1693,7 @@ namespace script
 		if(count[player] < 0xF)
 		{
 			Ped ped;
-			spawn_ped(	"cs_chrisformage",
+			spawn_ped(	0xc1f380e6,	//"cs_chrisformage"
 						PedTypeHuman,
 						{pos.x + util::random_int(-20, 20), pos.y + util::random_int(-20, 20), pos.z},
 						&ped,
@@ -1733,7 +1713,19 @@ namespace script
 		v3 dir		= v3(ENTITY::GET_ENTITY_ROTATION(ped, 0)).transformRotToDir();
 		v3 pos1		= PED::GET_PED_BONE_COORDS(ped, bone, 0.f, 0.f, 0.f) + dir;
 		v3 pos2		= pos1 - (dir * 1.5f);
-		GAMEPLAY::SHOOT_SINGLE_BULLET_BETWEEN_COORDS(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z, 500, false, script::$("WEAPON_HEAVYSNIPER"), owned ? CPlayerMem::player_ped_id() : NULL, true, false, 200.f);
+		GAMEPLAY::SHOOT_SINGLE_BULLET_BETWEEN_COORDS(	pos1.x,
+														pos1.y,
+														pos1.z,
+														pos2.x,
+														pos2.y,
+														pos2.z,
+														500,
+														false,
+														0xc472fe2, //script::$("WEAPON_HEAVYSNIPER")
+														owned ? CPlayerMem::player_ped_id() : NULL,
+														true,
+														false,
+														200.f);
 	}
 
 	void	explode_ped(Ped ped, int type)

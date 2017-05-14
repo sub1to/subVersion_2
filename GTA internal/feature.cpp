@@ -104,8 +104,8 @@ namespace feature
 
 		*parent		= CMenu::addFeature(0, -1, "Model Changer", feat_parent);
 			//CMenu::indexFeature(FEATURE_M_RANDOMIZE_PED, CMenu::addFeature(-1, *parent, "Randomize Peds", feat_toggle, "randomModel"));
-			CMenu::addFeature(-1, *parent, "MP Female", feat_spawn, "MP_F_Freemode_01", spwn_model);
-			CMenu::addFeature(-1, *parent, "MP Male", feat_spawn, "MP_M_Freemode_01", spwn_model);
+			CMenu::addFeature(-1, *parent, "MP Female", feat_spawn, 0x9c9effd8, spwn_model); //"MP_F_Freemode_01"
+			CMenu::addFeature(-1, *parent, "MP Male", feat_spawn, 0x705e61f2, spwn_model); //"MP_M_Freemode_01"
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Animals", feat_parent);
 			for(int i = 0; i < sizeof(hash::ped_animal_hash) / sizeof(hash::ped_animal_hash[0]); i++)
 				CMenu::addFeature(-1, *(parent + 1), hash::ped_animal_name[i], feat_spawn, hash::ped_animal_hash[i], spwn_model);
@@ -191,11 +191,11 @@ namespace feature
 			//CMenu::indexFeature(FEATURE_W_MUZZLE_VELOCITY, CMenu::addFeature(-1, *(parent + 1), "Muzzle Velocity", feat_slider, "muzzleVelo", 1.f, 10.f));
 
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Give Weapons", feat_parent);
-				CMenu::addFeature(-1, *(parent + 1), "Give All", feat_spawn, "", spwn_weapon_all);
+				CMenu::addFeature(-1, *(parent + 1), "Give All", feat_spawn, 0, spwn_weapon_all);
 				for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], spwn_weapon);
 			*(parent + 1) = CMenu::addFeature(-1, *parent, "Remove Weapons", feat_parent);
-				CMenu::addFeature(-1, *(parent + 1), "Remove All", feat_spawn, "", dspwn_weapon_all);
+				CMenu::addFeature(-1, *(parent + 1), "Remove All", feat_spawn, 0, dspwn_weapon_all);
 				for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
 					CMenu::addFeature(-1, *(parent + 1), hash::weapon_name[i], feat_spawn, hash::weapon_hash[i], dspwn_weapon);
 

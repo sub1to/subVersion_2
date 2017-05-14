@@ -452,9 +452,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	int id = addFeature(cat, parent, name, type);
 	if(id < 0)
 		return id;
-	if(m_pFeature[id]->m_type == feat_spawn)
-		static_cast<CFeatSpawn*>(m_pFeature[id])->m_szHash = iniKey;
-	else if(m_pFeature[id]->m_type == feat_anim)
+	if(m_pFeature[id]->m_type == feat_anim)
 		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
 		m_pFeature[id]->m_szIniKey	= iniKey;
@@ -474,12 +472,13 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	return id;
 }
 
-int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, spwnType spawnType)
+int		CMenu::addFeature(int cat, int parent, std::string name, featType type, DWORD hash, spwnType spawnType)
 {
-	int id = addFeature(cat, parent, name, type, iniKey);
+	int id = addFeature(cat, parent, name, type);
 	if(id < 0)
 		return id;
-	static_cast<CFeatSpawn*>(m_pFeature[id])->m_spawnType		= spawnType;
+	static_cast<CFeatSpawn*>(m_pFeature[id])->m_spawnType	= spawnType;
+	static_cast<CFeatSpawn*>(m_pFeature[id])->m_dwHash		= hash;
 	return id;
 }
 
@@ -855,35 +854,34 @@ void	CFeatSpawn::toggle()
 	switch(m_spawnType)
 	{
 		case spwn_vehicle:
-			CHack::m_requestedVehicle.push(m_szHash);
+			CHack::m_requestedVehicle.push(m_dwHash);
 		break;
 		case spwn_weapon:
-			CHack::m_requestedWeapon.push(m_szHash);
+			CHack::m_requestedWeapon.push(m_dwHash);
 			CHack::m_bWeaponGive	= true;
 		break;
 		case spwn_weapon_all:
-			CHack::m_requestedWeapon.push("ALL");
+			CHack::m_requestedWeapon.push(0);
 			CHack::m_bWeaponGive	= true;
 		break;
 		case dspwn_weapon:
-			CHack::m_requestedWeapon.push(m_szHash);
+			CHack::m_requestedWeapon.push(m_dwHash);
 			CHack::m_bWeaponGive	= false;
 		break;
 		case dspwn_weapon_all:
-			CHack::m_requestedWeapon.push("ALL");
+			CHack::m_requestedWeapon.push(0);
 			CHack::m_bWeaponGive	= false;
 		break;
 		case spwn_model:
-			CHack::m_szRequestedModel	= m_szHash;
+			CHack::m_dwRequestedModel	= m_dwHash;
 			CHack::m_bModelSet			= false;
 		break;
 		case spwn_ped:
-			CHack::m_requestedPed.push(m_szHash);
+			CHack::m_requestedPed.push(m_dwHash);
 		break;
 		case spwn_object:
-			CHack::m_requestedObject.push(m_szHash);
-			CFeat* feat = CMenu::getFeature(FEATURE_E_EDITOR_MODE);
-			feat->toggle(true);
+			CHack::m_requestedObject.push(m_dwHash);
+			CMenu::getFeature(FEATURE_E_EDITOR_MODE)->toggle(true);
 		break;
 	}
 }

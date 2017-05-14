@@ -61,17 +61,17 @@ class CHack
 		static deque_int			m_remotePlayerAttach[MAX_PLAYERS];
 
 		//model change vars
-		static std::string			m_szRequestedModel;
+		static DWORD				m_dwRequestedModel;
 		static bool					m_bModelSet;
 		static bool					m_bModelWeapons;
 		static clock_t				m_modelClock;
 
 		//spawn requests
-		static queue_str	m_requestedVehicle;
-		static queue_str	m_requestedWeapon;
+		static queue_dw		m_requestedVehicle;
+		static queue_dw		m_requestedWeapon;
 		static bool			m_bWeaponGive;
-		static queue_str	m_requestedPed;
-		static queue_str	m_requestedObject;
+		static queue_dw		m_requestedPed;
+		static queue_dw		m_requestedObject;
 
 		// queue with nearby peds, updated by update_nearby_ped() (by default)
 		static queue_int	m_nearbyPed;
