@@ -652,7 +652,7 @@ namespace script
 			}
 		}
 
-		LABEL_NOT_ON_SCREEN:
+	LABEL_NOT_ON_SCREEN:
 
 		//draw world line
 		if(flag & ESP_WORLD_LINE)

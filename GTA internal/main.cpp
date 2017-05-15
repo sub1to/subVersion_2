@@ -21,17 +21,9 @@
 
 //handles
 HMODULE		g_hModule;
-HANDLE		g_hThreadMain,
-			g_hThreadRender;
+HANDLE		g_hThreadMain;
 
-bool		g_bKillProcess;
-
-/*LRESULT	__stdcall	WindowProc(	HWND	hWnd,
-								UINT	message,
-								WPARAM	wParam,
-								LPARAM	lParam);*/
 DWORD __stdcall		mainThread	(LPVOID);
-//DWORD __stdcall		threadRender(LPVOID lpParam);
 
 int __stdcall DllMain
 (
@@ -84,29 +76,25 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	CHooking::init();
 
 	HWND	hWndTarget		= FindWindowA("grcWindow", nullptr);
-	while(!g_bKillProcess)
+	while(true)
 	{
 		//exit
 		if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_EXIT]) || !CLog::m_fatal.empty())
-		{
 			killProcess();
-			break;
-		}
+
 		HWND	hFgWnd	= GetForegroundWindow();
 		if(hFgWnd != hWndTarget)
 			CMenu::m_bFgWnd	= false;
 		else if(hWndTarget == hFgWnd)
 			CMenu::m_bFgWnd	= true;
+
 		Sleep(0x60);
-		
 	}
 	return S_OK;
 }
 
 void killProcess()
 {
-	g_bKillProcess = true;
-
 	CLog::msg("Cleanup started");
 
 	CMenu::m_iniParser.write();
@@ -122,7 +110,7 @@ void killProcess()
 	CHooking::cleanup();
 	CMenu::uninitialze();
 
-	CLog::msg("Cleanup finished");
+	CLog::msg("Cleanup finished\n");
 
 	FreeLibraryAndExitThread(g_hModule, 0);
 }

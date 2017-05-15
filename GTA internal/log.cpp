@@ -35,19 +35,19 @@ std::string	CLog::m_szFile;
 	//CLog Private functions
 */
 
-void getTime(char* out)	//requires 12 bytes
+void getTime(char* out)
 {
 	time_t	t;
 	tm		tInfo;
 	time(&t);
 	localtime_s(&tInfo, &t);
-	strftime(out, 12, "[%H:%M:%S]", &tInfo);
+	strftime(out, 32, "[%F %H:%M:%S]", &tInfo);
 	return;
 }
 
 void addTime(std::string& str)
 {
-	char time[12] { ' ' };
+	char time[32];
 	getTime(time);
 	str.insert(0, time);
 	return;
@@ -85,8 +85,6 @@ bool	CLog::initialize(std::string szDir, std::string szFile)
 
 	m_szFile.append("\\" + szFile);
 
-	std::ofstream file;
-	file.open(m_szFile, std::ios::out | std::ios::trunc);	//clear the file
 	return true;
 }
 

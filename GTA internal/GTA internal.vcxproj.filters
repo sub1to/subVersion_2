@@ -19,12 +19,6 @@
     <Filter Include="Source Files\minhook">
       <UniqueIdentifier>{b61fbf4d-30e8-4dad-a03d-55f03a9e1306}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\d3d9">
-      <UniqueIdentifier>{d424747c-1ad8-4c3b-b4b5-3e5543cdac2d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\d3d9">
-      <UniqueIdentifier>{6df5921c-39e8-4715-8fb2-e0e69439d17e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -74,9 +68,6 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -94,39 +85,6 @@
     </ClInclude>
     <ClInclude Include="minhook\include\MinHook.h">
       <Filter>Header Files\minhook</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3d9.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9anim.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9core.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9effect.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9math.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9mesh.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9shader.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9shape.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9tex.h">
-      <Filter>Header Files\d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\d3dx9xof.h">
-      <Filter>Header Files\d3d9</Filter>
     </ClInclude>
     <ClInclude Include="hashes.h">
       <Filter>Header Files</Filter>
@@ -169,29 +127,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="sub1to.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="resource.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="d3d9\d3d9.lib">
-      <Filter>Source Files\d3d9</Filter>
-    </Library>
-    <Library Include="d3d9\d3dx9.lib">
-      <Filter>Source Files\d3d9</Filter>
-    </Library>
     <Library Include="minhook\lib\libMinHook.x64.md.140_xp.lib">
       <Filter>Source Files\minhook</Filter>
     </Library>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="d3d9\d3dx9math.inl">
-      <Filter>Header Files\d3d9</Filter>
-    </None>
   </ItemGroup>
 </Project>
