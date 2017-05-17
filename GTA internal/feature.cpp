@@ -259,6 +259,25 @@ namespace feature
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_G, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Green", feat_action_value, "uiXHairColG", 0.f, 255.f, 5.f));
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_B, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Blue", feat_action_value, "uiXHairColB", 0.f, 255.f, 5.f));
 				CMenu::indexFeature(FEATURE_I_CUSTOM_XHAIR_COL_A, CMenu::addFeature(-1, *(parent + 1), "Crosshair Color Alpha", feat_action_value, "uiXHairColA", 0.f, 255.f, 5.f));
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Menu Colors", feat_parent);
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR1_R, CMenu::addFeature(-1, *(parent + 1), "Color 1 Red", feat_action_value, "uiMenuColor1R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR1_G, CMenu::addFeature(-1, *(parent + 1), "Color 1 Green", feat_action_value, "uiMenuColor1G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR1_B, CMenu::addFeature(-1, *(parent + 1), "Color 1 Blue", feat_action_value, "uiMenuColor1B", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR2_R, CMenu::addFeature(-1, *(parent + 1), "Color 2 Red", feat_action_value, "uiMenuColor2R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR2_G, CMenu::addFeature(-1, *(parent + 1), "Color 2 Green", feat_action_value, "uiMenuColor2G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_COLOR2_B, CMenu::addFeature(-1, *(parent + 1), "Color 2 Blue", feat_action_value, "uiMenuColor2B", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR1_R, CMenu::addFeature(-1, *(parent + 1), "Color Selected 1 Red", feat_action_value, "uiMenuSelColor1R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR1_G, CMenu::addFeature(-1, *(parent + 1), "Color Selected 1 Green", feat_action_value, "uiMenuSelColor1G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR1_B, CMenu::addFeature(-1, *(parent + 1), "Color Selected 1 Blue", feat_action_value, "uiMenuSelColor1B", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR2_R, CMenu::addFeature(-1, *(parent + 1), "Color Selected 2 Red", feat_action_value, "uiMenuSelColor2R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR2_G, CMenu::addFeature(-1, *(parent + 1), "Color Selected 2 Green", feat_action_value, "uiMenuSelColor2G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SEL_COLOR2_B, CMenu::addFeature(-1, *(parent + 1), "Color Selected 2 Blue", feat_action_value, "uiMenuSelColor2B", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR1_R, CMenu::addFeature(-1, *(parent + 1), "Color Slider 1 Red", feat_action_value, "uiMenuSldrColor1R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR1_G, CMenu::addFeature(-1, *(parent + 1), "Color Slider 1 Green", feat_action_value, "uiMenuSldrColor1G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR1_B, CMenu::addFeature(-1, *(parent + 1), "Color Slider 1 Blue", feat_action_value, "uiMenuSldrColor1B", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR2_R, CMenu::addFeature(-1, *(parent + 1), "Color Slider 2 Red", feat_action_value, "uiMenuSldrColor2R", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR2_G, CMenu::addFeature(-1, *(parent + 1), "Color Slider 2 Green", feat_action_value, "uiMenuSldrColor2G", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_I_MENU_SLDR_COLOR2_B, CMenu::addFeature(-1, *(parent + 1), "Color Slider 2 Blue", feat_action_value, "uiMenuSldrColor2B", 0.f, 255.f, 5.f));
 
 
 		*parent	= CMenu::addFeature(1, -1, "Online Players", feat_parent);

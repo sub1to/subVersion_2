@@ -1195,8 +1195,12 @@ namespace script
 			}
 			else if(action == CHAOSMODE_MASSACRE && ENTITY::IS_ENTITY_A_PED(ent))	//massacre
 					shoot_ped(ent);
-			else if(action == CHAOSMODE_ENERGYFIELD && ENTITY::IS_ENTITY_A_VEHICLE(ent))
+			else if(action == CHAOSMODE_ENERGYFIELD && request_control_of_entity(ent) && ENTITY::IS_ENTITY_A_VEHICLE(ent))
+			{
 				VEHICLE::SET_VEHICLE_UNDRIVEABLE(ent, true);
+				CVehicle* veh = util::handle_to_ptr<CVehicle>(ent);
+				veh->fHealth2	= 0;
+			}
 		}
 	}
 

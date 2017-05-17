@@ -64,6 +64,13 @@ class CRender
 		static scrnVars		m_screen;
 		static std::string	m_szWindowTitle;
 
+		static CColor LAYOUT_COLOR_BACKGROUND;
+		static CColor LAYOUT_COLOR_BORDER;
+		static CColor LAYOUT_COLOR_SLIDER_BG;
+		static CColor LAYOUT_COLOR_SLIDER_BTN;
+		static CColor LAYOUT_COLOR_ACTIVE_BG;
+		static CColor LAYOUT_COLOR_SELECTED;
+
 		static bool	initialze(HMODULE hModule, std::string szWindowTitle);
 
 		static bool	render();

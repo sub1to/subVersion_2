@@ -76,10 +76,51 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 
 	m_iniParser.read();
 
+	struct colorPair
+	{
+		char		key[0x20];
+		BYTE*		ptr;
+	};
+
+	colorPair	menuCol[]	=
+	{
+		{ "uiMenuColor1R", &CRender::LAYOUT_COLOR_BACKGROUND.r, },
+		{ "uiMenuColor1G", &CRender::LAYOUT_COLOR_BACKGROUND.g, },
+		{ "uiMenuColor1B", &CRender::LAYOUT_COLOR_BACKGROUND.b, },
+		{ "uiMenuColor2R", &CRender::LAYOUT_COLOR_BORDER.r, },
+		{ "uiMenuColor2G", &CRender::LAYOUT_COLOR_BORDER.g, },
+		{ "uiMenuColor2B", &CRender::LAYOUT_COLOR_BORDER.b, },
+		{ "uiMenuSelColor1R", &CRender::LAYOUT_COLOR_ACTIVE_BG.r, },
+		{ "uiMenuSelColor1G", &CRender::LAYOUT_COLOR_ACTIVE_BG.g, },
+		{ "uiMenuSelColor1B", &CRender::LAYOUT_COLOR_ACTIVE_BG.b, },
+		{ "uiMenuSelColor2R", &CRender::LAYOUT_COLOR_SELECTED.r, },
+		{ "uiMenuSelColor2G", &CRender::LAYOUT_COLOR_SELECTED.g, },
+		{ "uiMenuSelColor2B", &CRender::LAYOUT_COLOR_SELECTED.b, },
+		{ "uiMenuSldrColor1R", &CRender::LAYOUT_COLOR_SLIDER_BG.r, },
+		{ "uiMenuSldrColor1G", &CRender::LAYOUT_COLOR_SLIDER_BG.g, },
+		{ "uiMenuSldrColor1B", &CRender::LAYOUT_COLOR_SLIDER_BG.b, },
+		{ "uiMenuSldrColor2R", &CRender::LAYOUT_COLOR_SLIDER_BTN.r, },
+		{ "uiMenuSldrColor2G", &CRender::LAYOUT_COLOR_SLIDER_BTN.g, },
+		{ "uiMenuSldrColor2B", &CRender::LAYOUT_COLOR_SLIDER_BTN.b, },
+	};
+
+	for(int i = 0; i < get_array_size(menuCol); ++i)
+	{
+		int value;
+		if(!m_iniParser.getValue<int>(menuCol[i].key, "FeatureValue", value))
+		{
+			resetIni();
+			m_iniParser.read();
+			i	= 0;
+			continue;
+		}
+		*menuCol[i].ptr	= (BYTE) value;
+	}
+
 	struct keyInit
 	{
-		uint32_t	index;
-		char		iniKey[0x20];
+		eKeys	index;
+		char	iniKey[0x20];
 	};
 
 	constexpr keyInit	keys[]	= 
@@ -110,10 +151,10 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 		{ KEY_EDITOR_DELETE,	"EditorDelete" },
 	};
 
-	for(int i = 0; i < sizeof(keys) / sizeof(*keys); ++i)
+	for(int i = 0; i < get_array_size(keys); ++i)
 	{
-		std::string	str	= m_iniParser.getValue<std::string>(keys[i].iniKey, "Keys");
-		if(str.empty())
+		std::string	str;
+		if(!m_iniParser.getValue<std::string>(keys[i].iniKey, "Keys", str))
 		{
 			resetIni();
 			m_iniParser.read();
@@ -456,7 +497,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
 		m_pFeature[id]->m_szIniKey	= iniKey;
-	m_pFeature[id]->m_bOn		= (bool) m_iniParser.getValue<bool>(m_pFeature[id]->m_szIniKey, "FeatureToggle");
+	m_iniParser.getValue<bool>(m_pFeature[id]->m_szIniKey, "FeatureToggle", m_pFeature[id]->m_bOn);
 	m_pFeature[id]->m_bRestored	= (m_pFeature[id]->m_bOn) ? false : true;
 	m_pFeature[id]->m_bSet		= (m_pFeature[id]->m_bOn) ? false : true;
 	return id;
@@ -489,7 +530,8 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		return id;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMin		= min;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMax		= max;
-	float v	= m_iniParser.getValue<float>(iniKey, "FeatureValue");
+	float v;
+	m_iniParser.getValue<float>(iniKey, "FeatureValue", v);
 	if(v <= max && v >= min)
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= v;
 	else
@@ -529,11 +571,14 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	int id = addFeature(cat, parent, name, type, iniKey);
 	if(id < 0)
 		return id;
-	static_cast<CFeatTeleport*>(m_pFeature[id])->m_tpType		= tpType;
-	static_cast<CFeatTeleport*>(m_pFeature[id])->m_v3Pos.x		= m_iniParser.getValue<float>(iniKey + "_x", "Teleport");
-	static_cast<CFeatTeleport*>(m_pFeature[id])->m_v3Pos.y		= m_iniParser.getValue<float>(iniKey + "_y", "Teleport");
-	static_cast<CFeatTeleport*>(m_pFeature[id])->m_v3Pos.z		= m_iniParser.getValue<float>(iniKey + "_z", "Teleport");
-	static_cast<CFeatTeleport*>(m_pFeature[id])->m_szName		+= " | " + m_iniParser.getValue<std::string>(iniKey + "_name", "Teleport");
+	CFeatTeleport* feat = static_cast<CFeatTeleport*>(m_pFeature[id]);
+	feat->m_tpType		= tpType;
+	m_iniParser.getValue<float>(iniKey + "_x", "Teleport", feat->m_v3Pos.x);
+	m_iniParser.getValue<float>(iniKey + "_y", "Teleport", feat->m_v3Pos.y);
+	m_iniParser.getValue<float>(iniKey + "_z", "Teleport", feat->m_v3Pos.z);
+	std::string str;
+	m_iniParser.getValue<std::string>(iniKey + "_name", "Teleport", str);
+	feat->m_szName		+= " | " + str;
 	return id;
 }
 

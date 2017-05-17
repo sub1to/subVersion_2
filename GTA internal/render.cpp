@@ -19,21 +19,18 @@
 
 #include "stdafx.h"
 
-static const CColor LAYOUT_COLOR_BACKGROUND		= { 0x38, 0x78, 0xE2, 0xFF };
-static const CColor LAYOUT_COLOR_BORDER			= { 0x01, 0x01, 0x01, 0xFF };
-static const CColor LAYOUT_COLOR_TEXT			= { 0x01, 0x01, 0x01, 0xFF };
-static const CColor LAYOUT_COLOR_SLIDER_BG		= { 0x28, 0x28, 0x28, 0xFF };
-static const CColor LAYOUT_COLOR_SLIDER_BTN		= { 0x73, 0x73, 0x73, 0xFF };
-static const CColor LAYOUT_COLOR_ACTIVE_BG		= { 0x85, 0xac, 0xed, 0xFF };
-static const CColor LAYOUT_COLOR_ACTIVE_BORDER	= { 0x01, 0x01, 0x01, 0xFF };
-static const CColor LAYOUT_COLOR_SELECTED		= { 0xFF, 0xFF, 0xFF, 0xFF };
-
 /*
 	//CRender static public members
 */
 
 scrnVars		CRender::m_screen;
 std::string		CRender::m_szWindowTitle;
+CColor CRender::LAYOUT_COLOR_BACKGROUND		= { 0x38, 0x78, 0xE2, 0xFF };
+CColor CRender::LAYOUT_COLOR_BORDER			= { 0x01, 0x01, 0x01, 0xFF };
+CColor CRender::LAYOUT_COLOR_SLIDER_BG		= { 0x28, 0x28, 0x28, 0xFF };
+CColor CRender::LAYOUT_COLOR_SLIDER_BTN		= { 0x73, 0x73, 0x73, 0xFF };
+CColor CRender::LAYOUT_COLOR_ACTIVE_BG		= { 0x85, 0xac, 0xed, 0xFF };
+CColor CRender::LAYOUT_COLOR_SELECTED		= { 0xFF, 0xFF, 0xFF, 0xFF };
 
 /*
 	//CRender functions
@@ -58,7 +55,7 @@ bool	CRender::render()
 
 	//Draw header
 	drawBoxBorder(x, y, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
-	drawText(&m_szWindowTitle[0], x, y - 1, w, h, 4, 0.35f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+	drawText(&m_szWindowTitle[0], x, y - 1, w, h, 4, 0.35f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 	y	+=	h;
 
 	//draw tabs
@@ -72,8 +69,8 @@ bool	CRender::render()
 
 		drawBoxBorder(	xCat, y, w, h, LAYOUT_BORDER_SIZE,
 								(i == aCat) ? LAYOUT_COLOR_ACTIVE_BG : LAYOUT_COLOR_BACKGROUND,
-								(i == aCat) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
-		drawText(&tab->m_szDisplay[0], xCat, y + 1, w - 1, h, 0, 0.25f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+								(i == aCat) ? LAYOUT_COLOR_BORDER : LAYOUT_COLOR_BORDER);
+		drawText(&tab->m_szDisplay[0], xCat, y + 1, w - 1, h, 0, 0.25f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 		xCat += w;
 	}
 	y	+= h;
@@ -118,12 +115,12 @@ bool	CRender::render()
 							LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 5),
 							LAYOUT_BORDER_SIZE,
 							(feature->m_bOn == true) ? LAYOUT_COLOR_SELECTED : LAYOUT_COLOR_BACKGROUND,
-							(feature->m_bOn == true) ? LAYOUT_COLOR_ACTIVE_BORDER : LAYOUT_COLOR_BORDER);
+							(feature->m_bOn == true) ? LAYOUT_COLOR_BORDER : LAYOUT_COLOR_BORDER);
 		}
 		if(checkBox)
 			xFeat	+= (LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 3));
 		std::string featname = feature->m_type & feat_parent ? feature->m_szName + " >>" : feature->m_szName;
-		drawText(&featname[0], xFeat, y + 2, 0, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_NOSHADOW);
+		drawText(&featname[0], xFeat, y + 2, 0, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_NOSHADOW);
 			
 		//slider & value
 		if(feature->m_type & feat_slider | feat_value)
@@ -145,13 +142,13 @@ bool	CRender::render()
 					const char* const * ppCh = feature->getCharArray();
 					char msg[0x20];
 					sprintf_s(msg, "< %s >", *((ppCh) + (int) feature->getValue()));
-					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
 				else
 				{
 					char msg[0x20];
 					sprintf_s(msg, "< %i >", (int) feature->getValue());
-					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_TEXT, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
 			}
 		}

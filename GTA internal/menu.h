@@ -267,25 +267,24 @@ class CIniParser
 
 
 		template	<typename rT>
-		rT			getValue(std::string szKey, std::string szSection = "")
+		bool		getValue(std::string szKey, std::string szSection, rT& out)
 		{
-			rT		r{};
 			int		i	= this->findKey(szKey, szSection);
 			if(i == -1 || (szSection != "" && (m_key[i].section < 0 || m_section[m_key[i].section] != szSection)))
-				return r;
+				return false;
 			std::stringstream	ss(m_key[i].value);
-			ss	>> r;
-			return r;
+			ss	>> out;
+			return true;
 		}
 
 		template	<>
-		std::string	getValue(std::string szKey, std::string szSection)
+		bool getValue(std::string szKey, std::string szSection, std::string& out)
 		{
-			std::string		r = "";
 			int				i	= this->findKey(szKey, szSection);
 			if(i == -1 || (szSection != "" && (m_key[i].section < 0 || m_section[m_key[i].section] != szSection)))
-				return r;
-			return m_key[i].value;
+				return false;
+			out = m_key[i].value;
+			return true;
 		}
 
 		template	<typename wT>
