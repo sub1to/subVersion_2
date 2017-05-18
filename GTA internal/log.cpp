@@ -53,16 +53,22 @@ void addTime(std::string& str)
 	return;
 }
 
-std::string	CLog::log(std::string msg, std::string prefix)
+std::string	CLog::log(char* format, char* prefix, va_list args)
 {
-	std::ofstream file;
+	std::ofstream	file;
+	char			msg[2][0xFF]	= {};
+	char			time[0x20]		= {};
+
 	file.open(CLog::m_szFile, std::ios::out | std::ios::app);
 	if(!file.is_open())
-		return "";
-	msg.insert(0, prefix);
-	addTime(msg);
-	file << msg << std::endl;
-	return msg;
+		return {};
+
+	getTime(time);
+	vsprintf_s(msg[0], format, args);
+	sprintf_s(msg[1], "%s %s %s", time, prefix, msg[0]);
+	
+	file << msg[1] << std::endl;
+	return std::string(msg[1]);
 }
 
 /*
@@ -88,20 +94,29 @@ bool	CLog::initialize(std::string szDir, std::string szFile)
 	return true;
 }
 
-void	CLog::msg(char* msg)
+void	CLog::msg(char* msg, ...)
 {
-	m_msg.push_back(log(msg, " [Msg] "));
+	va_list	args;
+	va_start(args, msg);
+	m_msg.push_back(log(msg, "[Msg]", args));
+	va_end(args);
 	return;
 }
 
-void	CLog::error(char* error)
+void	CLog::error(char* error, ...)
 {
-	m_error.push_back(log(error, " [Error] "));
+	va_list	args;
+	va_start(args, error);
+	m_error.push_back(log(error, "[Error]", args));
+	va_end(args);
 	return;
 }
 
-void	CLog::fatal(char* error)
+void	CLog::fatal(char* error, ...)
 {
-	m_fatal.push_back(log(error, " [Fatal] "));
+	va_list	args;
+	va_start(args, error);
+	m_fatal.push_back(log(error, "[Fatal]", args));
+	va_end(args);
 	return;
 }

@@ -139,54 +139,6 @@ bool	CHack::refresh()
 	static std::unordered_map<Entity, int>	cleanupCountMap;
 	CFeat* feat;
 
-	struct colorFeatPair
-	{
-		eFeatures		feat;
-		BYTE*		ptr;
-	};
-
-
-	//create feature type and do this directly from the toggle/inc/dec function(s)?
-	colorFeatPair	menuCol[]	=
-	{
-		{ FEATURE_I_MENU_COLOR1_R, &CRender::LAYOUT_COLOR_BACKGROUND.r, },
-		{ FEATURE_I_MENU_COLOR1_G, &CRender::LAYOUT_COLOR_BACKGROUND.g, },
-		{ FEATURE_I_MENU_COLOR1_B, &CRender::LAYOUT_COLOR_BACKGROUND.b, },
-		{ FEATURE_I_MENU_COLOR2_R, &CRender::LAYOUT_COLOR_BORDER.r, },
-		{ FEATURE_I_MENU_COLOR2_G, &CRender::LAYOUT_COLOR_BORDER.g, },
-		{ FEATURE_I_MENU_COLOR2_B, &CRender::LAYOUT_COLOR_BORDER.b, },
-		{ FEATURE_I_MENU_SEL_COLOR1_R, &CRender::LAYOUT_COLOR_ACTIVE_BG.r, },
-		{ FEATURE_I_MENU_SEL_COLOR1_G, &CRender::LAYOUT_COLOR_ACTIVE_BG.g, },
-		{ FEATURE_I_MENU_SEL_COLOR1_B, &CRender::LAYOUT_COLOR_ACTIVE_BG.b, },
-		{ FEATURE_I_MENU_SEL_COLOR2_R, &CRender::LAYOUT_COLOR_SELECTED.r, },
-		{ FEATURE_I_MENU_SEL_COLOR2_G, &CRender::LAYOUT_COLOR_SELECTED.g, },
-		{ FEATURE_I_MENU_SEL_COLOR2_B, &CRender::LAYOUT_COLOR_SELECTED.b, },
-		{ FEATURE_I_MENU_SLDR_COLOR1_R, &CRender::LAYOUT_COLOR_SLIDER_BG.r, },
-		{ FEATURE_I_MENU_SLDR_COLOR1_G, &CRender::LAYOUT_COLOR_SLIDER_BG.g, },
-		{ FEATURE_I_MENU_SLDR_COLOR1_B, &CRender::LAYOUT_COLOR_SLIDER_BG.b, },
-		{ FEATURE_I_MENU_SLDR_COLOR2_R, &CRender::LAYOUT_COLOR_SLIDER_BTN.r, },
-		{ FEATURE_I_MENU_SLDR_COLOR2_G, &CRender::LAYOUT_COLOR_SLIDER_BTN.g, },
-		{ FEATURE_I_MENU_SLDR_COLOR2_B, &CRender::LAYOUT_COLOR_SLIDER_BTN.b, },
-	};
-
-	for(int i = 0; i < get_array_size(menuCol); ++i)
-	{
-		feat = CMenu::getFeature(menuCol[i].feat);
-		if(feat->m_bOn && !feat->m_bSet)
-		{
-			*menuCol[i].ptr	= (BYTE) feat->getValue();
-			feat->m_bSet	= true;
-		}
-	}
-
-	//set padding
-	feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_X);
-	if(feat->m_bOn)
-		CRender::m_screen.x = (int) feat->getValue();
-	feat = CMenu::getFeature(FEATURE_I_MENU_PADDING_Y);
-	if(feat->m_bOn)
-		CRender::m_screen.y = (int) feat->getValue();
-
 	//save settings
 	feat = CMenu::getFeature(FEATURE_I_SAVE_INI);
 	if(feat->m_bOn && !feat->m_bSet)

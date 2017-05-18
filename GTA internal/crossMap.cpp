@@ -27,7 +27,8 @@ static hashMap	m_nativeHashMap;
 /*
 	//Map Data
 */
-uint64_t __HASHMAPDATA[] = {
+uint64_t __HASHMAPDATA[] =
+{
 	0xF25D331DC2627BBC, 0x9B0FAF2C1DE9BB5A, //player::is_player_online
 	0x4F8644AF03D0E0D6, 0xBE369BE1BC57A796, //player::player_id
 	0xD80958FC74E988A6, 0x17B5CC8A8615737D, //player::player_ped_id
@@ -38,7 +39,6 @@ uint64_t __HASHMAPDATA[] = {
 	0x2E397FD2ECD37C87, 0xE58A1B5558D2DC66, //player::is_player_free_aiming
 	0x2975C866E6713290, 0x7940476800F126AE, //player::get_entity_player_is_free_aiming_at
 	0x43A66C31C68491C0, 0xDF7CE83326F434E9, //player::get_player_ped
-	0xF25D331DC2627BBC, 0x9B0FAF2C1DE9BB5A, //player::is_player_online
 	0x50FAC3A3E030A6E1, 0xD560851477A3D4CA, //player::get_player_ped_script_index
 	0x13EDE1A5DBF797C9, 0x41B9773A1CCDC74C, //player::get_player_target_entity
 	0xA5EDC40EF369B48D, 0x592069F95C314814, //player::get_player_index
@@ -262,11 +262,7 @@ uint64_t CCrossMap::get(uint64_t native)
 	if(it != m_nativeHashMap.end())
 		result	= it->second;
 	else
-	{
-		char	msg[0x60];
-		sprintf_s(msg, "Finding native 0x%016llx", native);
-		CLog::error(msg);
-	}
+		CLog::error("Finding native 0x%016llx", native);
 
 	return result;
 }

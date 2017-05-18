@@ -35,7 +35,6 @@ namespace util
 			seed = true;
 		}
 		return rand() % end + start;
-		//return GAMEPLAY::GET_RANDOM_INT_IN_RANGE(start, end);
 	}
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle)
@@ -51,22 +50,6 @@ namespace util
 
 		return pool->ListAddr + index * pool->ItemSize;
 	}
-
-	/*CPed*	ped_handle_to_ptr(Ped ped)
-	{
-		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, ped);
-		if(ptr == 0)
-			return nullptr;
-		return *reinterpret_cast<CPed**>(ptr + 8);
-	}
-
-	CVehicle*	vehicle_handle_to_ptr(Vehicle veh)
-	{
-		uintptr_t	ptr	= get_address_of_item_in_pool(*CHooking::m_entityPool, veh);
-		if(ptr == 0)
-			return nullptr;
-		return *reinterpret_cast<CVehicle**>(ptr + 8);
-	}*/
 
 	bool	to_clipboard(char* str)
 	{
@@ -115,6 +98,11 @@ namespace util
 	float	pixel_to_rel(uint32_t in, bool height)
 	{
 		return (float) (1.0 / (height ? CHooking::m_resolution->h : CHooking::m_resolution->w)) * in;
+	}
+
+	uint32_t	rel_to_pixel(float in, bool height)
+	{
+		return (uint32_t) ((height ? CHooking::m_resolution->h : CHooking::m_resolution->w) * in);
 	}
 
 	Hash $(std::string str)
@@ -1891,21 +1879,18 @@ namespace script
 	{
 		static const	v3		pos					= { 4500.f, 8000.f, 2000.f };
 		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
-		static			Object	crashObj			= 0;
 		static			int		count[MAX_PLAYERS]	= { 0 };
 		Ped						ped					= CPlayerMem::get_player_ped(player);
+		Object					crashObj			= 0;
 
-		if(crashObj == 0 || !ENTITY::IS_AN_ENTITY(crashObj) || !ENTITY::IS_ENTITY_AN_OBJECT(crashObj))
+		if(get_entity_coords(ped).getDist(pos) < 5.f || count[player] > 0x40)
 		{
 			STREAMING::REQUEST_MODEL(objHash);
 			if(!STREAMING::HAS_MODEL_LOADED(objHash))
 				return false;
 			crashObj	= OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
 			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
-		}
 
-		if(get_entity_coords(ped).getDist(pos) < 5.f || count[player] > 0x40)
-		{
 			count[player]	= 0;
 			return true;
 		}

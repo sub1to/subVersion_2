@@ -32,12 +32,20 @@
 #define FFB_CATEGORY	1 << 0
 #define FFB_PARENT		1 << 1
 
+typedef struct
+{
+	std::string	value;
+	int			section;
+} iniProperty;
+
+typedef std::array<int, FEATURE_END>	featIndex;
+typedef std::array<int, PLRFEAT_END>	plrFeatIndex;
+typedef std::map<std::string, iniProperty>	iniMap;
+
+
 /*
 	//Feature classes
 */
-typedef std::array<int, FEATURE_END>	featIndex;
-typedef std::array<int, PLRFEAT_END>	plrFeatIndex;
-
 enum eKeys
 {
 	KEY_EXIT,
@@ -81,11 +89,13 @@ enum featType
 	feat_action_value		= (1 << 7)	| 1 << 2,
 	feat_action_value_str	= (1 << 8)	| feat_action_value,
 	feat_value_str			= (1 << 9)	| feat_value,
-	feat_anim				= (1 << 10)
+	feat_anim				= (1 << 10),
+	feat_menu_option		= (1 << 11) | feat_action_value,
 };
 
 enum teleType	{ tp_saved, tp_static };
 enum spwnType	{ spwn_vehicle, spwn_weapon, spwn_weapon_all, dspwn_weapon, dspwn_weapon_all, spwn_model, spwn_ped, spwn_object };
+enum menuType	{ menu_color, menu_padding };
 
 class CFeatCat
 {
@@ -182,6 +192,19 @@ class CFeatActionValue : public CFeatValue
 		void	toggle();
 };
 
+class CFeatActionValueMenu : public CFeatActionValue
+{
+	public:
+				CFeatActionValueMenu();
+				~CFeatActionValueMenu();
+		void	toggle();
+		void	inc();
+		void	dec();
+
+		void*		m_pointer;
+		menuType	m_menuOptionType;
+};
+
 class CFeatActionValueStr : public CFeatActionValue
 {
 	public:
@@ -243,13 +266,6 @@ class CFeatParent : public CFeat
 	//INI Parser Class
 */
 
-typedef struct
-{
-    std::string    key,
-                   value;
-    int            section;
-} iniProperty;
-
 class CIniParser
 {
 	public:
@@ -262,17 +278,17 @@ class CIniParser
 		void		read();
 		void		write();
 
-		int			findKey(std::string szKey, std::string szSection = "");
-		int			createKey(std::string szKey, std::string szSection = "");
+		//int			findKey(std::string szKey, std::string szSection = "");
+		bool		createKey(std::string szKey, std::string szSection = "");
 
 
 		template	<typename rT>
 		bool		getValue(std::string szKey, std::string szSection, rT& out)
 		{
-			int		i	= this->findKey(szKey, szSection);
-			if(i == -1 || (szSection != "" && (m_key[i].section < 0 || m_section[m_key[i].section] != szSection)))
+			iniMap::iterator it = m_propertyMap.find(szKey);
+			if(it == m_propertyMap.end() || (szSection != "" && it->second.section > -1 && m_section[it->second.section] != szSection))
 				return false;
-			std::stringstream	ss(m_key[i].value);
+			std::stringstream	ss(it->second.value);
 			ss	>> out;
 			return true;
 		}
@@ -280,27 +296,26 @@ class CIniParser
 		template	<>
 		bool getValue(std::string szKey, std::string szSection, std::string& out)
 		{
-			int				i	= this->findKey(szKey, szSection);
-			if(i == -1 || (szSection != "" && (m_key[i].section < 0 || m_section[m_key[i].section] != szSection)))
+			iniMap::iterator it = m_propertyMap.find(szKey);
+			if(it == m_propertyMap.end() || (szSection != "" && it->second.section > -1 && m_section[it->second.section] != szSection))
 				return false;
-			out = m_key[i].value;
+			out = it->second.value;
 			return true;
 		}
 
 		template	<typename wT>
 		bool		setValue(std::string szKey, wT value, std::string szSection = "")
 		{
-			int i	= findKey(szKey, szSection);
-			if(i == -1 || (szSection != "" && (m_key[i].section < 0 || m_section[m_key[i].section] != szSection)))
-				i	= createKey(szKey, szSection);
-			if(i == -1)
+			iniMap::iterator it = m_propertyMap.find(szKey);
+			if(it == m_propertyMap.end() &&	!createKey(szKey, szSection))
 				return false;
-			m_key[i].value = std::to_string(value);
+			m_propertyMap[szKey].value	= std::to_string(value);
 			return true;
 		}
 	protected:
+		std::map<std::string, iniProperty>	m_propertyMap;
 		std::vector<std::string>	m_section;
-		std::vector<iniProperty>	m_key;
+		//std::vector<iniProperty>	m_key;
 };
 
 class CMenu
@@ -345,6 +360,7 @@ class CMenu
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod, const char* const enumArray[]);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, float min, float max, float mod);
+		static int			addFeature(int cat, int parent, std::string name, featType type, menuType menuOptionType, std::string iniKey, float min, float max, float mod, void* pointer);
 		static int			addFeature(int cat, int parent, std::string name, featType type, std::string iniKey, teleType tpType);
 		static int			addFeature(int cat, int parent, std::string name, featType type, teleType tpType);
 		static int			addFeature(int cat, int parent, std::string name, featType type, teleType tpType, float x, float y, float z);

@@ -22,7 +22,8 @@
 #ifndef HOOKING_H
 #define HOOKING_H
 
-typedef void(__cdecl *NativeHandler)(scrNativeCallContext* context);	// Native function handler type
+typedef void	(__cdecl *NativeHandler)(scrNativeCallContext* context);	// Native function handler type
+typedef std::unordered_map<uint64_t,NativeHandler>	handlerCache;
 
 struct NativeRegistration
 {
@@ -50,19 +51,19 @@ struct screenReso
 class CHooking
 {
 	public:
-		static std::vector<LPVOID>							m_hookedNative;
-		static eGameState* 									m_gameState;
-		static CBlipList*									m_blipList;
-		static NativeRegistration**							m_regTable;
-		static CReplayInterface*							m_replayIntf;
-		static std::unordered_map<uint64_t,NativeHandler>	m_handlerCache;
-		static __int64**									m_globalBase;
-		static MemoryPool**									m_entityPool;
-		static CRITICAL_SECTION								m_critSec;
-		static threeBytes*									m_infAmmo;
-		static threeBytes*									m_noReload;
-		static CViewPort*									m_viewPort;
-		static screenReso*									m_resolution;
+		static std::vector<LPVOID>		m_hookedNative;
+		static eGameState* 				m_gameState;
+		static CBlipList*				m_blipList;
+		static NativeRegistration**		m_regTable;
+		static CReplayInterface*		m_replayIntf;
+		static handlerCache				m_handlerCache;
+		static __int64**				m_globalBase;
+		static MemoryPool**				m_entityPool;
+		static CRITICAL_SECTION			m_critSec;
+		static threeBytes*				m_infAmmo;
+		static threeBytes*				m_noReload;
+		static CViewPort*				m_viewPort;
+		static screenReso*				m_resolution;
 
 		static void				init();
 		static void				cleanup();

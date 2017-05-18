@@ -17,8 +17,9 @@ void nativePush64(UINT64 value)
 
 uint64_t* nativeCall()
 {
-	auto fn = CHooking::getNativeHandler(g_hash);
-	if (fn != 0)
+	uint64_t*		ret	= nullptr;
+	NativeHandler	fn	= CHooking::getNativeHandler(g_hash);
+	if (fn != nullptr)
 	{
 		__try
 		{
@@ -26,11 +27,10 @@ uint64_t* nativeCall()
 		}
 		__except (true)
 		{
-			char	msg[0x60];
-			sprintf_s(msg, "Executing native 0x%016llx", g_hash);
-			CLog::error(msg);
+			CLog::error("Executing native 0x%016llx at %p", g_hash, (void*) fn);
 		}
+		ret	= reinterpret_cast<uint64_t*>(g_context.GetResultPointer());
 	}
-	return reinterpret_cast<uint64_t*>(g_context.GetResultPointer());
+	return ret;
 }
 

@@ -31,11 +31,11 @@ class CLog
 		static vec_str		m_fatal;
 
 		static bool	initialize(std::string szDir,std::string szFile);
-		static void msg(char* msg);
-		static void error(char* error);
-		static void	fatal(char* error);
+		static void msg(char* msg, ...);
+		static void error(char* error, ...);
+		static void	fatal(char* erro, ...);
 
 	protected:
 		static std::string	m_szFile;
-		static std::string	log(std::string msg, std::string prefix);
+		static std::string	log(char*, char*, va_list vars);
 };

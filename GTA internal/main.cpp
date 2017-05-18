@@ -36,8 +36,6 @@ int __stdcall DllMain
 	{
 	case DLL_PROCESS_ATTACH:
 		g_hModule = hModule;
-		//AllocConsole();
-		//freopen("CONOUT$", "w", stdout);
 		g_hThreadMain = CreateThread
 		(
 			NULL,
@@ -115,7 +113,7 @@ void killProcess()
 	FreeLibraryAndExitThread(g_hModule, 0);
 }
 
-void killProcess(std::string msg)
+void killProcess(char* msg)
 {
 	CLog::fatal(&msg[0]);
 	killProcess();

@@ -22,19 +22,19 @@
 /*
 	//Init static public members
 */
-std::vector<LPVOID>							CHooking::m_hookedNative;
-eGameState* 								CHooking::m_gameState;
-CBlipList*									CHooking::m_blipList;
-NativeRegistration**						CHooking::m_regTable;
-CReplayInterface*							CHooking::m_replayIntf;
-std::unordered_map<uint64_t,NativeHandler>	CHooking::m_handlerCache;
-__int64**									CHooking::m_globalBase;
-MemoryPool**								CHooking::m_entityPool;
-CRITICAL_SECTION							CHooking::m_critSec;
-threeBytes*									CHooking::m_infAmmo;
-threeBytes*									CHooking::m_noReload;
-CViewPort*									CHooking::m_viewPort;
-screenReso*									CHooking::m_resolution;
+std::vector<LPVOID>		CHooking::m_hookedNative;
+eGameState* 			CHooking::m_gameState;
+CBlipList*				CHooking::m_blipList;
+NativeRegistration**	CHooking::m_regTable;
+CReplayInterface*		CHooking::m_replayIntf;
+handlerCache			CHooking::m_handlerCache;
+__int64**				CHooking::m_globalBase;
+MemoryPool**			CHooking::m_entityPool;
+CRITICAL_SECTION		CHooking::m_critSec;
+threeBytes*				CHooking::m_infAmmo;
+threeBytes*				CHooking::m_noReload;
+CViewPort*				CHooking::m_viewPort;
+screenReso*				CHooking::m_resolution;
 
 /*
 	//Private declarations
@@ -73,6 +73,10 @@ void CHooking::init()
 	InitializeCriticalSection(&m_critSec);
 	CCrossMap::init();
 	findPatterns();
+	//set max menu padding
+	//this can only be done after this point, because it requires the resolution
+	static_cast<CFeatActionValueMenu*>(CMenu::getFeature(FEATURE_I_MENU_PADDING_X))->m_fMax	= round((m_resolution->w - 320.f) / 25) * 25;
+	static_cast<CFeatActionValueMenu*>(CMenu::getFeature(FEATURE_I_MENU_PADDING_Y))->m_fMax	= round((m_resolution->h - 310.f) / 25) * 25;
 
 	while(*CHooking::m_gameState != GameStatePlaying)
 		Sleep(100);
@@ -108,37 +112,39 @@ void CHooking::cleanup()
 	CLog::msg("Cleaning up hooks");
 	for(int i = 0; i < m_hookedNative.size(); i++)
 		if(MH_DisableHook(m_hookedNative[i]) != MH_OK && MH_RemoveHook(m_hookedNative[i]) != MH_OK)
-			CLog::msg("Failed to unhook");
+			CLog::error("Failed to unhook %p", (void*) m_hookedNative[i]);
 	MH_Uninitialize();
 }
 
 NativeHandler CHooking::getNativeHandler(uint64_t origHash)
 {
-	auto& handler = m_handlerCache[origHash];
-	if(handler == nullptr)
+	NativeHandler handler =	nullptr;
+	handlerCache::iterator it	= m_handlerCache.find(origHash);
+	if(it != m_handlerCache.end())
 	{
-		uint64_t newHash = CCrossMap::get(origHash);
-		if(newHash == 0)
-			return nullptr;
-
-		NativeRegistration*	table	= CHooking::m_regTable[newHash & 0xFF];
-
-		for(; table; table = table->nextRegistration)
-			for (uint32_t i = 0; i < table->numEntries; i++)
-				if (newHash == table->hashes[i])
-				{
-					handler = table->handlers[i];
-					break;
-				}
-
-		m_handlerCache[origHash] = handler;
-
-		/*
-		char msg[0xFF];
-		sprintf_s(msg, "Native 0x%016llx 0x%p", origHash, handler);
-		CLog::msg(msg);
-		//*/
+		handler	= it->second;
+		goto LABEL_RET_HANDLER;
 	}
+
+	uint64_t newHash = CCrossMap::get(origHash);
+	if(newHash == NULL)
+		goto LABEL_RET_HANDLER;
+
+	NativeRegistration*	table	= CHooking::m_regTable[newHash & 0xFF];
+
+	for(; table; table = table->nextRegistration)
+		for (uint32_t i = 0; i < table->numEntries; i++)
+			if (newHash == table->hashes[i])
+			{
+				handler = table->handlers[i];
+				break;
+			}
+
+	m_handlerCache[origHash] = handler;
+
+	//CLog::msg("Native 0x%016llx 0x%p", origHash, handler);
+
+LABEL_RET_HANDLER:
 	return handler;
 }
 
@@ -166,12 +172,12 @@ void CHooking::defuseEvent(eRockstarEvent e, bool b)
 */
 bool initHooks()
 {
-	if (MH_Initialize() != MH_OK)
+	if(MH_Initialize() != MH_OK)
 	{
 		CLog::fatal("MinHook failed to initialize");
 		return false;
 	}
-	if (!hookNatives())
+	if(!hookNatives())
 	{
 		CLog::fatal("Failed to initialize hooks");
  		return false;
@@ -257,9 +263,7 @@ BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 bool hookNatives()
 {
 	return true
-		&& hook(0xF25D331DC2627BBC, &HK_IS_PLAYER_ONLINE, &OG_IS_PLAYER_ONLINE)		//is_player_online
-		//&& hook(0x5E9564D8246B909A, &HK_NATIVE, &ORIG_NATIVE);		//is_player_playing
-		//&& hook(0x4EDE34FBADD967A6, &HK_NATIVE, &ORIG_NATIVE);		//wait
+		&& hook(0xF25D331DC2627BBC, &HK_IS_PLAYER_ONLINE, &OG_IS_PLAYER_ONLINE)
 		&& hook(0x2902843FCD2B2D79, &HK_GET_EVENT_DATA, &OG_GET_EVENT_DATA)
 		;
 }
@@ -283,11 +287,12 @@ void findPatterns()
 	CPattern pattern_viewport	("\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x2D\x00\x00\x00\x00\x48\x8B\xCD",							"xxx????xxx????xxx");
 	CPattern pattern_resolution	("\x8B\x0D\x00\x00\x00\x00\x49\x8D\x56\x28",														"xx????xxxx");
 
+	constexpr char	pattern_event[]	= "\x4C\x8D\x05";
+
 	        //    address = FindPattern("\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10", "xxx????xxxxxxxx");
            // PedPoolAddress = reinterpret_cast<uintptr_t *>(*reinterpret_cast<int *>(address + 3) + address + 7);
 
-
-	char* ptr	= nullptr;
+	char*	ptr			= nullptr;
 
 	ptr	= pattern_gameState.find(0).get(0).get<char>(2);
 	ptr == nullptr ?	killProcess("Failed find game state pattern")				: CHooking::m_gameState		= (eGameState*)				(ptr + *(uint32_t*) ptr + 5);
@@ -332,32 +337,27 @@ void findPatterns()
 	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern")	: mem_nop(ptr, 2);
 
 	ptr	= pattern_eventHook.find(0).get(0).get<char>(0);
-	if(ptr != nullptr)
-	{
-		int	j		= 0,
-			match	= 0,
-			found	= 0;
-
-		const char* const	pat	= "\x4C\x8D\x05";
-
-		while(found < REVENT_END)
-		{
-			if(*ptr == pat[j])
-			{
-				if(++match == 3)
-				{
-					g_eventPtr[found]	= (void*) (reinterpret_cast<uint64_t>(ptr - 2) + *reinterpret_cast<int*>(ptr + 1) + 7);
-					++found;
-					j	= match	= 0;
-				}
-				++j;
-			}
-			else
-				j	= match	= 0;
-
-			++ptr;
-		}
-	}
-	else
+	if(ptr == nullptr)
 		killProcess("Failed to find event hook pattern");
+
+	for(uint32_t i = 0, match = 0, found = 0; found < REVENT_END; ++ptr)
+	{
+		char*	eventPtr;
+
+		if(*ptr != pattern_event[i])
+			goto LABEL_RESET;
+
+		if(++match < 3)
+		{
+			++i;
+			continue;
+		}
+
+		eventPtr			= ptr + 1;
+		g_eventPtr[found]	= (void*) (eventPtr + *(int32_t*) eventPtr + 4);
+		++found;
+
+	LABEL_RESET:
+		i	= match	= 0;
+	}
 }

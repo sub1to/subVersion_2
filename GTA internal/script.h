@@ -108,6 +108,7 @@ namespace util
 	bool	world_to_screen(v3 pos, v2& out);
 	Hash	$(std::string str);
 	float	pixel_to_rel(uint32_t in, bool height);
+	uint32_t rel_to_pixel(float in, bool height);
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle);
 

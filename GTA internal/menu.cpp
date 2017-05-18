@@ -76,47 +76,6 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 
 	m_iniParser.read();
 
-	struct colorPair
-	{
-		char		key[0x20];
-		BYTE*		ptr;
-	};
-
-	colorPair	menuCol[]	=
-	{
-		{ "uiMenuColor1R", &CRender::LAYOUT_COLOR_BACKGROUND.r, },
-		{ "uiMenuColor1G", &CRender::LAYOUT_COLOR_BACKGROUND.g, },
-		{ "uiMenuColor1B", &CRender::LAYOUT_COLOR_BACKGROUND.b, },
-		{ "uiMenuColor2R", &CRender::LAYOUT_COLOR_BORDER.r, },
-		{ "uiMenuColor2G", &CRender::LAYOUT_COLOR_BORDER.g, },
-		{ "uiMenuColor2B", &CRender::LAYOUT_COLOR_BORDER.b, },
-		{ "uiMenuSelColor1R", &CRender::LAYOUT_COLOR_ACTIVE_BG.r, },
-		{ "uiMenuSelColor1G", &CRender::LAYOUT_COLOR_ACTIVE_BG.g, },
-		{ "uiMenuSelColor1B", &CRender::LAYOUT_COLOR_ACTIVE_BG.b, },
-		{ "uiMenuSelColor2R", &CRender::LAYOUT_COLOR_SELECTED.r, },
-		{ "uiMenuSelColor2G", &CRender::LAYOUT_COLOR_SELECTED.g, },
-		{ "uiMenuSelColor2B", &CRender::LAYOUT_COLOR_SELECTED.b, },
-		{ "uiMenuSldrColor1R", &CRender::LAYOUT_COLOR_SLIDER_BG.r, },
-		{ "uiMenuSldrColor1G", &CRender::LAYOUT_COLOR_SLIDER_BG.g, },
-		{ "uiMenuSldrColor1B", &CRender::LAYOUT_COLOR_SLIDER_BG.b, },
-		{ "uiMenuSldrColor2R", &CRender::LAYOUT_COLOR_SLIDER_BTN.r, },
-		{ "uiMenuSldrColor2G", &CRender::LAYOUT_COLOR_SLIDER_BTN.g, },
-		{ "uiMenuSldrColor2B", &CRender::LAYOUT_COLOR_SLIDER_BTN.b, },
-	};
-
-	for(int i = 0; i < get_array_size(menuCol); ++i)
-	{
-		int value;
-		if(!m_iniParser.getValue<int>(menuCol[i].key, "FeatureValue", value))
-		{
-			resetIni();
-			m_iniParser.read();
-			i	= 0;
-			continue;
-		}
-		*menuCol[i].ptr	= (BYTE) value;
-	}
-
 	struct keyInit
 	{
 		eKeys	index;
@@ -158,7 +117,7 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 		{
 			resetIni();
 			m_iniParser.read();
-			i	= 0;
+			i	= -1;
 			continue;
 		}
 		m_keyIndex[keys[i].index]			= strToVk(str);
@@ -475,6 +434,9 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type)
 		case feat_anim:
 			m_pFeature.push_back(new CFeatAnim);
 		break;
+		case feat_menu_option:
+			m_pFeature.push_back(new CFeatActionValueMenu);
+		break;
 	}
 	int id	= (int) m_pFeature.size() - 1;
 	m_pFeature[id]->m_iId		= id;
@@ -497,7 +459,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
 		m_pFeature[id]->m_szIniKey	= iniKey;
-	m_iniParser.getValue<bool>(m_pFeature[id]->m_szIniKey, "FeatureToggle", m_pFeature[id]->m_bOn);
+	m_iniParser.getValue<bool>(std::string("tog_") + m_pFeature[id]->m_szIniKey, "FeatureToggle", m_pFeature[id]->m_bOn);
 	m_pFeature[id]->m_bRestored	= (m_pFeature[id]->m_bOn) ? false : true;
 	m_pFeature[id]->m_bSet		= (m_pFeature[id]->m_bOn) ? false : true;
 	return id;
@@ -531,13 +493,13 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMin		= min;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMax		= max;
 	float v;
-	m_iniParser.getValue<float>(iniKey, "FeatureValue", v);
+	m_iniParser.getValue<float>(std::string("val_") + iniKey, "FeatureValue", v);
 	if(v <= max && v >= min)
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= v;
 	else
 	{
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= min;
-		m_iniParser.setValue<float>(iniKey, min, "FeatureValue");
+		m_iniParser.setValue<float>(std::string("val_") + iniKey, min, "FeatureValue");
 	}
 	return id;
 }
@@ -561,6 +523,18 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	if(id < 0)
 		return id;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMod		= mod;
+	return id;
+}
+
+int		CMenu::addFeature(int cat, int parent, std::string name, featType type, menuType menuOptionType, std::string iniKey, float min, float max, float mod, void* pointer)
+{
+	int id = addFeature(cat, parent, name, type, iniKey, min, max, mod);
+	if(id < 0)
+		return id;
+	CFeatActionValueMenu*	feat	= static_cast<CFeatActionValueMenu*>(m_pFeature[id]);
+	feat->m_menuOptionType	= menuOptionType;
+	feat->m_pointer			= pointer;
+	feat->toggle();
 	return id;
 }
 
@@ -764,7 +738,7 @@ void	CFeat::toggle()
 		m_bRestored = false;
 	m_bSet = false;
 	if(m_szIniKey != "")
-		CMenu::m_iniParser.setValue<bool>((std::string) m_szIniKey, (int) m_bOn, "FeatureToggle");
+		CMenu::m_iniParser.setValue<bool>(std::string("tog_") + m_szIniKey, (int) m_bOn, "FeatureToggle");
 	return;
 }
 
@@ -775,7 +749,7 @@ void	CFeat::toggle(bool state)
 		m_bRestored = false;
 	m_bSet = false;
 	if(m_szIniKey != "")
-		CMenu::m_iniParser.setValue<bool>((std::string) m_szIniKey, (int) m_bOn, "FeatureToggle");
+		CMenu::m_iniParser.setValue<bool>(std::string("tog_") + m_szIniKey, (int) m_bOn, "FeatureToggle");
 	return;
 }
 
@@ -814,7 +788,7 @@ void	CFeatSlider::inc()
 		m_fValue = v;
 	else
 		m_fValue = m_fMax;
-	CMenu::m_iniParser.setValue<float>((std::string) m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -825,7 +799,7 @@ void	CFeatSlider::dec()
 		m_fValue = v;
 	else
 		m_fValue = m_fMin;
-	CMenu::m_iniParser.setValue<float>((std::string) m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -839,7 +813,7 @@ void	CFeatValue::inc()
 		m_fValue = v;
 	else
 		m_fValue = m_fMin;
-	CMenu::m_iniParser.setValue<float>((std::string) m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -850,7 +824,7 @@ void	CFeatValue::dec()
 		m_fValue = v;
 	else
 		m_fValue = m_fMax;
-	CMenu::m_iniParser.setValue<float>((std::string) m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -869,6 +843,40 @@ void	CFeatActionValue::toggle()
 {
 	m_bOn = true;
 	m_bSet	= false;
+}
+
+CFeatActionValueMenu::CFeatActionValueMenu() {}
+CFeatActionValueMenu::~CFeatActionValueMenu() {}
+
+void	CFeatActionValueMenu::toggle()
+{
+	switch(m_menuOptionType)
+	{
+		case menu_color:
+		{
+			BYTE*	ptr	= (BYTE*)	m_pointer;
+			*ptr		= (BYTE) m_fValue;
+		}
+		break;
+		case menu_padding:
+		{
+			int*	ptr	= (int*)	m_pointer;
+			*ptr		= (int) m_fValue;
+		}
+		break;
+	}
+}
+
+void	CFeatActionValueMenu::inc()
+{
+	CFeatActionValue::inc();
+	toggle();
+}
+
+void	CFeatActionValueMenu::dec()
+{
+	CFeatActionValue::dec();
+	toggle();
 }
 
 CFeatActionValueStr::CFeatActionValueStr() {}
@@ -1011,13 +1019,12 @@ void CIniParser::read()
 		return;
 
 	m_section.clear();
-	m_key.clear();
+	m_propertyMap.clear();
 
 	std::string szLine;
 	int			iSection = -1;
 	std::regex	regexSection("^\\[([A-Za-z0-9_]+)\\]$"),
-				regexKey	("^([A-Za-z0-9_]+)=([A-Za-z0-9_\\-*/+.\\s]+)$"),
-				regexComment("^(;|#)(.*)$");
+				regexKey	("^([A-Za-z0-9_]+)=([A-Za-z0-9_\\-*/+.\\s]+)$");
 
 	while(std::getline(file, szLine, '\n'))
 	{
@@ -1025,9 +1032,6 @@ void CIniParser::read()
 
 		if(szLine == "")
 			continue;
-        
-		else if(std::regex_search(szLine, regexMatch, regexComment) && regexMatch.size() > 1)
-			m_key.push_back({"__COMMENT__", regexMatch[2], iSection});
              
 		else if(std::regex_search(szLine, regexMatch, regexSection) && regexMatch.size() > 1)
 		{
@@ -1036,7 +1040,10 @@ void CIniParser::read()
 		}
             
 		else if(std::regex_search(szLine, regexMatch, regexKey) && regexMatch.size() > 1)
-			m_key.push_back({regexMatch[1], regexMatch[2], iSection});
+		{
+			iniProperty	tmp	= { regexMatch[2], iSection };
+			m_propertyMap.emplace(regexMatch[1], tmp);
+		}
 	}
 	return;
 }
@@ -1047,36 +1054,24 @@ void CIniParser::write()
 	file.open(m_szFile, std::ios::out | std::ios::trunc);
 	if(!file.is_open())
 		return;
-	for(int j = 0; j <= m_section.size(); j++)
+	for(int j = -1; j < (int) m_section.size(); ++j)
 	{
-		if(j > 0)
-			file << "[" << m_section[j - 1] << "]\n";
-		for(int i = 0; i < m_key.size(); i++)
+		if(j >= 0)
+			file << "[" << m_section[j] << "]\n";
+		for(iniMap::iterator it = m_propertyMap.begin(); it != m_propertyMap.end(); ++it)
 		{
-			if(m_key[i].section != j - 1)
+			if(it->second.section != j)
 				continue;
-			if(m_key[i].key == "__COMMENT__")
-				file << ";" ;
-			else
-				file << m_key[i].key << "=";
-			file << m_key[i].value << "\n";
+			file << it->first << "=" << it->second.value << "\n";
 		}
 	}
 	return;
 }
 
-int CIniParser::findKey(std::string szKey, std::string szSection)
-{
-	for(int i = 0; i < m_key.size(); i++)
-		if(m_key[i].key == szKey && (szSection == "" || szSection == m_section[m_key[i].section]))
-			return i;
-	return -1;
-}
-
-int CIniParser::createKey(std::string szKey, std::string szSection)
+bool CIniParser::createKey(std::string szKey, std::string szSection)
 {
 	if(szKey == "")
-		return -1;
+		return false;
 	int iSection = -1;
 	if(szSection != "")
 	{
@@ -1086,7 +1081,13 @@ int CIniParser::createKey(std::string szKey, std::string szSection)
 				iSection = i;
 				break;
 			}
+		if(iSection == -1)
+		{
+			m_section.push_back(szSection);
+			iSection = (int) m_section.size() - 1;
+		}
 	}
-	m_key.push_back({szKey, "", iSection});
-	return (int) m_key.size() - 1;
+	iniProperty	tmp	= { "", iSection };
+	m_propertyMap.emplace(szKey, tmp);
+	return true;
 }

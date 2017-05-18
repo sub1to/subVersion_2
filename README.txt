@@ -15,14 +15,8 @@ Copyright 2017 sub1to
 	//////////
 	//Minhook
 	/////////
-		This project uses minhook, but it's not included. You can download minhook at:
+		This project uses minhook, but it's not included with the source. You can download minhook at:
 		https://github.com/TsudaKageyu/minhook
-	
-	//////////
-	//D3D9
-	/////////
-		The D3D9 libs are part of the DirectX and/or Windows SDK. You can download these from
-		microsoft.
 
 //////////
 //Hack instructions

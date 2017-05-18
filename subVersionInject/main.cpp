@@ -32,13 +32,12 @@
 
 typedef LPTHREAD_START_ROUTINE	LPTHREAD;
 typedef	HMODULE					(__stdcall *LOAD_LIB)(LPCSTR);
-typedef FARPROC					(__stdcall *PROC_ADDR)(HINSTANCE, LPCSTR);
 
 typedef struct remoteInject
 {
 	char		szPath[MAX_PATH];
 	LOAD_LIB	fpLoadLibray;
-} REMOTE_INJECT;
+} REM_INJ;
 
 BOOL	inject(DWORD, char*);
 void	random_str(char* str, uint32_t len);
@@ -47,15 +46,23 @@ bool	does_file_exist(const char* fileName);
 void	printf_color(char* format, BYTE color, ...);
 
 constexpr char	g_szConfig[]		= "subVersionInject.cfg";
-constexpr char	g_szTitle[]			= "Grand Theft Auto V";
+constexpr char	g_szTargetTitle[]	= "Grand Theft Auto V";
 
 int main()
 {
-	constexpr char	szDefaultName[]	= "subVersion.dll";
-	constexpr char	szWindowClass[]	= "grcWindow";
-	DWORD			procId			= 0;
-	HWND			hWndTarget		= 0;
-	std::string		szDllName		= szDefaultName;
+	constexpr char	szDefaultName[]		= "subVersion.dll";
+	constexpr char	szTargetClass[]		= "grcWindow";
+	char			szWindowTitle[0x21]	= {};
+	DWORD			procId				= 0;
+	HWND			hWndTarget			= 0;
+	std::string		szDllName			= szDefaultName;
+
+	//set random seed
+	srand((uint32_t) time(0));
+
+	//set window title
+	random_str(szWindowTitle, 0x20);
+	SetWindowTextA(GetConsoleWindow(), szWindowTitle);
 
 	if(!does_file_exist(g_szConfig))
 		write_to_config(szDllName);
@@ -76,16 +83,16 @@ int main()
 		goto LABEL_CLOSE;
 	}
 
-	printf_color("Looking for %s.\n", TEXTCOL_DEFAULT, g_szTitle);
+	printf_color("Looking for %s.\n", TEXTCOL_DEFAULT, g_szTargetTitle);
 
-	hWndTarget	= FindWindowA(szWindowClass, nullptr);
+	hWndTarget	= FindWindowA(szTargetClass, nullptr);
 	if(!hWndTarget || !GetWindowThreadProcessId(hWndTarget, &procId) || !procId)
 	{
-		printf_color("Failed to find %s.\nMake sure %s is running before injecting.\n", TEXTCOL_RED, g_szTitle, g_szTitle);
+		printf_color("Failed to find %s.\nMake sure %s is running before injecting.\n", TEXTCOL_RED, g_szTargetTitle, g_szTargetTitle);
 		goto LABEL_CLOSE;
 	}
 
-	printf_color("Found %s\nProcess ID: %u.\n", TEXTCOL_GREEN, g_szTitle, procId);
+	printf_color("Found %s\nProcess ID: %u.\n", TEXTCOL_GREEN, g_szTargetTitle, procId);
 
 	if(!inject(procId, &szDllName[0]))
 	{
@@ -118,8 +125,7 @@ void	printf_color(char* format, BYTE color, ...)
 bool	does_file_exist(const char* fileName)
 {
 	std::ifstream	file(fileName);
-	bool	r	= false;
-	r			= file.good();
+	bool	r	= file.good();
 	file.close();
 	return r;
 }
@@ -138,15 +144,9 @@ void random_str(char* str, uint32_t len)
 	{
 		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	};
-	static bool seed	= false;
-	if(!seed)
-	{
-		srand((uint32_t) time(0));
-		seed = true;
-	}
-
-	for(uint32_t i = 0; i < len; ++str, ++i)
-		*str	= charset[rand() % (get_array_size(charset) - 1)];
+	for(uint32_t i = 0; i < len - 1; ++str, ++i)
+		*str	= charset[rand() % ((get_array_size(charset) - 1))];
+	*(++str)	= '\0';
 }
 
 HMODULE get_module_address(HANDLE hProc, const char* moduleName)
@@ -200,7 +200,7 @@ char* substr(char* szBuffer, uint32_t start, uint32_t length)
 
 uint32_t __stdcall load_dll(void* context)
 {
-	REMOTE_INJECT*	injectParams	= (REMOTE_INJECT*) context;
+	REM_INJ*	injectParams	= (REM_INJ*) context;
 	injectParams->fpLoadLibray(injectParams->szPath);
 	return 1;
 }
@@ -212,17 +212,17 @@ uint32_t __stdcall load_dll_end()	//used to get end of load_dll
 
 BOOL inject(DWORD dwProcID, char* file)
 {
-	HANDLE			hProc				= nullptr,
-					hThread				= nullptr;
-	LPVOID			pInjBase			= nullptr,
-					pInjLoader			= nullptr;
-	DWORD			dwThreadID			= 0,
-					dwProtOut			= 0;
-	char			szPath[MAX_PATH]	= { 0 };
-	char			szRandName[0x20]	= { 0 };
-	BOOL			ret					= FALSE;
-	REMOTE_INJECT	injectParams		= {};
-	uint64_t		loadDllSize			= (uint64_t) load_dll_end - (uint64_t) load_dll;
+	HANDLE		hProc				= nullptr,
+				hThread				= nullptr;
+	LPVOID		pInjBase			= nullptr,
+				pInjLoader			= nullptr;
+	DWORD		dwThreadID			= 0,
+				dwProtOut			= 0;
+	char		szPath[MAX_PATH]	= { 0 };
+	char		szRandName[0x20]	= { 0 };
+	BOOL		ret					= FALSE;
+	REM_INJ		injectParams		= {};
+	uint64_t	loadDllSize			= (uint64_t) load_dll_end - (uint64_t) load_dll;
 
 	hProc = OpenProcess(PROCESS_ALL_ACCESS, false, dwProcID);
 	if(!hProc)
@@ -258,37 +258,37 @@ BOOL inject(DWORD dwProcID, char* file)
 	pInjBase	= VirtualAllocEx(hProc, 0, loadDllSize + sizeof(injectParams), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if(!pInjBase)
 	{
-		printf_color("Failed to allocate memory in %s.\n", TEXTCOL_RED, g_szTitle);
+		printf_color("Failed to allocate memory in %s.\n", TEXTCOL_RED, g_szTargetTitle);
 		goto LABEL_CLEANUP;
 	}
-	pInjLoader	= (REMOTE_INJECT*) pInjBase + 1;
+	pInjLoader	= (REM_INJ*) pInjBase + 1;
 
 	//write loader params
 	if(!WriteProcessMemory(hProc, pInjBase, &injectParams, sizeof(injectParams), nullptr))
 	{
-		printf_color("Failed to write loader params to %s\n", TEXTCOL_RED, g_szTitle);
+		printf_color("Failed to write loader params to %s\n", TEXTCOL_RED, g_szTargetTitle);
 		goto LABEL_CLEANUP;
 	}
 
 	//write loader
 	if(!WriteProcessMemory(hProc, pInjLoader, load_dll, loadDllSize, nullptr))
 	{
-		printf_color("Failed to write loader to %s.\n", TEXTCOL_RED, g_szTitle);
+		printf_color("Failed to write loader to %s.\n", TEXTCOL_RED, g_szTargetTitle);
 		goto LABEL_CLEANUP;
 	}
 
 	//set execute permission
 	if(!VirtualProtectEx(hProc, pInjLoader, loadDllSize, PAGE_EXECUTE_READWRITE, &dwProtOut))
 	{
-		printf_color("Failed to set permissions on loader in %s\n", TEXTCOL_RED, g_szTitle);
+		printf_color("Failed to set permissions on loader in %s\n", TEXTCOL_RED, g_szTargetTitle);
 		goto LABEL_CLEANUP;
 	}
 
 	//execute loader
-	hThread = CreateRemoteThread(hProc, nullptr, 0, (LPTHREAD_START_ROUTINE) pInjLoader, pInjBase, 0, &dwThreadID);
+	hThread = CreateRemoteThread(hProc, nullptr, 0, (LPTHREAD) pInjLoader, pInjBase, 0, &dwThreadID);
 	if(!hThread)
 	{
-		printf_color("Failed to create a thread in %s\n", TEXTCOL_RED, g_szTitle);
+		printf_color("Failed to create a thread in %s\n", TEXTCOL_RED, g_szTargetTitle);
 		goto LABEL_CLEANUP;
 	}
 
@@ -297,7 +297,6 @@ BOOL inject(DWORD dwProcID, char* file)
 
 	//clean up
 LABEL_CLEANUP:
-
 	if(hThread != nullptr)
 	{
 		WaitForSingleObject(hThread, INFINITE);

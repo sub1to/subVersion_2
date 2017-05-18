@@ -68,6 +68,6 @@
 DWORD	strToVk(std::string str);
 
 void	killProcess();
-void	killProcess(std::string);
+void	killProcess(char*);
 
 #endif
