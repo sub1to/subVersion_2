@@ -46,6 +46,12 @@ struct screenReso
 	uint32_t	w,
 				h;
 };
+
+struct objectHash
+{
+	DWORD*	ptr;
+	DWORD	hash;
+};
 #pragma pack(pop)
 
 class CHooking
@@ -64,6 +70,8 @@ class CHooking
 		static threeBytes*				m_noReload;
 		static CViewPort*				m_viewPort;
 		static screenReso*				m_resolution;
+		static void*					m_objectHashTable;
+		static void*					m_objectHashTableSectionEnd;
 
 		static void				init();
 		static void				cleanup();
@@ -71,6 +79,7 @@ class CHooking
 		static NativeHandler	getNativeHandler(uint64_t origHash);
 		static __int64*			getGlobalPtr(int index);
 		static void				defuseEvent(eRockstarEvent e, bool toggle);
+		static void				antiCrash(bool toggle);
 
 		template <typename T>
 		static void nop_bytes(T* address, T& restore, bool toggle)

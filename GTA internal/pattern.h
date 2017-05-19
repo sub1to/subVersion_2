@@ -44,6 +44,7 @@ class CPatternResult
 {
 	public:
 		CPatternResult(void* pVoid);
+		CPatternResult(void* pVoid, void* pBegin, void* pEnd);
 		~CPatternResult();
 
 		template <typename rT>
@@ -55,8 +56,22 @@ class CPatternResult
 			return ret;
 		}
 
+		template <typename rT>
+		rT*	section_begin()
+		{
+			return reinterpret_cast<rT*>(m_pBegin);
+		}
+
+		template <typename rT>
+		rT*	section_end()
+		{
+			return reinterpret_cast<rT*>(m_pEnd);
+		}
+
 	protected:
-		void*	m_pVoid	= nullptr;
+		void*	m_pVoid		= nullptr;
+		void*	m_pBegin	= nullptr;
+		void*	m_pEnd		= nullptr;
 };
 
 /*
@@ -70,7 +85,8 @@ class CPattern
 		CPattern(char* szByte, char* szMask);
 		~CPattern();
 		
-		CPattern&		find(int i = 0);		//scans for i patterns
+		CPattern&		find(int i = 0, uint64_t startAddress = 0);		//scans for i patterns
+		CPattern&		virtual_find(int i = 0, uint64_t startAddress = 0);
 		CPatternResult	get(int i);				//returns result i
 
 	protected:
@@ -79,7 +95,8 @@ class CPattern
 		bool			m_bSet;
 		vec_result		m_result;
 
-		bool		match(int i = 0);
-		bool		byteCompare(const BYTE* pData, const BYTE* btMask, const char* szMask);
-		uint64_t	findPattern(uint64_t i64Address, uint64_t end, BYTE *btMask, char *szMask);
+		bool		match(int i = 0, uint64_t startAddress = 0, bool virt = false);
+		bool		byte_compare(const BYTE* pData, const BYTE* btMask, const char* szMask);
+		uint64_t	find_pattern(uint64_t i64Address, uint64_t end, BYTE *btMask, char *szMask);
+		uint64_t	virtual_find_pattern(uint64_t address, BYTE *btMask, char *szMask);
 };

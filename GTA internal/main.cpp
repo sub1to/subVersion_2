@@ -103,7 +103,7 @@ void killProcess()
 		CMenu::getFeature(i)->m_bSet	= false;
 	}
 
-	Sleep(0xFF);
+	Sleep(0x400);
 
 	CHooking::cleanup();
 	CMenu::uninitialze();

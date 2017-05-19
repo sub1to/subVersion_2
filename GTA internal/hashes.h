@@ -176,6 +176,8 @@ namespace hash
 	extern const char* const ped_anim_dict[0x40];
 	extern const char* const ped_anim_name[0x20];
 
+	extern const DWORD	forbidden_object[77];
+
 
 	/*
 		//outfits

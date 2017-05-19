@@ -25,7 +25,7 @@ Copyright 2017 sub1to
 	//////////
 	//Getting started:
 	//////////
-		1.	Start GTAV
+		1.	Start GTAV, load into sp
 		2.	Inject subVersion.dll using any injector (First injection in SP, you can unload and re-inject while in MP)
 			I prefer Xenos Injector (with manual map)
 		3.	GL HF
@@ -86,3 +86,4 @@ Sheogorath			:snail:
 KingRain			Denies the existence of Lord Gaben.
 d3sk1ng				Better than burgerking.
 Dom				Mod
+5FingerDeathMark		Will punch you in the heart.

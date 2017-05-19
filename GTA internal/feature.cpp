@@ -225,6 +225,7 @@ namespace feature
 
 		*parent	= CMenu::addFeature(0, -1, "Protections", feat_parent);
 			//CMenu::indexFeature(FEATURE_D_FRAUD, CMenu::addFeature(-1, *parent, "Bill Fraud", feat_toggle, "protFraud"));
+			CMenu::indexFeature(FEATURE_D_CRASH, CMenu::addFeature(-1, *parent, "Crash", feat_toggle, "protCrash"));
 			CMenu::indexFeature(FEATURE_D_KICK, CMenu::addFeature(-1, *parent, "Kick", feat_toggle, "protKick"));
 			CMenu::indexFeature(FEATURE_D_TELEPORT, CMenu::addFeature(-1, *parent, "Teleport", feat_toggle, "protTele"));
 			CMenu::indexFeature(FEATURE_D_CLEAR_TASKS, CMenu::addFeature(-1, *parent, "Clear Ped Tasks", feat_toggle, "protClearTasks"));

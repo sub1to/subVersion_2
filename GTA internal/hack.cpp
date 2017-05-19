@@ -186,8 +186,16 @@ bool	CHack::refresh()
 	/*feat = CMenu::getFeature(FEATURE_P_TEST);
 	if(feat->m_bOn && !feat->m_bSet)
 	{
+		static const	v3		pos					= CPlayerMem::get_player_coords(CPlayerMem::player_id());
+		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
 
-		//feat->m_bSet	= true;
+		STREAMING::REQUEST_MODEL(objHash);
+		if(STREAMING::HAS_MODEL_LOADED(objHash))
+		{
+			OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
+			feat->m_bSet	= true;
+		}
 	}*/
 
 	//Fps counter
@@ -813,6 +821,14 @@ bool	CHack::refresh()
 		}
 	}
 
+	//anti crash
+	feat = CMenu::getFeature(FEATURE_D_CRASH);
+	if(!feat->m_bSet)
+	{
+		CHooking::antiCrash(feat->m_bOn);
+		feat->m_bSet = true;
+	}
+
 	//Event protections
 	constexpr eFeatures protexFeat[]	= {
 		FEATURE_D_TELEPORT,
@@ -1383,7 +1399,7 @@ bool	CHack::refresh()
 		//crash
 		plrFeat = CMenu::getPlrFeature(PLRFEAT_CRASH, i);
 		if(plrFeat->m_bOn && !plrFeat->m_bSet && script::crash_player(i))
-				plrFeat->m_bSet			= true;
+			plrFeat->m_bSet			= true;
 	}
 
 	//all players

@@ -1877,28 +1877,15 @@ namespace script
 
 	bool crash_player(Player player)
 	{
-		static const	v3		pos					= { 4500.f, 8000.f, 2000.f };
+		static const	v3		pos					= CPlayerMem::get_player_coords(player);
 		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
-		static			int		count[MAX_PLAYERS]	= { 0 };
-		Ped						ped					= CPlayerMem::get_player_ped(player);
-		Object					crashObj			= 0;
 
-		if(get_entity_coords(ped).getDist(pos) < 5.f || count[player] > 0x40)
-		{
-			STREAMING::REQUEST_MODEL(objHash);
-			if(!STREAMING::HAS_MODEL_LOADED(objHash))
-				return false;
-			crashObj	= OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
-			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
-
-			count[player]	= 0;
-			return true;
-		}
-
-		teleport_player_on_foot(ped, pos.x, pos.y, pos.z);
-		++count[player];
-
-		return false;
+		STREAMING::REQUEST_MODEL(objHash);
+		if(!STREAMING::HAS_MODEL_LOADED(objHash))
+			return false;
+		OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
+		return true;
 	}
 
 	int	get_online_player_index()

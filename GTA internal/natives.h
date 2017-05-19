@@ -2987,7 +2987,7 @@ namespace SCRIPT
 	static char* GET_THIS_SCRIPT_NAME() { return invoke<char*>(0x442E0A7EDE4A738A); } // 0x442E0A7EDE4A738A 0xA40FD5D9
 	static Hash GET_HASH_OF_THIS_SCRIPT_NAME() { return invoke<Hash>(0x8A1C8B1738FFE87E); } // 0x8A1C8B1738FFE87E 0x2BEE1F45
 	static int GET_NUMBER_OF_EVENTS(BOOL p0) { return invoke<int>(0x5F92A689A06620AA, p0); } // 0x5F92A689A06620AA 0xA3525D60
-	static BOOL GET_EVENT_EXISTS(BOOL p0, int p1) { return invoke<BOOL>(0x936E6168A9BCEDB5, p0, p1); } // 0x936E6168A9BCEDB5 0xA1B447B5
+	static BOOL GET_EVENT_EXISTS(int p0, int p1) { return invoke<BOOL>(0x936E6168A9BCEDB5, p0, p1); } // 0x936E6168A9BCEDB5 0xA1B447B5
 	static int GET_EVENT_AT_INDEX(BOOL p0, int p1) { return invoke<int>(0xD8F66A3A60C62153, p0, p1); } // 0xD8F66A3A60C62153 0xB49C1442
 	static BOOL GET_EVENT_DATA(BOOL p0, int p1, int* p2, int p3) { return invoke<BOOL>(0x2902843FCD2B2D79, p0, p1, p2, p3); } // 0x2902843FCD2B2D79 0x4280F92F
 	static void TRIGGER_SCRIPT_EVENT(BOOL p0, int* args, int argCount, int bitset) { invoke<Void>(0x5AE99C571D5BBE5D, p0, args, argCount, bitset); } // 0x5AE99C571D5BBE5D 0x54763B35

@@ -65,6 +65,11 @@ void		CMetaData::init()
 CPatternResult::CPatternResult(void* pVoid) :
 	m_pVoid(pVoid)
 {}
+CPatternResult::CPatternResult(void* pVoid, void* pBegin, void* pEnd) :
+	m_pVoid(pVoid),
+	m_pBegin(pBegin),
+	m_pEnd(pEnd)
+{}
 CPatternResult::~CPatternResult() {}
 
 /*
@@ -78,13 +83,20 @@ CPattern::CPattern(char* szByte, char* szMask)	:
 {}
 CPattern::~CPattern() {}
 
-CPattern&	CPattern::find(int i)
+CPattern&	CPattern::find(int i, uint64_t startAddress)
 {
-	match(i);
+	match(i, startAddress, false);
 	if(m_result.size() <= i)
 		m_result.push_back(nullptr);
 	return *this;
-	//return m_result[0];
+}
+
+CPattern&	CPattern::virtual_find(int i, uint64_t startAddress)
+{
+	match(i, startAddress, true);
+	if(m_result.size() <= i)
+		m_result.push_back(nullptr);
+	return *this;
 }
 
 CPatternResult	CPattern::get(int i)
@@ -98,16 +110,27 @@ CPatternResult	CPattern::get(int i)
 	//CPattern Private
 */
 
-bool	CPattern::match(int i)
+bool	CPattern::match(int i, uint64_t startAddress, bool virt)
 {
 	if(m_bSet)
 		return false;
-	CMetaData::init();
-	uint64_t	begin	= CMetaData::begin();
-	int			j		= 0;
+	uint64_t	begin	= 0;
+	uint64_t	end		= 0;
+	if(!virt)
+	{
+		CMetaData::init();
+		begin	= CMetaData::begin() + startAddress;
+		end		= CMetaData::end();
+		if(begin >= end)
+			return false;
+	}
+	int		j	= 0;
 	do
 	{
-		begin	= findPattern(begin, CMetaData::end(), (BYTE*) m_szByte, m_szMask);
+		if(virt)
+			begin	= virtual_find_pattern(startAddress, (BYTE*) m_szByte, m_szMask);
+		else
+			begin	= find_pattern(begin, end, (BYTE*) m_szByte, m_szMask);
 		if(begin == NULL)
 			break;
 		j++;
@@ -117,7 +140,7 @@ bool	CPattern::match(int i)
 	return true;
 }
 
-bool	CPattern::byteCompare(const BYTE* pData, const BYTE* btMask, const char* szMask)
+bool	CPattern::byte_compare(const BYTE* pData, const BYTE* btMask, const char* szMask)
 {
 	for(; *szMask; ++szMask, ++pData, ++btMask)
 		if(*szMask == 'x' && *pData != *btMask)
@@ -128,13 +151,45 @@ bool	CPattern::byteCompare(const BYTE* pData, const BYTE* btMask, const char* sz
 }
 
 
-uint64_t	CPattern::findPattern(uint64_t address, uint64_t end, BYTE *btMask, char *szMask)
+uint64_t	CPattern::find_pattern(uint64_t address, uint64_t end, BYTE *btMask, char *szMask)
 {
-	for(DWORD i = 0; i < (end - address); i++)
-		if(byteCompare((BYTE*) (address + i), btMask, szMask))
+	for(uint64_t i = 0; i < (end - address); i++)
+	{
+		BYTE*	ptr	= (BYTE*) (address + i);
+		if(byte_compare(ptr, btMask, szMask))
 		{
 			m_result.push_back(CPatternResult((void*) (address + i)));
 			return address + i;
 		}
+	}
 	return NULL;
+}
+
+uint64_t	CPattern::virtual_find_pattern(uint64_t address, BYTE *btMask, char *szMask)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	char*	pStart					= nullptr;
+	char*	pEnd					= nullptr;
+	char*	res						= nullptr;
+	size_t	maskLen					= strlen(szMask);
+
+	while(res == nullptr && sizeof(mbi) == VirtualQuery(pEnd, &mbi, sizeof(mbi)))
+	{
+		pStart	= pEnd;
+		pEnd	+= mbi.RegionSize;
+		if(mbi.Protect != PAGE_READWRITE || mbi.State != MEM_COMMIT)
+			continue;
+
+		for(int i = 0; pStart < pEnd - maskLen && res == nullptr; ++pStart)
+		{
+			if(byte_compare((BYTE*) pStart, btMask, szMask))
+			{
+				m_result.push_back(CPatternResult((void*) pStart, mbi.BaseAddress, pEnd));
+				res	= pStart;
+			}
+		}
+
+		mbi = {};
+	}
+	return (uint64_t) res;
 }

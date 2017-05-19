@@ -35,6 +35,8 @@ threeBytes*				CHooking::m_infAmmo;
 threeBytes*				CHooking::m_noReload;
 CViewPort*				CHooking::m_viewPort;
 screenReso*				CHooking::m_resolution;
+void*					CHooking::m_objectHashTable;
+void*					CHooking::m_objectHashTableSectionEnd;
 
 /*
 	//Private declarations
@@ -44,8 +46,9 @@ void	antiCheatBypass(bool);
 bool	hookNatives();
 void	findPatterns();
 
-static void*				g_eventPtr[REVENT_END]		= { nullptr };
-static unsigned char		g_eventRestore[REVENT_END]	= { 0 };
+static void*					g_eventPtr[REVENT_END]		= { nullptr };
+static unsigned char			g_eventRestore[REVENT_END]	= { 0 };
+static std::vector<objectHash>	g_antiCrash;
 
 /*
 	//threeBytes public functions
@@ -167,21 +170,60 @@ void CHooking::defuseEvent(eRockstarEvent e, bool b)
 		*ptr = g_eventRestore[e];
 }
 
+void CHooking::antiCrash(bool toggle)
+{
+	constexpr Hash	dildo	= 0xe6cb661e;
+	Hash*	hashptr		= nullptr;
+	char*		end		= nullptr;
+
+	if(!g_antiCrash.empty())
+		goto LABEL_SET_VALUE;
+
+	hashptr	= (Hash*) m_objectHashTable;
+	end		= (char*) m_objectHashTableSectionEnd - 0x20;
+
+	for(; (char*) hashptr < end; ++hashptr)
+	{
+		if(*hashptr == 0)
+			continue;
+		for(int i = 0; i < get_array_size(hash::forbidden_object); ++i)
+		{
+			if(*hashptr != hash::forbidden_object[i])
+				continue;
+			g_antiCrash.push_back( { hashptr, *hashptr } );
+			//*hashptr	= dildo;
+		}
+	}
+
+LABEL_SET_VALUE:
+
+	if(!toggle)
+	{
+		for(std::vector<objectHash>::iterator it = g_antiCrash.begin(); it != g_antiCrash.end(); ++it)
+		{
+			if(*it->ptr != dildo)
+			{
+				g_antiCrash.erase(it);
+				continue;
+			}
+			*it->ptr	= it->hash;
+		}
+		return;
+	}
+
+	for(std::vector<objectHash>::iterator it = g_antiCrash.begin(); it != g_antiCrash.end(); ++it)
+		*it->ptr	= dildo;
+}
+
 /*
 	//Hooking private functions
 */
 bool initHooks()
 {
 	if(MH_Initialize() != MH_OK)
-	{
-		CLog::fatal("MinHook failed to initialize");
-		return false;
-	}
+		killProcess("MinHook failed to initialize");
 	if(!hookNatives())
-	{
-		CLog::fatal("Failed to initialize hooks");
- 		return false;
- 	}
+		killProcess("Failed to initialize hooks");
 	return true;
 }
 
@@ -244,7 +286,7 @@ BOOL __cdecl HK_IS_PLAYER_ONLINE(NativeContext* cxt)
 BOOL (__cdecl *OG_GET_EVENT_DATA)(scrNativeCallContext* context)	= nullptr;
 BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 {
-	int	p1	= cxt->GetArgument<int>(1);
+	int	p2	= *cxt->GetArgument<int*>(2);
 
 	//if(CMenu::getFeature(feature::map["FEATURE_U_REMOTE_PROT_MONEY"])->m_bOn		&& (p1 == 0x127 || p1 == 0x230))
 	//	CLog::msg("Remote money attempt blocked.");
@@ -252,7 +294,7 @@ BOOL __cdecl HK_GET_EVENT_DATA(NativeContext *cxt)
 	//	CLog::msg("Remote rp attempt blocked.");
 	//if(CMenu::getFeature(feature::map["FEATURE_D_FRAUD"])->m_bOn		&& p1 == 0x186)
 	//	CLog::msg("Remote fraud attempt blocked.");
-	if(CMenu::getFeature(FEATURE_D_KICK)->m_bOn	&& p1 == 0x38)
+	if(CMenu::getFeature(FEATURE_D_KICK)->m_bOn	&& p2 == 0x38)
 		CLog::msg("Remote kick attempt blocked.");
 	else
 		return OG_GET_EVENT_DATA(cxt);
@@ -286,6 +328,7 @@ void findPatterns()
 	CPattern pattern_magazine	("\x41\x2B\xC9\x3B\xC8\x0F",																		"xxxxxx");
 	CPattern pattern_viewport	("\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x2D\x00\x00\x00\x00\x48\x8B\xCD",							"xxx????xxx????xxx");
 	CPattern pattern_resolution	("\x8B\x0D\x00\x00\x00\x00\x49\x8D\x56\x28",														"xx????xxxx");
+	CPattern pattern_obj_table	("\x01\x00\x00\x08\x43\x7f\x2e\x27\x00\x00\xFF\x0F\x00",											"xxxxxxxxxxxxx");
 
 	constexpr char	pattern_event[]	= "\x4C\x8D\x05";
 
@@ -330,6 +373,10 @@ void findPatterns()
 	ptr	= pattern_resolution.find(1).get(0).get<char>(2);
 	ptr == nullptr ?	killProcess("Failed to find resolution pattern")			: CHooking::m_resolution	= (screenReso*)				(ptr + *(uint32_t*) ptr + 4);
 
+	ptr	= pattern_obj_table.virtual_find(1).get(0).get<char>(4);
+	ptr == nullptr ?	killProcess("Failed to find object hash table pattern")		: CHooking::m_objectHashTable	= (void*)				ptr;
+	CHooking::m_objectHashTableSectionEnd	= pattern_obj_table.get(0).section_end<void>();
+
 	ptr	= pattern_modelCheck.find(0).get(0).get<char>(0);
 	ptr == nullptr ? CLog::error("Failed to find online model requests bypass pattern")				: mem_nop(ptr, 24);
 
@@ -340,6 +387,7 @@ void findPatterns()
 	if(ptr == nullptr)
 		killProcess("Failed to find event hook pattern");
 
+	//find events
 	for(uint32_t i = 0, match = 0, found = 0; found < REVENT_END; ++ptr)
 	{
 		char*	eventPtr;
