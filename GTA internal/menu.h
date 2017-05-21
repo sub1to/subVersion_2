@@ -34,7 +34,8 @@
 
 typedef struct
 {
-	std::string	value;
+	std::string	key;
+	std::string value;
 	int			section;
 } iniProperty;
 
@@ -285,7 +286,7 @@ class CIniParser
 		template	<typename rT>
 		bool		getValue(std::string szKey, std::string szSection, rT& out)
 		{
-			iniMap::iterator it = m_propertyMap.find(szKey);
+			iniMap::iterator it = m_propertyMap.find(szKey + szSection);
 			if(it == m_propertyMap.end() || (szSection != "" && it->second.section > -1 && m_section[it->second.section] != szSection))
 				return false;
 			std::stringstream	ss(it->second.value);
@@ -296,7 +297,7 @@ class CIniParser
 		template	<>
 		bool getValue(std::string szKey, std::string szSection, std::string& out)
 		{
-			iniMap::iterator it = m_propertyMap.find(szKey);
+			iniMap::iterator it = m_propertyMap.find(szKey + szSection);
 			if(it == m_propertyMap.end() || (szSection != "" && it->second.section > -1 && m_section[it->second.section] != szSection))
 				return false;
 			out = it->second.value;
@@ -306,10 +307,11 @@ class CIniParser
 		template	<typename wT>
 		bool		setValue(std::string szKey, wT value, std::string szSection = "")
 		{
-			iniMap::iterator it = m_propertyMap.find(szKey);
+			std::string mapKey	= szKey + szSection;
+			iniMap::iterator it = m_propertyMap.find(mapKey);
 			if(it == m_propertyMap.end() &&	!createKey(szKey, szSection))
 				return false;
-			m_propertyMap[szKey].value	= std::to_string(value);
+			m_propertyMap[mapKey].value	= std::to_string(value);
 			return true;
 		}
 	protected:

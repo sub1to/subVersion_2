@@ -68,7 +68,7 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	feature::populate();	//add the features
 
 	//init renderer
-	CRender::initialze(g_hModule, "subVersion 2.0.6 | by sub1to");
+	CRender::initialze(g_hModule, "subVersion 2.0.7 | by sub1to");
 
 	//init hooking
 	CHooking::init();

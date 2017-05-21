@@ -75,7 +75,7 @@ namespace feature
 			//CMenu::indexFeature(FEATURE_P_CLEANUP_OBJECTS, CMenu::addFeature(-1, *parent, "Cleanup Objects", feat_action));
 			//CMenu::indexFeature(FEATURE_P_ANTI_AFK, CMenu::addFeature(-1, *parent, "Anti AFK", feat_value_str, "", 0.f, (float) (sizeof(hash::anti_afk_name) / sizeof(*hash::anti_afk_name)) - 1, 1.f, hash::anti_afk_name));
 			CMenu::indexFeature(FEATURE_P_TINY, CMenu::addFeature(-1, *parent, "Tiny Player", feat_toggle));
-			//CMenu::indexFeature(FEATURE_P_TEST, CMenu::addFeature(-1, *parent, "TEST!!@", feat_action));
+			CMenu::indexFeature(FEATURE_P_TEST, CMenu::addFeature(-1, *parent, "TEST!!@", feat_action));
 			//CMenu::indexFeature(FEATURE_P_TEST2, CMenu::addFeature(-1, *parent, "TEST2!!@", feat_toggle));
 
 		*parent	= CMenu::addFeature(0, -1, "Vehicle Options", feat_parent);

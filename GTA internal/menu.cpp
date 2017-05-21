@@ -459,7 +459,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		static_cast<CFeatAnim*>(m_pFeature[id])->m_szHash[0] = iniKey;
 	else
 		m_pFeature[id]->m_szIniKey	= iniKey;
-	m_iniParser.getValue<bool>(std::string("tog_") + m_pFeature[id]->m_szIniKey, "FeatureToggle", m_pFeature[id]->m_bOn);
+	m_iniParser.getValue<bool>(m_pFeature[id]->m_szIniKey, "FeatureToggle", m_pFeature[id]->m_bOn);
 	m_pFeature[id]->m_bRestored	= (m_pFeature[id]->m_bOn) ? false : true;
 	m_pFeature[id]->m_bSet		= (m_pFeature[id]->m_bOn) ? false : true;
 	return id;
@@ -493,13 +493,13 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMin		= min;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMax		= max;
 	float v;
-	m_iniParser.getValue<float>(std::string("val_") + iniKey, "FeatureValue", v);
+	m_iniParser.getValue<float>(iniKey, "FeatureValue", v);
 	if(v <= max && v >= min)
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= v;
 	else
 	{
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= min;
-		m_iniParser.setValue<float>(std::string("val_") + iniKey, min, "FeatureValue");
+		m_iniParser.setValue<float>(iniKey, min, "FeatureValue");
 	}
 	return id;
 }
@@ -738,7 +738,7 @@ void	CFeat::toggle()
 		m_bRestored = false;
 	m_bSet = false;
 	if(m_szIniKey != "")
-		CMenu::m_iniParser.setValue<bool>(std::string("tog_") + m_szIniKey, (int) m_bOn, "FeatureToggle");
+		CMenu::m_iniParser.setValue<bool>(m_szIniKey, (int) m_bOn, "FeatureToggle");
 	return;
 }
 
@@ -749,7 +749,7 @@ void	CFeat::toggle(bool state)
 		m_bRestored = false;
 	m_bSet = false;
 	if(m_szIniKey != "")
-		CMenu::m_iniParser.setValue<bool>(std::string("tog_") + m_szIniKey, (int) m_bOn, "FeatureToggle");
+		CMenu::m_iniParser.setValue<bool>(m_szIniKey, (int) m_bOn, "FeatureToggle");
 	return;
 }
 
@@ -788,7 +788,7 @@ void	CFeatSlider::inc()
 		m_fValue = v;
 	else
 		m_fValue = m_fMax;
-	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -799,7 +799,7 @@ void	CFeatSlider::dec()
 		m_fValue = v;
 	else
 		m_fValue = m_fMin;
-	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -813,7 +813,7 @@ void	CFeatValue::inc()
 		m_fValue = v;
 	else
 		m_fValue = m_fMin;
-	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -824,7 +824,7 @@ void	CFeatValue::dec()
 		m_fValue = v;
 	else
 		m_fValue = m_fMax;
-	CMenu::m_iniParser.setValue<float>(std::string("val_") + m_szIniKey, m_fValue, "FeatureValue");
+	CMenu::m_iniParser.setValue<float>(m_szIniKey, m_fValue, "FeatureValue");
 	return;
 }
 
@@ -1041,8 +1041,8 @@ void CIniParser::read()
             
 		else if(std::regex_search(szLine, regexMatch, regexKey) && regexMatch.size() > 1)
 		{
-			iniProperty	tmp	= { regexMatch[2], iSection };
-			m_propertyMap.emplace(regexMatch[1], tmp);
+			iniProperty	tmp	= { regexMatch[1], regexMatch[2], iSection };
+			m_propertyMap.emplace(std::string(regexMatch[1]) + m_section[iSection], tmp);
 		}
 	}
 	return;
@@ -1062,7 +1062,7 @@ void CIniParser::write()
 		{
 			if(it->second.section != j)
 				continue;
-			file << it->first << "=" << it->second.value << "\n";
+			file << it->second.key << "=" << it->second.value << "\n";
 		}
 	}
 	return;
@@ -1087,7 +1087,8 @@ bool CIniParser::createKey(std::string szKey, std::string szSection)
 			iSection = (int) m_section.size() - 1;
 		}
 	}
-	iniProperty	tmp	= { "", iSection };
-	m_propertyMap.emplace(szKey, tmp);
+	std::string mapKey	= szKey + szSection;
+	iniProperty	tmp	= { szKey, "", iSection };
+	m_propertyMap.emplace(mapKey, tmp);
 	return true;
 }

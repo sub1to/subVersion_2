@@ -183,10 +183,10 @@ bool	CHack::refresh()
 			m_lastVehicle	= NULL;
 
 	//TEST
-	/*feat = CMenu::getFeature(FEATURE_P_TEST);
+	feat = CMenu::getFeature(FEATURE_P_TEST);
 	if(feat->m_bOn && !feat->m_bSet)
 	{
-		static const	v3		pos					= CPlayerMem::get_player_coords(CPlayerMem::player_id());
+		static const	v3		pos					= { 0, 0, 0 };
 		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
 
 		STREAMING::REQUEST_MODEL(objHash);
@@ -196,7 +196,7 @@ bool	CHack::refresh()
 			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
 			feat->m_bSet	= true;
 		}
-	}*/
+	}
 
 	//Fps counter
 	feat = CMenu::getFeature(FEATURE_I_FPS_COUNTER);
