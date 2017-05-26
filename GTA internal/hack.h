@@ -146,8 +146,8 @@ class CPlayerMem
 
 		static bool		is_player_valid(Player player);
 
-		static int		m_localPlayerId;
-		static CPlayer	m_player[0x20];		//player buffer
+		static int				m_localPlayerId;
+		static CPlayer			m_player[0x20];		//player buffer
 };
 
 #endif

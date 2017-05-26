@@ -36,7 +36,7 @@ typedef	HMODULE					(__stdcall *LOAD_LIB)(LPCSTR);
 typedef struct remoteInject
 {
 	char		szPath[MAX_PATH];
-	LOAD_LIB	fpLoadLibray;
+	LOAD_LIB	fpLoadLibrary;
 } REM_INJ;
 
 BOOL	inject(DWORD, char*);
@@ -201,7 +201,7 @@ char* substr(char* szBuffer, uint32_t start, uint32_t length)
 uint32_t __stdcall load_dll(void* context)
 {
 	REM_INJ*	injectParams	= (REM_INJ*) context;
-	injectParams->fpLoadLibray(injectParams->szPath);
+	injectParams->fpLoadLibrary(injectParams->szPath);
 	return 1;
 }
 
@@ -251,7 +251,7 @@ BOOL inject(DWORD dwProcID, char* file)
 	printf_color("Injecting %s.\n", TEXTCOL_DEFAULT, szPath);
 
 	//set injection params
-	injectParams.fpLoadLibray		= LoadLibraryA;
+	injectParams.fpLoadLibrary		= LoadLibraryA;
 	strcpy_s(injectParams.szPath, szPath);
 
 	//allocate memory for function and params

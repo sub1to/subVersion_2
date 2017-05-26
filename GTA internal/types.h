@@ -41,8 +41,3 @@ struct MemoryPool
     int MaxCount;
     int ItemSize;
 };
-
-struct CColor
-{
-	BYTE	r,g,b,a;
-};

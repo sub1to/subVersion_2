@@ -58,11 +58,6 @@
 #include "hack.h"
 #include "script.h"
 #include "pattern.h"
-
-#include "natives.h"
-#include "crossMap.h"
-#include "nativeInvoker.h"
-#include "nativeCaller.h"
 #include "hooking.h"
 
 DWORD	strToVk(std::string str);

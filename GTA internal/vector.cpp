@@ -108,3 +108,31 @@ namespace vec
 		z	= 0.f;
 	}
 };
+
+
+Vector3::Vector3(float X, float Y, float Z) :
+	x(X),
+	y(Y),
+	z(Z)
+{}
+Vector3::Vector3(float X, int, float Y, int, float Z, int) :
+	x(X),
+	y(Y),
+	z(Z)
+{}
+Vector3::Vector3(float v, int) :
+	x(v),
+	y(v),
+	z(v)
+{}
+Vector3::Vector3(float v) :
+	x(v),
+	y(v),
+	z(v)
+{}
+Vector3::Vector3() :
+	x(0.f),
+	y(0.f),
+	z(0.f)
+{}
+

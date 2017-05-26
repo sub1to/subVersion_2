@@ -10,7 +10,9 @@ Copyright 2017 sub1to
 	/////////
 		This project started out as a port of subVersion to internal, with parts (of an old version) of
 		SudoMod implemented. After having played around with this hybrid for a while and reading
-		through the SudoMod code, I decided to re-write a large part. subVersion 2 is the result.
+		through the SudoMod code, I decided to re-write a large part. subVersion 2.0 is the result.
+		subVersion 2.1 is further modified version that uses direct function calls, instead of the
+		previously used native invoker.
 
 	//////////
 	//Minhook

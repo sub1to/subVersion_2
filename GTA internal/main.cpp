@@ -68,30 +68,15 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	feature::populate();	//add the features
 
 	//init renderer
-	CRender::initialze(g_hModule, "subVersion 2.0.7 | by sub1to");
+	CRender::initialze(g_hModule, "subVersion 2.1.0 | by sub1to");
 
 	//init hooking
 	CHooking::init();
 
-	HWND	hWndTarget		= FindWindowA("grcWindow", nullptr);
-	while(true)
-	{
-		//exit
-		if(CMenu::checkKeyState(CMenu::m_keyIndex[KEY_EXIT]) || !CLog::m_fatal.empty())
-			killProcess();
-
-		HWND	hFgWnd	= GetForegroundWindow();
-		if(hFgWnd != hWndTarget)
-			CMenu::m_bFgWnd	= false;
-		else if(hWndTarget == hFgWnd)
-			CMenu::m_bFgWnd	= true;
-
-		Sleep(0x60);
-	}
 	return S_OK;
 }
 
-void killProcess()
+DWORD __stdcall _killProcess(LPVOID pParam)
 {
 	CLog::msg("Cleanup started");
 
@@ -111,6 +96,16 @@ void killProcess()
 	CLog::msg("Cleanup finished\n");
 
 	FreeLibraryAndExitThread(g_hModule, 0);
+}
+
+void killProcess()
+{
+	CreateThread(	NULL,
+					0,
+					_killProcess,
+					NULL,
+					0,
+					nullptr);
 }
 
 void killProcess(char* msg)

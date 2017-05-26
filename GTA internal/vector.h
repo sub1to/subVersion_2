@@ -106,6 +106,12 @@ typedef struct Vector3
 	{
 		return v3(x, y, z);
 	}
+
+	Vector3(float, float, float);
+	Vector3(float, int, float, int, float, int);
+	Vector3(float, int);
+	Vector3(float);
+	Vector3();
 } Vector3;
 #pragma pack(pop)
 

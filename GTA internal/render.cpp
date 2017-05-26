@@ -53,9 +53,20 @@ bool	CRender::render()
 		w	= LAYOUT_ELEMENT_WIDTH,
 		h	= LAYOUT_ELEMENT_HEIGHT;
 
+	/*
+	1920 1080		.25f
+	1900 900		.30f
+	1280 720		.35f
+
+	1080 - 900	= 180
+	1080 - 720	= 360
+	*/
+	float textScaleOffset	= .055f * ((1080 - CHooking::m_resolution->h) / 180.f);
+	float textScale			= .24f + textScaleOffset;
+
 	//Draw header
 	drawBoxBorder(x, y, w, h, LAYOUT_BORDER_SIZE, LAYOUT_COLOR_BACKGROUND, LAYOUT_COLOR_BORDER);
-	drawText(&m_szWindowTitle[0], x, y - 1, w, h, 4, 0.35f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+	drawText(&m_szWindowTitle[0], x, y - 1, w, h, 4, 0.36f + textScaleOffset, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 	y	+=	h;
 
 	//draw tabs
@@ -70,7 +81,7 @@ bool	CRender::render()
 		drawBoxBorder(	xCat, y, w, h, LAYOUT_BORDER_SIZE,
 								(i == aCat) ? LAYOUT_COLOR_ACTIVE_BG : LAYOUT_COLOR_BACKGROUND,
 								(i == aCat) ? LAYOUT_COLOR_BORDER : LAYOUT_COLOR_BORDER);
-		drawText(&tab->m_szDisplay[0], xCat, y + 1, w - 1, h, 0, 0.25f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+		drawText(&tab->m_szDisplay[0], xCat, y + 1, w - 1, h, 0, 0.26f + textScaleOffset, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 		xCat += w;
 	}
 	y	+= h;
@@ -120,7 +131,7 @@ bool	CRender::render()
 		if(checkBox)
 			xFeat	+= (LAYOUT_ELEMENT_HEIGHT - (LAYOUT_BORDER_SIZE * 3));
 		std::string featname = feature->m_type & feat_parent ? feature->m_szName + " >>" : feature->m_szName;
-		drawText(&featname[0], xFeat, y + 2, 0, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_NOSHADOW);
+		drawText(&featname[0], xFeat, y + 2, 0, 0, 0, textScale, LAYOUT_COLOR_BORDER, TEXTFLAG_NOSHADOW);
 			
 		//slider & value
 		if(feature->m_type & feat_slider | feat_value)
@@ -142,13 +153,13 @@ bool	CRender::render()
 					const char* const * ppCh = feature->getCharArray();
 					char msg[0x20];
 					sprintf_s(msg, "< %s >", *((ppCh) + (int) feature->getValue()));
-					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, textScale, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
 				else
 				{
 					char msg[0x20];
 					sprintf_s(msg, "< %i >", (int) feature->getValue());
-					drawText(msg, xSlide, ySlide - 3, w, 0, 0, .24f, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
+					drawText(msg, xSlide, ySlide - 3, w, 0, 0, textScale, LAYOUT_COLOR_BORDER, TEXTFLAG_CENTER | TEXTFLAG_NOSHADOW);
 				}
 			}
 		}
@@ -175,7 +186,7 @@ void	CRender::drawBox(int x, int y, int w, int h, CColor color)
 	float	relH	= util::pixel_to_rel(h, true);
 	float	relX	= util::pixel_to_rel(x, false) + (relW / 2);
 	float	relY	= util::pixel_to_rel(y, true) + (relH / 2);
-	GRAPHICS::DRAW_RECT(relX, relY, relW, relH, color.r, color.g, color.b, color.a);
+	CHooking::draw_rect(relX, relY, relW, relH, color.r, color.g, color.b, color.a);
 	return;
 }
 
@@ -200,18 +211,19 @@ void	CRender::drawText(char* str, int x, int y, int w, int h, int font, float sc
 	float	relY	= util::pixel_to_rel(y, true);
 	if(flags & TEXTFLAG_CENTER)
 		relX += (util::pixel_to_rel(w, false) / 2);
-	UI::SET_TEXT_FONT(font);
-	UI::SET_TEXT_SCALE(scale, scale);
-	UI::SET_TEXT_COLOUR(color.r, color.g, color.b, color.a);
-	UI::SET_TEXT_WRAP(0.0, 1.0); //
-	UI::SET_TEXT_CENTRE(flags & TEXTFLAG_CENTER);
+	CHooking::m_textInfo->iFont	= font;
+	CHooking::m_textInfo->btTextOutline	= 0;
+	CHooking::m_textInfo->setScale(scale);
+	CHooking::m_textInfo->setColor(color);
+	CHooking::m_textInfo->fTextWrapStart	= 0.f;
+	CHooking::m_textInfo->fTextWrapEnd		= 1.f;
+	CHooking::m_textInfo->wNotCentered	= !(flags & TEXTFLAG_CENTER);
 	if(flags & TEXTFLAG_NOSHADOW)
-		UI::SET_TEXT_DROPSHADOW(0, 0, 0, 0, 0);
+		CHooking::m_textInfo->btDropShadow	= 0;
 	else
-		UI::SET_TEXT_DROPSHADOW(1, 0, 0, 0, 175);
-	UI::SET_TEXT_EDGE(0, 0, 0, 0, 0);
-	UI::BEGIN_TEXT_COMMAND_DISPLAY_TEXT("STRING"); //
-	UI::ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(str);
-	UI::END_TEXT_COMMAND_DISPLAY_TEXT(relX, relY);
+		CHooking::m_textInfo->btDropShadow	= 1;
+	CHooking::begin_text_cmd_display_text("STRING");
+	CHooking::add_text_comp_substr_playername(str);
+	CHooking::end_text_cmd_display_text(relX, relY, 0);
 }
 

@@ -45,12 +45,6 @@
     <ClCompile Include="hooking.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nativeInvoker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="crossMap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="pattern.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -95,22 +89,10 @@
     <ClInclude Include="types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="natives.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hooking.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nativeCaller.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nativeInvoker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="crossMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pattern.h">

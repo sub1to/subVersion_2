@@ -134,17 +134,25 @@ namespace script
 	bool	is_ped_in_any_vehicle(Ped ped);
 	v3		get_entity_coords(Entity e);
 	bool	is_player_ped_female(Ped ped);
+	bool	is_an_entity(Entity e);
+	bool	is_entity_dead(Entity ped);
+	bool	is_entity_a_ped(Entity entity);
+	bool	is_entity_a_vehicle(Entity entity);
+	bool	is_entity_an_object(Entity entity);
+	bool	is_entity_visible(Entity entity);
+
+	void	apply_force_to_entity(Ped ped, int forceType, float x, float y, float z, float rx, float ry, float rz, bool isRel, bool highForce);
+	void	add_explosion(Vector3 pos, int type, float damage, bool isAudible, bool isInvis, float shake);
 
 	void	apply_clothing(Ped playerPed, int group, int var = -1, int texture = -1);
 	void	apply_outfit(eCustomOutfit type);
 
 	bool	apply_model(Hash skin, bool random = false);
-	void	set_player_clothing(int group, int value, bool texture);
 
 	bool	request_control_of_entity(Entity entity);
 
-	void	update_nearby_ped(Ped origin, int c, bool alive = true, queue_int* out = &CHack::m_nearbyPed);
-	void	update_nearby_vehicle(Ped origin, int c, bool driveable = true, queue_int* out = &CHack::m_nearbyVehicle);
+	void	update_nearby_ped(bool alive = true, queue_int* out = &CHack::m_nearbyPed);
+	void	update_nearby_vehicle(bool driveable = true, queue_int* out = &CHack::m_nearbyVehicle);
 
 	bool	teleport_to_waypoint();
 	void	teleport_to_objective();
@@ -164,16 +172,15 @@ namespace script
 
 	void	notify_above_map(std::string msg, bool blink);
 
-	void		show_ingame_keyboard(char* title, char* default_text = nullptr);
-	std::string	get_ingame_keyboard_result();
+	void	show_ingame_keyboard(char* title, char* default_text = nullptr);
+	bool	get_ingame_keyboard_result(std::string& str);
+	bool	ingame_keyboard(std::string& out, eKeyboardOwner owner, bool reset = false);
 
 	void	draw_text(char* text, float x, float y, int font, float scale, CColor color);
 	void	draw_esp_on_player(Player player, char* text, int flag = 0, float fMaxDist = 5000.f);
 	Object	trap_player_in_cage(Player player);
 
-	//void	remove_nearby_objects();
-	//Object	attach_object_to_entity(Entity e, char* object, int bone = -1);
-	void	attach_entities(Entity e, Entity t, int bone = -1, v3 pos = {0.f, -.26f, .1f}, v3 rot = {0.f, 0.f, 0.f});
+	void	attach_entities(Entity e, Entity t, int bone = -1, Vector3 pos = {0.f, -.26f, .1f}, Vector3 rot = {0.f, 0.f, 0.f});
 	void	detach_entity(Entity e);
 
 	void	clean_ped(Ped p);
@@ -181,11 +188,12 @@ namespace script
 
 	Ped		clone_ped_bodyguard(Ped p);
 
-	void	ped_give_all_weapons(Ped p);
-	void	ped_weapon(Ped p, DWORD weapon, bool give = true);
+	bool	ped_give_all_weapons(Ped p, Player player = -1);
+	bool	ped_weapon(Ped p, DWORD weapon, bool give = true);
 
 	void	no_reload_toggle(bool);
 	void	infinite_ammo_toggle(bool);
+	void	explosive_ammo(int explosionType);
 
 	bool	spawn_ped(Hash model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
 	bool	spawn_vehicle(Hash model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
@@ -194,12 +202,11 @@ namespace script
 	void	vehicle_sp_bypass(bool b);
 	void	vehicle_mp_bypass(bool b);
 	bool	upgrade_car(Vehicle v, bool car = true, int colours = -1);
+	bool	set_vehicle_color(Vehicle v, int p = -1, int s = -1);
 
 	void	teleport_player_on_foot(Ped p, float X, float Y, float Z);
 
-	void	clown_particle_effect_on_entity(Entity e);
-
-	void	clear_badsports();
+	//void	clear_badsports();
 
 	void	set_radio_station(std::string station);
 
@@ -215,6 +222,8 @@ namespace script
 	void	ped_money_drop(Player player, clock_t* tmr);
 	void	stealth_money(int mils, bool remove = false);
 
+	void	trigger_script_event(eScriptEvent id, Player player, uint64_t arg2 = 0, uint64_t arg3 = 0);
+
 	void	set_time(int h, int m);
 	void	set_weather(std::string w);
 	void	freeze_time(bool b);
@@ -228,14 +237,15 @@ namespace script
 	bool	trigger_bot(uint32_t flag);
 
 	Entity	get_entity_crosshair(int flag = 0);
-	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, v3 rot = {0.f, 0.f, 0.f}, Entity ent = NULL);
+	bool	entity_editor(int action, float dist = 20.f, int flag = 0x01, Vector3 rot = {0.f, 0}, Entity ent = NULL);
 
-	void	ped_scenario(Ped p, char* anim, bool r);
+	//void	ped_scenario(Ped p, char* anim, bool r);
 
 	bool	send_assasins_after_player(Player p);
 
 	void	shoot_ped(Ped ped, DWORD bone = hash::ped_bone_hash[0], bool owned = false);
 	void	explode_ped(Ped ped, int type);
+	void	explode_nearby_players(Player source);
 
 	void	lester_offradar_toggle(bool b);
 	void	lester_offradar_add(int ms);
@@ -247,7 +257,7 @@ namespace script
 
 	bool	player_dead_clone(Player player, bool erase = false);
 
-	bool	give_player_wanted_level(Player player, int reportCount);
+	bool	give_player_wanted_level(Player player);
 
 	bool	clean_session();
 	bool	crash_player(Player player);

@@ -35,13 +35,47 @@ class CPlayerInfo;
 class CWeaponManager;
 class CWeapon;
 class CAmmoInfo;
-class CVehicleColors;
-class CVehicleColorOptions;
+//class CVehicleColors;
+//class CVehicleColorOptions;
 class CVehicleHandling;
 class CWantedData;
 class CItemInfo;
 class CAmmo;
 class CViewPort;
+class CVehicleMods;
+class CVehicleModsVisual;
+class CTireInfo;
+class CLicencePlateInfo;
+class CColor;
+class CTextInfo;
+
+class CCameraInterface;
+class CVehicleInterface;
+class CPedInterface;
+class CPickupInterface;
+class CPickupList;
+class CPickupHandle;
+class CPickup;
+class CPedList;
+class CPedHandle;
+class CVehList;
+class CVehHandle;
+class CObjectInterface;
+class CObjectList;
+class CObjectHandle;
+class CObject;
+
+class CColor
+{
+public:
+	BYTE	r,g,b,a;
+
+	CColor&	swap_r_b()
+	{
+		std::swap(r, b);
+		return *this;
+	}
+};
 
 class CWorld
 {
@@ -54,8 +88,10 @@ public:
 class CPed
 {
 public:
-	char pad_0x0000[0x2C]; //0x0000
-	BYTE btInvisibleSP; //0x002C 
+	char pad_0x0000[0x28]; //0x0000
+	BYTE btEntityType; //0x0028 
+	char pad_0x0029[0x3]; //0x0029
+	BYTE btInvisible; //0x002C 
 	char pad_0x002D[0x1]; //0x002D
 	BYTE btFreezeMomentum; //0x002E 
 	char pad_0x002F[0x1]; //0x002F
@@ -81,7 +117,7 @@ public:
 	char pad_0x10C0[0x8]; //0x10C0
 	CWeaponManager* pCWeaponManager; //0x10C8 
 	char pad_0x10D0[0x31C]; //0x10D0
-	BYTE btSeatbelt; //0x13EC 
+	BYTE btSeatBelt; //0x13EC 
 	char pad_0x13ED[0xB]; //0x13ED
 	BYTE btSeatbeltWindshield; //0x13F8 
 	char pad_0x13F9[0x72]; //0x13F9
@@ -98,6 +134,7 @@ public:
 	char pad_0x14F8[0xDC]; //0x14F8
 	__int32 iCash; //0x15D4 
 
+//entity type 3 = car, 4 = ped
 	bool isGod()
 	{
 		return(	(btGodMode & 0x01)
@@ -107,9 +144,9 @@ public:
 			||	fHurtHealthThreshold < 0.f		);
 	}
 
-	bool isInvisSP()
+	bool isInvisible()
 	{
-		return (btInvisibleSP & 0x01) ? true : false;
+		return (btInvisible & 0x01) ? true : false;
 	}
 
 	bool hasFrozenMomentum()
@@ -124,7 +161,7 @@ public:
 
 	bool hasSeatbelt()
 	{
-		return (btSeatbelt & 0x01) ? true : false;
+		return (btSeatBelt & 0x01) ? true : false;
 	}
 
 	bool hasSeatbeltWindshield()
@@ -153,7 +190,7 @@ public:
 		else if(fHealth	< fHealthMax)
 			fHealth	= fHealthMax;
 	}
-}; //Size=0x14F8
+}; //Size=0x15D8
 
 /*class CNavigation
 {
@@ -200,10 +237,12 @@ public:
 	char pad_0x0000[0x30]; //0x0000
 	CNavigation* pCNavigation; //0x0030 
 	char pad_0x0038[0x10]; //0x0038
-	CVehicleColorOptions* pCVehicleColorOptions; //0x0048 
+	CVehicleMods* pCVehicleMods; //0x0048 
 	char pad_0x0050[0x40]; //0x0050
 	v3 v3VisualPos; //0x0090 
-	char pad_0x009C[0xED]; //0x009C
+	char pad_0x009C[0x3C]; //0x009C
+	BYTE btState; //0x00D8 
+	char pad_0x00D9[0xB0]; //0x00D9
 	BYTE btGodMode; //0x0189 
 	char pad_0x018A[0xF6]; //0x018A
 	float fHealth; //0x0280 
@@ -223,12 +262,22 @@ public:
 	CVehicleHandling* pCVehicleHandling; //0x0878 
 	char pad_0x0880[0x3]; //0x0880
 	BYTE btBulletproofTires; //0x0883 
-	char pad_0x0884[0x160]; //0x0884
+	char pad_0x0884[0x4]; //0x0884
+	BYTE btStolen; //0x0888 
+	char pad_0x0889[0x11]; //0x0889
+	BYTE N00000954; //0x089A 
+	char pad_0x089B[0x41]; //0x089B
+	float N0000081E; //0x08DC 
+	char pad_0x08E0[0x104]; //0x08E0
 	DWORD dwCarAlarmLength; //0x09E4 
 	char pad_0x09E8[0x148]; //0x09E8
 	BYTE btOpenableDoors; //0x0B30 
 	char pad_0x0B31[0x4B]; //0x0B31
-	float fGravity; //0x0B7C 
+	float fGravity; //0x0B7C
+	BYTE btMaxPassengers; //0x0B80 
+	char pad_0x0B81[0x1]; //0x0B81
+	BYTE btNumOfPassengers; //0x0B82 
+	char pad_0x0B83[0x3D]; //0x0B83
 
 	bool isGod()
 	{
@@ -252,7 +301,19 @@ public:
 		if(fHealth2 < fHealthMax)
 			fHealth2 = fHealthMax;
 	}
-}; //Size=0x0B80
+
+//btState & 7    0 = inside of vehicle, 2 = outside of vehicle, 3 = vehicle blown up
+	bool isVehicleDestroyed()
+	{
+		return (btState & 7) == 3;
+	}
+
+	void set_stolen(bool toggle)
+	{
+		this->btStolen	&= 0xFEu;
+		this->btStolen	|= toggle & 1;
+	}
+}; //Size=0x0BC0
 
 class CWantedData
 {
@@ -385,7 +446,7 @@ public:
 
 }; //Size=0x002C
 
-class CVehicleColors
+/*class CVehicleColors
 {
 public:
 	char pad_0x0000[0xA4]; //0x0000
@@ -406,7 +467,134 @@ public:
 	char pad_0x0000[0x20]; //0x0000
 	CVehicleColors* CVehicleColor; //0x0020 
 
-}; //Size=0x0028
+}; //Size=0x0028*/
+
+class CVehicleMods
+{
+public:
+    void* N00002582; //0x0000 
+    void* N00002583; //0x0008 
+    char _0x0010[16];
+    CVehicleModsVisual* vehicleModsVisual; //0x0020 
+    char _0x0028[840];
+    CTireInfo* pTireInfo; //0x0370 
+    char _0x0378[40];
+    CColor NeonColor; //0x03A0 
+    char _0x03A4[12];
+    BYTE btTuningTires; //0x03B0 
+    BYTE N41D07714; //0x03B1 
+    BYTE btSpoiler; //0x03B2 
+    BYTE btFrontBumper; //0x03B3 
+    BYTE btRearBumber; //0x03B4 
+    BYTE btSideSkirt; //0x03B5 
+    BYTE btExhaust; //0x03B6 
+    BYTE btChassis; //0x03B7 
+    BYTE btGrille; //0x03B8 
+    BYTE btHood; //0x03B9 
+    BYTE btFender; //0x03BA 
+    BYTE btRightfender; //0x03BB 
+    BYTE btRoof; //0x03BC 
+    BYTE btPlateholder; //0x03BD 
+    BYTE btVanityPlates; //0x03BE 
+    BYTE btTrim; //0x03BF 
+    BYTE btOrnamentHead; //0x03C0 
+    BYTE btDashboard; //0x03C1 
+    BYTE btDial; //0x03C2 
+    BYTE btDoorSpeaker; //0x03C3 
+    BYTE btSteats; //0x03C4 
+    BYTE btSteeringwheel; //0x03C5 
+    BYTE btShifterLeavers; //0x03C6 
+    BYTE btPlaques; //0x03C7 
+    BYTE btSpeakers; //0x03C8 
+    BYTE btTrunk; //0x03C9 
+    BYTE btHydraulics; //0x03CA 
+    BYTE btEngineBlock; //0x03CB 
+    BYTE btAirFilter; //0x03CC 
+    BYTE btStruts; //0x03CD 
+    BYTE btArchCover; //0x03CE 
+    BYTE btAerials; //0x03CF 
+    BYTE btTrim2; //0x03D0 
+    BYTE btFuel; //0x03D1 
+    BYTE btWindow; //0x03D2 
+    BYTE btunk1; //0x03D3 
+    BYTE btLivery; //0x03D4 
+    BYTE N41D48824; //0x03D5 
+	BYTE btEngine; //0x03D6 
+    BYTE btBreaks; //0x03D7 
+    BYTE btTransmission; //0x03D8 
+    BYTE btHorns; //0x03D9 
+    BYTE btSuspension; //0x03DA 
+    BYTE btArmor; //0x03DB 
+    BYTE N41884B66; //0x03DC 
+    BYTE btTurbo; //0x03DD 
+    BYTE N41D63CF5; //0x03DE 
+    BYTE btTireSmoke; //0x03DF 
+    BYTE N41D63CF6; //0x03E0 
+    BYTE btXenonLight; //0x03E1 
+    BYTE btTireIndex; //0x03E2 
+    BYTE N41D631AD; //0x03E3 
+    BYTE N41884B65; //0x03E4 
+    BYTE btOrnamentBody; //0x03E5 
+    char _0x03E6[14];
+    BYTE N41D9A820; //0x03F4 
+    BYTE btPrimary; //0x03F5 
+    BYTE btSecondary; //0x03F6 
+    BYTE N46554D5E; //0x03F7 
+    BYTE btTireColor; //0x03F8 
+    BYTE N41DA70FC; //0x03F9 
+    BYTE N41DA7E0A; //0x03FA 
+    BYTE btTireColorR; //0x03FB 
+    BYTE btTireColorG; //0x03FC 
+    BYTE btTireColorB; //0x03FD 
+    BYTE btWindowTint; //0x03FE 
+    BYTE btTireType; //0x03FF 
+    BYTE N41884B5A; //0x0400 
+    BYTE btNeonLeft; //0x0401 
+    BYTE btNeonRight; //0x0402 
+    BYTE btNeonFront; //0x0403 
+    BYTE btNeonBack; //0x0404 
+};
+class CTireInfo
+{
+public:
+    char _0x0000[8];
+    CColor tireColor; //0x0008 
+    char _0x000C[4];
+    BYTE btCostumTires; //0x0010 
+};//Size=0x0108
+
+
+class CLicencePlateInfo
+{
+public:
+    char _0x0000[40];
+    char* plateName; //0x0028 
+    char _0x0030[136];
+    char* tireName; //0x00B8 
+    char _0x00C0[136];
+    char* visualName; //0x0148 
+    char _0x0150[48];
+};
+
+class CVehicleModsVisual
+{
+public:
+    char _0x0000[164];
+    CColor PrimaryColor; //0x00A4 
+    CColor SecondaryColor; //0x00A8 
+    CColor unknownColor; //0x00AC 
+    CColor wheelColor; //0x00B0 
+    CColor modelColor; //0x00B4 
+    CColor seatColor; //0x00B8 
+    CColor speedometerColor; //0x00BC 
+    CColor perlColor; //0x00C0 
+    char _0x00C4[92];
+    CLicencePlateInfo* pLicencePlateInfo; //0x0120 
+    char licencePlate[8]; //0x0128 
+    char _0x0130[2956];
+
+};//Size=0x0CBC
+
 
 class CVehicleHandling
 {
@@ -498,7 +686,7 @@ public:
 
 
 
-
+/*
 class CReplayInterfacePed
 {
 private:
@@ -530,7 +718,7 @@ public:
 		return nullptr;
     }
 
-	int get_ped_handle(const int& index)
+	/*int get_ped_handle(const int& index)
     {
 		if(index < max_peds && ped_list->peds[index].ped != nullptr)
 			return ped_list->peds[index].handle;
@@ -586,17 +774,213 @@ public:
 
 };//Size=0x0148
 
+class VehicleHandle
+{
+public:
+    CVehicle* vehicle; //0x0000 
+    __int32 handle; //0x0008
+	char _pad0[0x4];
+
+};//Size=0x0588
+
+class CVehicleList
+{
+public:
+    VehicleHandle vehicles[0x100];//0x0000 
+
+};//Size=0x0490
+
+class CReplayInterfaceVehicle
+{
+public:
+    char _0x0000[0x180];
+    CVehicleList* vehicle_list; //0x0180
+    __int32 max_vehicles; //0x0188 
+    char _0x010C[0x4];
+    __int32 number_of_vehicles; //0x0190 
+    char _0x0114[0x34];
+
+	CVehicle* get_vehicle(const int& index)
+    {
+		if(index < max_vehicles)
+			return vehicle_list->vehicles[index].vehicle;
+		return nullptr;
+    }
+
+};*/
+
+class CPickupHandle
+{
+public:
+	CPickup* pCPickup; //0x0000 
+	__int32 iHandle; //0x0008 
+	char pad_0x000C[0x4]; //0x000C
+
+}; //Size=0x0010
+
+class CPickupList
+{
+public:
+	CPickupHandle pickups[73]; //0x0000 
+
+}; //Size=0x0490
+
+class CPickup
+{
+public:
+	char pad_0x0000[0x30]; //0x0000
+	CNavigation* pCNavigation; //0x0030 
+	char pad_0x0038[0x58]; //0x0038
+	v3 v3VisualPos; //0x0090 
+	char pad_0x009C[0x3F4]; //0x009C
+	__int32 iValue; //0x0490 
+	char pad_0x0494[0xC4]; //0x0494
+
+}; //Size=0x0558
+
+class CPedHandle
+{
+public:
+	CPed* pCPed; //0x0000 
+	__int32 iHandle;
+    char _pad0[0x4];
+
+}; //Size=0x0010
+
+class CPedList
+{
+public:
+	CPedHandle peds[256]; //0x0000 
+
+}; //Size=0x1000
+
+class CVehHandle
+{
+public:
+	CVehicle* pCVehicle; //0x0000 
+	__int32 iHandle;
+    char _pad0[0x4];
+
+}; //Size=0x0010
+
+class CVehList
+{
+public:
+	CVehHandle vehs[300]; //0x0000 
+
+}; //Size=0x1000
+
+class CObjectHandle
+{
+public:
+	CObject* pCObject; //0x0000 
+	__int32 iHandle; //0x0008 
+	char pad_0x000C[0x4]; //0x000C
+
+}; //Size=0x0010
+
+class CObjectList
+{
+public:
+	CObjectHandle ObjectList[2300]; //0x0000 
+
+}; //Size=0x8FC0
+
+class CObject
+{
+public:
+	char pad_0x0000[0x8]; //0x0000
+
+}; //Size=0x0008
+
+
+class CCameraInterface
+{
+public:
+	char pad_0x0000[0x248]; //0x0000
+
+}; //Size=0x0248
+
+class CObjectInterface
+{
+public:
+	char pad_0x0000[0x158]; //0x0000
+	CObjectList* pCObjectList; //0x0158 
+	__int32 iMaxObjects; //0x0160 
+	char pad_0x0164[0x4]; //0x0164
+	__int32 iCurObjects; //0x0168 
+	char pad_0x016C[0x5C]; //0x016C
+
+}; //Size=0x01C8
+
+class CVehicleInterface
+{
+public:
+	char pad_0x0000[0x180]; //0x0000
+	CVehList* VehList; //0x0180 
+	__int32 iMaxVehicles; //0x0188 
+	char pad_0x018C[0x4]; //0x018C
+	__int32 iCurVehicles; //0x0190 
+	char pad_0x0194[0x74]; //0x0194
+
+	CVehicle* get_vehicle(const int& index)
+    {
+		if(index < iMaxVehicles)
+			return VehList->vehs[index].pCVehicle;
+		return nullptr;
+    }
+}; //Size=0x0208
+
+class CPedInterface
+{
+public:
+	char pad_0x0000[0x100]; //0x0000
+	CPedList* PedLIst; //0x0100 
+	__int32 iMaxPeds; //0x0108 
+	char pad_0x010C[0x4]; //0x010C
+	__int32 iCurPeds; //0x0110 
+	char pad_0x0114[0x34]; //0x0114
+
+	CPed* get_ped(const int& index)
+    {
+		if(index < iMaxPeds)
+			return PedLIst->peds[index].pCPed;
+		return nullptr;
+    }
+}; //Size=0x0148
+
+class CPickupInterface
+{
+public:
+	char pad_0x0000[0x100]; //0x0000
+	CPickupList* pCPickupList; //0x0100 
+	__int32 iMaxPickups; //0x0108 
+	char pad_0x010C[0x4]; //0x010C
+	__int32 iCurPickups; //0x0110 
+
+	CPickup* get_pickup(const int& index)
+	{
+		if(index < iMaxPickups)
+			return pCPickupList->pickups[index].pCPickup;
+		return nullptr;
+	}
+}; //Size=0x0114
 
 class CReplayInterface
 {
 public:
-    void* game_interface;
-    void* camera_interface;
-    void* vehicle_interface;
-    CReplayInterfacePed* ped_interface;
-    CReplayInterfacePickup* pickup_interface;
-    void* object_interface;
-};
+	void* N000006F5; //0x0000 
+	CCameraInterface* pCCameraInterface; //0x0008 
+	CVehicleInterface* pCVehicleInterface; //0x0010 
+	CPedInterface* pCPedInterface; //0x0018 
+	CPickupInterface* pCPickupInterface; //0x0020 
+	CObjectInterface* pCObjectInterface; //0x0028 
+
+}; //Size=0x0030
+
+
+
+
 
 
 class CBlip
@@ -631,6 +1015,37 @@ public:
 	CBlip* m_Blips[0x400]; //0x0000 
 
 };//Size=0x2F18
+
+
+
+
+class CTextInfo
+{
+public:
+	CColor	color;
+	float	fTextScale1;
+	float	fTextScale2;
+	float	fTextWrapStart;
+	float	fTextWrapEnd;
+	int64_t	iFont;
+	WORD	wNotCentered;
+	BYTE	btDropShadow;
+	BYTE	btTextOutline;
+
+	void	setColor(CColor c)
+	{
+		c.swap_r_b();
+		color	= c;
+	}
+
+	void	setScale(float f)
+	{
+		fTextScale1	= f;
+		fTextScale2	= f;
+	}
+};
+
+
 
 #pragma pack(pop)
 

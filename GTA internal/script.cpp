@@ -29,12 +29,24 @@ namespace util
 	int random_int(int start, int end)
 	{
 		static bool seed	= false;
-		if(!seed)
-		{
-			srand((unsigned int) time(0));
-			seed = true;
-		}
-		return rand() % end + start;
+		int offset = 0;
+
+		if(seed)
+			goto LABEL_SEEDED;
+
+		srand((unsigned int) time(0));
+		seed = true;
+
+	LABEL_SEEDED:
+		if(start >= 0)
+			goto LABEL_RETURN;
+
+		offset	= start;
+		start	= 0;
+		end		+= -offset;
+
+	LABEL_RETURN:
+		return (rand() % end + start) + offset;
 	}
 
 	uintptr_t	get_address_of_item_in_pool(MemoryPool* pool, int handle)
@@ -128,6 +140,7 @@ namespace script
 	constexpr uint32_t	GLOBALPTR_SP_VEH_BYPASS	= 0x2794B2;
 	constexpr uint32_t	GLOBALPTR_OTR_TOGGLE	= 0x24F46C;	//2421664 + (1 + (PLAYER::PLAYER_ID() * 358)) + 203
 	constexpr uint32_t	GLOBALPTR_OTR_TIME		= 0x2520AA;	//2433125 + 69
+	static	Vector3		UPSIDE_DOWN				= { 0.f, 180.f, 0.f };
 
 	bool is_ped_in_any_vehicle(Ped ped)
 	{
@@ -188,12 +201,82 @@ namespace script
 
 	bool is_player_ped_female(Ped ped)
 	{
-		return ENTITY::GET_ENTITY_MODEL(ped)	== 0x9C9EFFD8;
+		return CHooking::get_entity_model(ped)	== 0x9C9EFFD8;
+	}
+
+	bool is_an_entity(Entity entity)
+    {
+		CPed*    pPed    = util::handle_to_ptr<CPed>(entity);
+		return pPed != nullptr;
+    }
+
+	bool is_entity_a_ped(Entity entity)
+	{
+		CPed*    pPed    = util::handle_to_ptr<CPed>(entity);
+        return pPed != nullptr && pPed->btEntityType == ENTITY_PED;
+	}
+
+	bool is_entity_a_vehicle(Entity entity)
+	{
+		CPed*    pPed    = util::handle_to_ptr<CPed>(entity);
+        return pPed != nullptr && pPed->btEntityType == ENTITY_VEHICLE;
+	}
+
+	bool is_entity_an_object(Entity entity)
+	{
+		CPed*    pPed    = util::handle_to_ptr<CPed>(entity);
+        return pPed != nullptr && pPed->btEntityType == ENTITY_OBJECT;
+	}
+
+	bool is_entity_dead(Entity ped)
+    {
+		bool	res = false;
+        CPed*    pPed    = util::handle_to_ptr<CPed>(ped);
+		if(pPed == nullptr)
+			return true;
+		if(pPed->btEntityType == ENTITY_VEHICLE)
+		{
+			CVehicle*	vehicle = (CVehicle*) pPed;
+			if(vehicle->isVehicleDestroyed())
+				res = true;
+		}
+		else
+			res	= pPed->fHealth < .001f;
+        return res;
+    }
+
+	bool is_ped_ragdoll(Ped ped)
+	{
+        CPed*    pPed    = util::handle_to_ptr<CPed>(ped);
+		return pPed != nullptr && (pPed->btNoRagdoll & 0xF0) == 80;
+	}
+
+	bool is_entity_visible(Entity entity)
+	{
+        CPed*    pEntity    = util::handle_to_ptr<CPed>(entity);
+		return pEntity != nullptr && pEntity->isInvisible();
+	}
+
+	void apply_force_to_entity(Ped ped, int forceType, float x, float y, float z, float rx, float ry, float rz, bool isRel, bool highForce)
+	{
+		Vector3 dir	= { x, y, z };
+		Vector3 rot	= { rx, ry, rz };
+		CHooking::apply_force_to_entity(ped, forceType, &dir, &rot, 0, isRel, 1, highForce, 0, 1);
+	}
+
+	void add_explosion(Vector3 pos, int type, float damage, bool isAudible, bool isInvis, float shake)
+	{
+		CHooking::add_explosion(&pos, type, damage, isAudible, isInvis, shake, false);
 	}
 
 	void apply_clothing(Ped playerPed, int group, int var, int texture)
 	{
-		PED::SET_PED_COMPONENT_VARIATION(playerPed, group, var == -1 ? PED::GET_PED_DRAWABLE_VARIATION(playerPed, group) : var, texture == -1 ? PED::GET_PED_TEXTURE_VARIATION(playerPed, group) : texture, PED::GET_PED_PALETTE_VARIATION(playerPed, group));
+		CPed* pPed = util::handle_to_ptr<CPed>(playerPed);
+		CHooking::set_ped_component_variation(	playerPed,
+												group,
+												var == -1		? CHooking::get_ped_drawable_varation(playerPed, group)	: var,
+												texture == -1	? CHooking::get_ped_texture_variation(playerPed, group)	: texture,
+												CHooking::get_ped_palette_variation(pPed, group)	);
 	}
 
 	void	apply_outfit(eCustomOutfit type)
@@ -202,7 +285,7 @@ namespace script
 		bool	female			= is_player_ped_female(playerPed);
 		const BYTE	(*outfit)[3];
 
-		PED::CLEAR_ALL_PED_PROPS(playerPed);
+		CHooking::clear_add_ped_props(playerPed);
 
 		switch(type)
 		{
@@ -217,8 +300,8 @@ namespace script
 			break;
 			case OUTFIT_POLICE:
 				outfit	= female ? hash::outfit_police_female : hash::outfit_police_male;
-				PED::SET_PED_PROP_INDEX(playerPed,	0,	female ? 45 : 46,	0,	2);
-				PED::SET_PED_PROP_INDEX(playerPed,	1,	female ? 11 : 13,	0,	2);
+				CHooking::set_ped_prop_index(playerPed,	0,	female ? 45 : 46,	0,	1);
+				CHooking::set_ped_prop_index(playerPed,	1,	female ? 11 : 13,	0,	1);
 			break;
 		}
 
@@ -228,107 +311,105 @@ namespace script
 
 	bool apply_model(Hash model, bool random)
 	{
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) && !STREAMING::IS_MODEL_VALID(model))
+		if(!CHooking::is_model_in_cdimage(model) || !CHooking::is_model_valid)
 			return true;
 
-		STREAMING::REQUEST_MODEL(model);
-		if(!STREAMING::HAS_MODEL_LOADED(model))
+		CHooking::request_model(model);
+		if(!CHooking::has_model_loaded(model))
 			return false;
 
 		Ped		playerPed = CPlayerMem::player_ped_id();
 		Vehicle v	= NULL;
 		if(CPlayerMem::is_player_in_any_vehicle(CPlayerMem::player_id()))
-			v = PED::GET_VEHICLE_PED_IS_USING(playerPed);
+			v = CHooking::get_vehicle_ped_is_using(playerPed);
 
-		PLAYER::SET_PLAYER_MODEL(CPlayerMem::player_id(), model);
+		CHooking::set_player_model(CPlayerMem::player_id(), model);
 		
 		//random ? PED::SET_PED_RANDOM_COMPONENT_VARIATION(playerPed, true) : PED::SET_PED_DEFAULT_COMPONENT_VARIATION(playerPed);
 
 		if (v != NULL)
-			PED::SET_PED_INTO_VEHICLE(playerPed, v, get_free_seat(v));
+			CHooking::set_ped_into_vehicle(playerPed, v, get_free_seat(v));
 
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		CHooking::set_model_as_no_longer_needed(model);
 
 		return true;
-	}
-
-	bool request_control_of_id(Entity netid)
-	{
-		if(!NETWORK::NETWORK_HAS_CONTROL_OF_NETWORK_ID(netid))
-			NETWORK::NETWORK_REQUEST_CONTROL_OF_NETWORK_ID(netid);
-		return true && NETWORK::NETWORK_HAS_CONTROL_OF_NETWORK_ID(netid);
-	}
-
-	bool request_control_of_entity(Entity entity)
-	{
-		if(!NETWORK::NETWORK_IS_SESSION_STARTED())
-			return true;
-		//if(ENTITY::IS_ENTITY_A_PED(entity))
-		//	for(int i = 0; i < MAX_PLAYERS; i++)
-		//		if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == entity)
-		//			return false;
-
-		if(!NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity))
-			NETWORK::NETWORK_REQUEST_CONTROL_OF_ENTITY(entity);
-
-		int netID = NETWORK::NETWORK_GET_NETWORK_ID_FROM_ENTITY(entity);
-		request_control_of_id(netID);
-		NETWORK::SET_NETWORK_ID_CAN_MIGRATE(netID, 1);
-		return true && NETWORK::NETWORK_HAS_CONTROL_OF_ENTITY(entity);
 	}
 
 	bool is_ped_a_player(Ped ped)
 	{
 		for(int i = 0; i < MAX_PLAYERS; i++)
-			if(PLAYER::GET_PLAYER_PED_SCRIPT_INDEX(i) == (ped))
+			if(CPlayerMem::get_player_ped(i) == (ped))
 				return true;
 		return false;
 	}
 
-	void update_nearby_ped(Ped origin, int c, bool alive, queue_int* out)
+	bool request_control_of_id(Entity netid)
 	{
-		Ped* ped	= new Ped[c * 2 + 2];
-		*ped		= (const int) c;
-		c			= PED::GET_PED_NEARBY_PEDS(origin, ped, -1);
-
-		for(int i = 0; i < c; i++)
-		{
-			int	id	= i * 2 + 2;
-			if(!ENTITY::IS_AN_ENTITY(ped[id]) || (alive && PED::IS_PED_DEAD_OR_DYING(ped[id], false)) || is_ped_a_player(ped[id]))
-				continue;
-			out->push(ped[id]);
-		}
-		delete ped;
+		if(!CHooking::network_has_control_of_network_id(netid))
+			CHooking::network_request_control_of_network_id(netid);
+		return true && CHooking::network_has_control_of_network_id(netid);
 	}
 
-	void update_nearby_vehicle(Ped origin, int c, bool driveable, queue_int* out)
+	bool request_control_of_entity(Entity entity)
 	{
-		Vehicle* veh	= new Vehicle[c * 2 + 2];
-		*veh			= (const int) c;
-		c				= PED::GET_PED_NEARBY_VEHICLES(origin, veh);
+		if(!CHooking::network_is_session_started())
+			return true;
+		if(is_entity_a_ped(entity) && is_ped_a_player(entity))
+			return false;
 
-		for(int i = 0; i < c; i++)
+		if(!CHooking::network_has_control_of_entity(entity))
+			CHooking::network_request_control_of_entity(entity);
+
+		int netID = CHooking::network_get_network_id_from_entity(entity);
+		request_control_of_id(netID);
+		CHooking::set_network_id_can_migrate(netID, true);
+		return true && CHooking::network_has_control_of_entity(entity);
+	}
+
+	void update_nearby_ped(bool alive, queue_int* out)
+	{
+		Ped localPed	= CPlayerMem::player_ped_id();
+		CPedInterface*	pedIF	= CHooking::m_replayIntf->pCPedInterface;
+		int	numPed	= pedIF->iMaxPeds;
+		for(int i = 0; i < numPed; ++i)
 		{
-			int	id	= i * 2 + 2;
-			if(!ENTITY::IS_AN_ENTITY(veh[id]) || (driveable && !VEHICLE::IS_VEHICLE_DRIVEABLE(veh[id], false)) || CHack::m_lastVehicle == veh[id])
+			CPed* pPed = pedIF->get_ped(i);
+			if(pPed == nullptr || (alive && pPed->fHealth < .001f))
 				continue;
-			out->push(veh[id]);
+			Ped ped = CHooking::ptr_to_handle(pPed);
+			if(ped == localPed)
+				continue;
+			out->push(ped);
 		}
-		delete veh;
+	}
+
+	void update_nearby_vehicle(bool driveable, queue_int* out)
+	{
+		CVehicleInterface*	vehIF	= CHooking::m_replayIntf->pCVehicleInterface;
+		int							numVeh	= vehIF->iMaxVehicles;
+		for(int i = 0; i < numVeh; ++i)
+		{
+			CVehicle* pVeh = vehIF->get_vehicle(i);
+			if(pVeh == nullptr || (driveable && pVeh->isVehicleDestroyed()))
+				continue;
+			Vehicle veh = CHooking::ptr_to_handle(pVeh);
+			if(veh == CHack::m_lastVehicle)
+				continue;
+			out->push(veh);
+		}
 	}
 
 	void teleport_entity_to_coords(Entity e, v3 pos, bool particleFX)
 	{
-		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(e, pos.x, pos.y, pos.z, 0, 0, 1);
-		if(particleFX)
-			clown_particle_effect_on_entity(e);
+		Vector3 tmp = pos;
+		CHooking::set_entity_coords_no_offset(e, &tmp, 0, 0, 0);
 	}
 
 	void teleport_to_coords(v3 coords)
 	{
 		Entity e	= CPlayerMem::player_ped_id();
 		if(CPlayerMem::is_player_in_any_vehicle(CPlayerMem::player_id()))
-			e = PED::GET_VEHICLE_PED_IS_USING(e);
+			e = CHooking::get_vehicle_ped_is_using(e);
 		teleport_entity_to_coords(e, coords);
 	}
 
@@ -368,7 +449,8 @@ namespace script
 		{ 200.f, 150.f, 100.f, 50.f, 0.f, 250.f, 300.f, 350.f, 400.f, 450.f, 500.f, 550.f, 600.f, 650.f, 700.f, 750.f, 800.f };
 
 		teleport_to_coords({pos.x, pos.y, heightArray[iHeight]});
-		if(!GAMEPLAY::GET_GROUND_Z_FOR_3D_COORD(pos.x, pos.y, heightArray[iHeight], &pos.z, 0) && iHeight < sizeof(heightArray) / sizeof(*heightArray))
+		Vector3 tmp	= { pos.x, 0, pos.y, 0, heightArray[iHeight], 0 };
+		if(!CHooking::get_ground_z_for_3d_coord(&tmp, &pos.z, 0, 0) && iHeight < sizeof(heightArray) / sizeof(*heightArray))
 		{
 			iHeight++;
 			return false;
@@ -458,7 +540,6 @@ namespace script
 		++count[player];
 		if(playerPos.getDist(remotePos) < 5.f || count[player] > 0x40)
 		{
-			clown_particle_effect_on_entity(ped);
 			count[player]	= 0;
 			return true;
 		}
@@ -475,7 +556,6 @@ namespace script
 		++count[player];
 		if(seaPos.getDist(remotePos) < 5.f || count[player] > 0x40)
 		{
-			clown_particle_effect_on_entity(ped);
 			count[player]	= 0;
 			return true;
 		}
@@ -488,47 +568,70 @@ namespace script
 		Ped	ped			= CPlayerMem::get_player_ped(player);
 		v3 remotePos	= CPlayerMem::get_player_coords(player);
 		ped_weapon(ped, 0xfbab5776, false); //GADGET_PARACHUTE
-		teleport_player_on_foot(ped, remotePos.x, remotePos.y, remotePos.z + 100.f);
-		clown_particle_effect_on_entity(ped);
+		teleport_player_on_foot(ped, remotePos.x, remotePos.y, remotePos.z + 200.f);
 	}
 
 	void notify_above_map(std::string msg, bool blink)
 	{
-		UI::SET_TEXT_OUTLINE();
-		UI::_SET_NOTIFICATION_TEXT_ENTRY("STRING");
-		UI::ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(&msg[0u]);
-		UI::_DRAW_NOTIFICATION(blink, FALSE);
+		CHooking::m_textInfo->btTextOutline	= 1;
+		CHooking::set_notification_text_entry("STRING");
+		CHooking::add_text_comp_substr_playername(&msg[0u]);
+		CHooking::draw_notification(blink, false, false);
 	}
 
 	void	show_ingame_keyboard(char* title, char* default_text)
 	{
-		GAMEPLAY::DISPLAY_ONSCREEN_KEYBOARD(true, (title == nullptr ? "subVersion" : title), "", (default_text == nullptr ? "" : default_text), "", "", "", 64);
+		CHooking::display_onscreen_keyboard(true, (title == nullptr ? "subVersion" : title), "", (default_text == nullptr ? "" : default_text), "", "", "", 64);
 	}
 
-	std::string	get_ingame_keyboard_result()
+	bool	get_ingame_keyboard_result(std::string& str)
 	{
-		std::string	r	= "!!INVALID!!";
-		if(GAMEPLAY::UPDATE_ONSCREEN_KEYBOARD())
-		{
-			char* pCh = GAMEPLAY::GET_ONSCREEN_KEYBOARD_RESULT();
-			if(pCh != nullptr)
-				r = pCh;
-		}
+		str		= "!!INVALID!!";
+		bool r	= !!CHooking::update_onscreen_keyboard();
+		if(r)
+			str = CHooking::m_onscreenKeyboardResult;
 		return r;
+	}
+
+	bool	ingame_keyboard(std::string& out, eKeyboardOwner owner, bool reset)
+	{
+		static bool				active		= false;
+		static eKeyboardOwner	curOwner	= KBOWNER_NONE;
+		if(reset)
+		{
+			script::show_ingame_keyboard("License");
+			curOwner = owner;
+			active = true;
+		}
+		if(curOwner != owner)
+			return true;
+		if(active && curOwner != KBOWNER_NONE)
+		{
+			std::string str;
+			script::get_ingame_keyboard_result(str);
+			if(str != "!!INVALID!!" && str != "")
+			{
+				out = str;
+				curOwner	= KBOWNER_NONE;
+				active = false;
+			}
+		}
+		return !active;
 	}
 
 	void draw_text(char* text, float x, float y, int font, float scale, CColor color)
 	{
-		UI::SET_TEXT_FONT(font);
-		UI::SET_TEXT_SCALE(scale, scale);
-		UI::SET_TEXT_COLOUR(color.r, color.g, color.b, color.a);
-		UI::SET_TEXT_WRAP(0.0, 1.0); //
-		UI::SET_TEXT_CENTRE(false);
-		UI::SET_TEXT_DROPSHADOW(2, 0, 0, 0, 175);
-		UI::SET_TEXT_EDGE(0, 0, 0, 0, 0);
-		UI::BEGIN_TEXT_COMMAND_DISPLAY_TEXT("STRING"); //
-		UI::ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(text);
-		UI::END_TEXT_COMMAND_DISPLAY_TEXT(x, y);
+		CHooking::m_textInfo->iFont	= font;
+		CHooking::m_textInfo->btTextOutline	= 0;
+		CHooking::m_textInfo->setScale(scale);
+		CHooking::m_textInfo->setColor(color);
+		CHooking::m_textInfo->fTextWrapStart	= 0.f;
+		CHooking::m_textInfo->fTextWrapEnd		= 1.f;
+		CHooking::m_textInfo->wNotCentered	= 1;
+		CHooking::m_textInfo->btDropShadow	= 2;
+		CHooking::begin_text_cmd_display_text("STRING");
+		CHooking::add_text_comp_substr_playername(text);
+		CHooking::end_text_cmd_display_text(x, y, 0);
 	}
 
 	/*
@@ -547,6 +650,7 @@ namespace script
 		float			dist		= pos.getDist(playerPos);
 		bool			isClose		= dist < maxDist;
 		v2				screen[2];
+		bool			onScreen	= false;
 
 		if(dist > fDrawDist)
 			return;
@@ -565,7 +669,9 @@ namespace script
 		else if(!isClose)
 			color		= { 255, 150, 0, 255 };
 
-		if(!util::world_to_screen({pos.x, pos.y, pos.z - 1}, screen[0]) || !util::world_to_screen({pos.x, pos.y, pos.z + .8f}, screen[1]))
+		onScreen |= util::world_to_screen({pos.x, pos.y, pos.z - 1}, screen[0]);
+		onScreen |= util::world_to_screen({pos.x, pos.y, pos.z + .8f}, screen[1]);
+		if(!onScreen)
 			goto LABEL_NOT_ON_SCREEN;
 
 		//calculate esp size
@@ -625,18 +731,18 @@ namespace script
 			if(flag & ESP_BOX)
 			{
 					
-				GRAPHICS::DRAW_RECT(screen[1].x, screen[1].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//top
-				GRAPHICS::DRAW_RECT(screen[1].x, screen[0].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//bottom
-				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//left
-				GRAPHICS::DRAW_RECT(screen[1].x + wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//right
+				CHooking::draw_rect(screen[1].x, screen[1].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//top
+				CHooking::draw_rect(screen[1].x, screen[0].y, wBox, util::pixel_to_rel(1, true), color.r, color.g, color.b, color.a);		//bottom
+				CHooking::draw_rect(screen[1].x - wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//left
+				CHooking::draw_rect(screen[1].x + wBoxHalf, screen[1].y + hBoxHalf, util::pixel_to_rel(1, false), hBox, color.r, color.g, color.b, color.a);		//right
 			}
 
 			if(flag & ESP_HEALTHBAR)
 			{
 				float barMax	= maxHealth + 50.f;
 				float bar		= health + armour;
-				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf - 0.0045f,  screen[1].y + hBoxHalf, .004f, hBox, color.r, color.g, color.b, color.a);
-				GRAPHICS::DRAW_RECT(screen[1].x - wBoxHalf - 0.0045f,  screen[1].y + hBoxHalf + (hBox * (1 - (bar / barMax)) / 2), .002f, hBox * (bar / barMax) - 0.002f, colorHealth.r, colorHealth.g, colorHealth.b, colorHealth.a);
+				CHooking::draw_rect(screen[1].x - wBoxHalf - util::pixel_to_rel(12, false),  screen[1].y + hBoxHalf, util::pixel_to_rel(10, false), hBox, color.r, color.g, color.b, color.a);
+				CHooking::draw_rect(screen[1].x - wBoxHalf - util::pixel_to_rel(12, false),  screen[1].y + hBoxHalf + (hBox * (1 - (bar / barMax)) / 2), util::pixel_to_rel(6, false), hBox * (bar / barMax) - util::pixel_to_rel(4, true), colorHealth.r, colorHealth.g, colorHealth.b, colorHealth.a);
 			}
 		}
 
@@ -644,7 +750,11 @@ namespace script
 
 		//draw world line
 		if(flag & ESP_WORLD_LINE)
-			GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z - 1.f, playerPos.x, playerPos.y, playerPos.z, color.r, color.g, color.b, color.a);
+		{
+			Vector3	tmp		= { pos.x, pos.y, pos.z - 1.f };
+			Vector3 tmp2	= { playerPos.x, playerPos.y, playerPos.z };
+			CHooking::draw_line(&tmp, &tmp2, color.r, color.g, color.b, color.a);
+		}
 	}
 
 	/*
@@ -655,22 +765,21 @@ namespace script
 	*/
 	bool spawn_ped(Hash model, ePedType pedType, v3 pos, Ped* pedOut, bool random, int flag)
 	{
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_VALID(model))
+		if(!CHooking::is_model_in_cdimage(model) || !CHooking::is_model_valid(model))
 			return true;
-		STREAMING::REQUEST_MODEL(model);
-		if(!STREAMING::HAS_MODEL_LOADED(model))
+		CHooking::request_model(model);
+		if(!CHooking::has_model_loaded(model))
 			return false;
-
-		//if(!can_model_random(model))
-		//	random = false;
 
 		if(pos.empty())
 			pos	= get_coords_infront_player(6.f);
 		pos.x += util::random_int(-2, 2);
 		pos.y += util::random_int(-2, 2);
 
-		Ped		ped	= PED::CREATE_PED(pedType, model, pos.x, pos.y, pos.z, 0.f, true, true);
-		random ? PED::SET_PED_RANDOM_COMPONENT_VARIATION(ped, true) : PED::SET_PED_DEFAULT_COMPONENT_VARIATION(ped);
+		Vector3 tmpV3	= pos;
+
+		Ped		ped	= CHooking::create_ped(pedType, model, &tmpV3, 0.f, true, false);
+		random ? CHooking::set_ped_random_component_variation(ped) : CHooking::set_ped_default_component_variation(ped);
 
 		if(pedOut != nullptr)
 			*pedOut = ped;
@@ -679,26 +788,26 @@ namespace script
 		{
 			if(flag == PEDSPAWN_BODYGUARD)
 			{
-				int grp		= PLAYER::GET_PLAYER_GROUP(CPlayerMem::player_id());
-				PED::SET_PED_AS_GROUP_MEMBER(ped, grp);
-				PED::SET_PED_NEVER_LEAVES_GROUP(ped, grp);
-				PED::SET_GROUP_FORMATION(ped, FormationIndexCircle);
+				int grp		= CHooking::get_player_group(CPlayerMem::player_id());
+				CHooking::set_ped_as_group_member(ped, grp);
+				CHooking::set_ped_never_leaves_group(ped, true);
+				CHooking::set_group_formation(grp, FormationIndexCircle);
 			}
 			if(flag == PEDSPAWN_ARMY)
 			{
-				PED::SET_PED_RELATIONSHIP_GROUP_HASH(ped, 0xe3d976f3);	//"army"
-				AI::TASK_WANDER_STANDARD(ped, 10.f, 10);
+				CHooking::set_ped_relationship_group_hash(ped, 0xe3d976f3);	//"army"
+				CHooking::ai_task_wander_standard(ped, 10.f, true);
 			}
-			PED::SET_PED_CAN_SWITCH_WEAPON(ped, false);
-			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, 0x22d8fe39, 9999, 0);	//WEAPON_APPISTOL
-			PED::SET_PED_COMBAT_ABILITY(ped, 2); //0 poor, 1 average, 2 prof
+			CHooking::set_ped_can_switch_weapon(ped, false);
+			CHooking::give_delayed_weapon_to_ped(ped, 0x22d8fe39, 9999, 0);	//WEAPON_APPISTOL
+			CHooking::set_ped_combat_ability(util::handle_to_ptr<CPed>(ped), 3); //0 poor, 1 average, 2 prof
 
 			CHack::m_pedCleanup.push_back(ped);
 		}
 		else
-			ENTITY::SET_PED_AS_NO_LONGER_NEEDED(&ped);
+			CHooking::set_entity_as_no_longer_needed(&ped);
 
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		CHooking::set_model_as_no_longer_needed(model);
 		return true;
 	}
 
@@ -711,56 +820,61 @@ namespace script
 	*/
 	bool spawn_vehicle(Hash model, Vehicle* vehOut, BYTE flags, int colours)//bool warp, bool bypass, bool upgrade)
 	{
-		v3		pos	= get_coords_infront_player(6.f);
+		Vector3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= CPlayerMem::player_ped_id();
 	
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_A_VEHICLE(model))
+		if(!CHooking::is_model_in_cdimage(model) || !CHooking::is_model_a_vehicle(model))
 			return true;
-		STREAMING::REQUEST_MODEL(model);
-		if(!STREAMING::HAS_MODEL_LOADED(model))
+		CHooking::request_model(model);
+		if(!CHooking::has_model_loaded(model))
 			return false;
 
-		bool	bFly	= (flags & VEHSPAWN_WARP) && (VEHICLE::IS_THIS_MODEL_A_HELI(model) || VEHICLE::IS_THIS_MODEL_A_PLANE(model)) ? true : false;
+		bool	bFly	= (flags & VEHSPAWN_WARP) && (CHooking::is_model_a_heli(model) || CHooking::is_model_a_plane(model)) ? true : false;
 		if(bFly)
 			pos.z += 100.f;
-		Vehicle	veh	= VEHICLE::CREATE_VEHICLE(model, pos.x, pos.y, pos.z + 1.f, ENTITY::GET_ENTITY_HEADING(playerPed), true, false);
-		VEHICLE::SET_VEHICLE_ENGINE_ON(veh, true, true, true);
-		VEHICLE::SET_VEHICLE_IS_STOLEN(veh, false);
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		pos.z += 1.f;
+		float heading = CHooking::get_entity_heading(playerPed);
+
+		Vehicle	veh	= CHooking::create_vehicle(model, &pos, heading, true, false);
+		CVehicle* pVeh = util::handle_to_ptr<CVehicle>(veh);
+		if(pVeh == nullptr)
+			return false;
+		CHooking::set_vehicle_engine_on(veh, true, true, true);
+		pVeh->set_stolen(false);
+		CHooking::set_model_as_no_longer_needed(model);
 
 		if(bFly)
 		{
-			VEHICLE::SET_VEHICLE_FORWARD_SPEED(veh, 100.0f);
-			VEHICLE::SET_HELI_BLADES_FULL_SPEED(veh);
+			CHooking::set_vehicle_forward_speed(pVeh, 100.0f);
+			CHooking::set_heli_blades_full_speed(veh, 1.f);
 		}
 		else
-			VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(veh);
+			CHooking::set_vehicle_on_ground_properly(veh, 0);
 		if(flags & VEHSPAWN_WARP)
-			PED::SET_PED_INTO_VEHICLE(playerPed, veh, -1);
+			CHooking::set_ped_into_vehicle(playerPed, veh, -1);
 		if(flags & VEHSPAWN_LICENSE)
-			VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT(veh, "YO MOMMA");
+			CHooking::set_vehicle_number_plate_text(veh, "YO MOMMA");
 		if(vehOut != nullptr)
 			*vehOut = veh;
 		if(flags & VEHSPAWN_UPGRADE)
-			upgrade_car(veh, VEHICLE::IS_THIS_MODEL_A_CAR(model) != 0, colours);
+			upgrade_car(veh, CHooking::is_model_a_car(model) != 0, colours);
 		else if(flags & VEHSPAWN_MP_BYPASS)
 			vehicle_bypass(veh);	//mp bypass
 
-		//ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&veh);
 		return true;
 	}
 
 	void vehicle_bypass(Vehicle v)
 	{
-		DECORATOR::DECOR_SET_INT(v, "MPBitset", (1 << 10));
+		CHooking::decor_set_int(v, "MPBitset", (1 << 10));
 	}
 
 	void vehicle_mp_bypass(bool b)
 	{
 		if(b)
-			*(int*)	CHooking::getGlobalPtr(GLOBALPTR_MP_VEH_BYPASS + PLAYER::GET_PLAYER_INDEX())	|= (1 << 3);
+			*(int*)	CHooking::getGlobalPtr(GLOBALPTR_MP_VEH_BYPASS + CHooking::player_id())	|= (1 << 3);
 		else
-			*(int*)	CHooking::getGlobalPtr(GLOBALPTR_MP_VEH_BYPASS + PLAYER::GET_PLAYER_INDEX())	&= ~(1 << 3);
+			*(int*)	CHooking::getGlobalPtr(GLOBALPTR_MP_VEH_BYPASS + CHooking::player_id())	&= ~(1 << 3);
 	}
 
 	void vehicle_sp_bypass(bool b)
@@ -775,21 +889,37 @@ namespace script
 
 		vehicle_bypass(v);
 
-		VEHICLE::SET_VEHICLE_MOD_KIT(v, 0);
-		VEHICLE::SET_VEHICLE_NUMBER_PLATE_TEXT_INDEX(v, PLATE_YELLOWONBLACK);
-		VEHICLE::SET_VEHICLE_WHEEL_TYPE(v, WHEEL_TYPE_HIGHEND);
-		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_TURBO, 1);
-		VEHICLE::TOGGLE_VEHICLE_MOD(v, MOD_XENONLIGHTS, 1);
-		VEHICLE::SET_VEHICLE_MOD(v, 0, VEHICLE::GET_NUM_VEHICLE_MODS(v, 0) - 2, false);		//biggest spoiler = ugly
-		VEHICLE::SET_VEHICLE_WINDOW_TINT(v, 1);
+		CVehicle* pVeh	= util::handle_to_ptr<CVehicle>(v);
+		CHooking::set_vehicle_mod_kit(v, 0);
+		CHooking::set_vehicle_number_plate_index(pVeh, PLATE_YELLOWONBLACK);
+		CHooking::set_vehicle_wheel_type(v, WHEEL_TYPE_HIGHEND);
+		CHooking::toggle_vehicle_mod(v, MOD_TURBO, 1);
+		CHooking::toggle_vehicle_mod(v, MOD_XENONLIGHTS, 1);
+		CHooking::set_vehicle_mod(v, 0, CHooking::get_num_vehicle_mod(v, 0) - 2, false);		//biggest spoiler = ugly
+		if(pVeh->pCVehicleMods != nullptr)
+			pVeh->pCVehicleMods->btWindowTint	= (BYTE) 1;
 		if(colours != -1)
-			VEHICLE::SET_VEHICLE_COLOURS(v, colours & 0xFF, (colours >> 0x08) & 0xFF);
+			set_vehicle_color(v, colours & 0xFF, (colours >> 0x08) & 0xFF);
 		for(int i = 1; i < 0x30; ++i)
 		{
 			if(!wheels && i > 22 && i < 25)
 				continue;
-			VEHICLE::SET_VEHICLE_MOD(v, i, VEHICLE::GET_NUM_VEHICLE_MODS(v, i) - 1, false);
+			CHooking::set_vehicle_mod(v, i, CHooking::get_num_vehicle_mod(v, i) - 1, false);
 		}
+		return true;
+	}
+
+	bool	set_vehicle_color(Vehicle v, int p, int s)
+	{
+		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(v);
+		if(pVeh == nullptr || pVeh->pCVehicleMods == nullptr)
+			return false;
+		if(p != -1)
+			pVeh->pCVehicleMods->btPrimary		= (BYTE) p;
+		if(s != -1)
+			pVeh->pCVehicleMods->btSecondary	= (BYTE) s;
+
+		CHooking::apply_vehicle_colors(pVeh, true);
 		return true;
 	}
 
@@ -798,42 +928,61 @@ namespace script
 		v3		pos	= get_coords_infront_player(10.f);
 		Ped		playerPed	= CPlayerMem::player_ped_id();
 	
-		if(!STREAMING::IS_MODEL_IN_CDIMAGE(model))
+		if(!CHooking::is_model_in_cdimage(model))
 			return true;
-		STREAMING::REQUEST_MODEL(model);
-		if(!STREAMING::HAS_MODEL_LOADED(model))
+		CHooking::request_model(model);
+		if(!CHooking::has_model_loaded(model))
 			return false;
-		Object	obj	= OBJECT::CREATE_OBJECT(model, pos.x, pos.y, pos.z, true, false, false);
+		Object	obj;
+		CHooking::create_object(model, pos.x, pos.y, pos.z, true, 1, -1, &obj, true, false, false);
 
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		CHooking::set_model_as_no_longer_needed(model);
 
 		if(objOut != nullptr)
 			*objOut = obj;
 		return true;
 	}
 
-	void ped_give_all_weapons(Ped p)
+	bool ped_give_all_weapons(Ped p, Player player)
 	{
+		static int	count[MAX_PLAYERS]	= { 0 };
+		if(player == -1)
+			goto LABEL_GIVE_ALL_NOW;
+
+		if(count[player] >= get_array_size(hash::weapon_hash))
+			goto LABEL_END;
+
+		CHooking::give_delayed_weapon_to_ped(p, hash::weapon_hash[count[player]], 9999, 0);
+		++count[player];
+		return false;
+
+	LABEL_END:
+		 count[player]	= 0;
+		 return true;
+
+	LABEL_GIVE_ALL_NOW:
 		for(int i = 0; i < get_array_size(hash::weapon_hash); i++)
-			WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, hash::weapon_hash[i], 9999, 0);
+			CHooking::give_delayed_weapon_to_ped(p, hash::weapon_hash[i], 9999, 0);
+		return true;
 	}
 
-	void ped_weapon(Ped p, DWORD weapon, bool give)
+	bool ped_weapon(Ped p, DWORD weapon, bool give)
 	{
 		if(weapon == 0)
 		{
 			if(give)
 				script::ped_give_all_weapons(p);
 			else
-				WEAPON::REMOVE_ALL_PED_WEAPONS(p, true);
+				CHooking::remove_all_ped_weapons(p);
 		}
 		else
 		{
 			if(give)
-				WEAPON::GIVE_DELAYED_WEAPON_TO_PED(p, weapon, 9999, 0);
+				CHooking::give_delayed_weapon_to_ped(p, weapon, 9999, 0);
 			else
-				WEAPON::REMOVE_WEAPON_FROM_PED(p, weapon);
+				CHooking::remove_weapon_from_ped(p, weapon);
 		}
+		return true;
 	}
 
 	void	no_reload_toggle(bool toggle)
@@ -847,56 +996,64 @@ namespace script
 		CHooking::nop_bytes(CHooking::m_infAmmo, restore, toggle);
 	}
 
+	void	explosive_ammo(int explosionType)
+	{
+		v3 pos	= {};
+		if(CHooking::get_ped_last_weapon_impact(CPlayerMem::player_ped_id(), &pos))
+			add_explosion(pos, explosionType, 1.f, true, false, 0.f);
+	}
+
 	void get_in_closest_car()
 	{
 		Ped playerPed	= CPlayerMem::player_ped_id();
 		v3 pos			= CPlayerMem::get_player_coords(CPlayerMem::player_id());
-		update_nearby_vehicle(playerPed, 0x1);
+		update_nearby_vehicle(true);
 		Vehicle veh = CHack::m_nearbyVehicle.front();
 		if(get_free_seat(veh) != -1)
 		{
-			Ped pDriver = VEHICLE::GET_PED_IN_VEHICLE_SEAT(veh, -1);
-			AI::CLEAR_PED_TASKS_IMMEDIATELY(pDriver);
+			Ped pDriver = CHooking::get_ped_in_vehicle_seat(veh, -1);
+			CHooking::clear_ped_tasks_immediately(pDriver);
 		}
-		PED::SET_PED_INTO_VEHICLE(CPlayerMem::player_ped_id(), veh, -1);
+		CHooking::set_ped_into_vehicle(CPlayerMem::player_ped_id(), veh, -1);
 		util::clear_queue(CHack::m_nearbyVehicle);
 	}
 
 	Ped clone_ped_bodyguard(Ped p)
 	{
-		int group = PED::GET_PED_GROUP_INDEX(p);
-		Ped	ped = PED::CLONE_PED(p, ENTITY::GET_ENTITY_HEADING(p), 1, 1);
-		PED::SET_PED_AS_GROUP_MEMBER(ped, group);
-		PED::SET_PED_CAN_SWITCH_WEAPON(ped, false);
-		WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, 0x22d8fe39, 9999, 0);	//$("WEAPON_APPISTOL")
-		PED::SET_PED_COMBAT_ABILITY(ped, 2); //0 poor, 1 average, 2 prof
-		//ENTITY::SET_ENTITY_INVINCIBLE(ped, false);
+		int group = CHooking::get_ped_group_index(p);
+		Ped	ped = CHooking::clone_ped(p, CHooking::get_entity_heading(p), 1, 1);
+		CHooking::set_ped_as_group_member(ped, group);
+		CHooking::set_ped_can_switch_weapon(ped, false);
+		CHooking::give_delayed_weapon_to_ped(ped, 0x22d8fe39, 9999, 0);	//$("WEAPON_APPISTOL")
+		CHooking::set_ped_combat_ability(util::handle_to_ptr<CPed>(ped), 2); //0 poor, 1 average, 2 prof
 		return ped;
 	}
 
 	void fix_vehicle(Vehicle v)
 	{
-		VEHICLE::SET_VEHICLE_FIXED(v);
-		VEHICLE::SET_VEHICLE_DEFORMATION_FIXED(v);
-		VEHICLE::SET_VEHICLE_DIRT_LEVEL(v, 0);
-		VEHICLE::SET_VEHICLE_UNDRIVEABLE(v, false);
-		clown_particle_effect_on_entity(v);
+		CHooking::set_vehicle_fixed(v);
+		CHooking::set_vehicle_deformation_fixed(util::handle_to_ptr<CVehicle>(v));
+		CHooking::set_vehicle_undriveable(v, false);
 	}
 
 	void clean_ped(Ped p)
 	{
-		PED::CLEAR_PED_BLOOD_DAMAGE(p);
-		PED::RESET_PED_VISIBLE_DAMAGE(p);
-		PED::CLEAR_PED_WETNESS(p);
-		clown_particle_effect_on_entity(p);
+		CHooking::clear_ped_blood_damage(util::handle_to_ptr<CPed>(p));
+		CHooking::clear_ped_wetness(p);
 	}
 
 	int get_free_seat(Vehicle v)
 	{
-		int n = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v);
+		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(v);
+		if(pVeh == nullptr)
+			goto LABEL_FAILED;
+
+		int n = pVeh->btMaxPassengers;
 		for(int i = -1; i < n; i++)	// 0 = first passenger seat
-			if(VEHICLE::IS_VEHICLE_SEAT_FREE(v, i))
+			if(CHooking::is_vehicle_seat_free(v, i, false))
 				return i;
+
+	LABEL_FAILED:
 		return -2;
 	}
 
@@ -904,32 +1061,33 @@ namespace script
 	{
 		if(!is_ped_in_any_vehicle(ped))
 			return;
-		Vehicle v	= PED::GET_VEHICLE_PED_IS_USING(ped);
+		Vehicle v	= CHooking::get_vehicle_ped_is_using(ped);
 		int		s	= get_free_seat(v);
 		if(s > -1)
-			PED::SET_PED_INTO_VEHICLE(CPlayerMem::player_ped_id(), v, s);
+			CHooking::set_ped_into_vehicle(CPlayerMem::player_ped_id(), v, s);
 	}
 
-	void attach_entities(Entity e, Entity t, int bone, v3 pos, v3 rot)
+	void attach_entities(Entity e, Entity t, int bone, Vector3 pos, Vector3 rot)
 	{
 		if(bone != -1 && pos.y == -.26f)
 			pos.y = 0.f;
-		bone == -1 ? bone = 0 : bone = PED::GET_PED_BONE_INDEX(e, bone);
+		bone == -1 ? bone = 0 : bone = CHooking::get_ped_bone_index(e, bone);
 		v3		pos2	= get_coords_infront_player(6.f);
-		Object	obj		= OBJECT::CREATE_OBJECT(0xe6cb661e, pos2.x, pos2.y, pos2.z, true, false, false);	//$("prop_cs_dildo_01")
-		ENTITY::ATTACH_ENTITY_TO_ENTITY(e, obj, 0, pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, false, false, false, true, 2, true);
-		ENTITY::ATTACH_ENTITY_TO_ENTITY(obj, t, bone, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, false, false, false, true, 2, true);
+		Object	obj;
+		Vector3 empty	= { 0 };
+		CHooking::create_object(0xe6cb661e, pos2.x, pos2.y, pos2.z, true, 1, -1, &obj, true, false, false);	//$("prop_cs_dildo_01")
+		CHooking::attach_entity_to_entity(e, obj, 0, &pos, &rot, false, false, false, true, 2, true, false);
+		CHooking::attach_entity_to_entity(obj, t, bone, &empty, &empty, false, false, false, true, 2, true, false);
 		return;
 	}
 
 	void detach_entity(Entity e)
 	{
-		Object obj = ENTITY::GET_ENTITY_ATTACHED_TO(e);
-		ENTITY::DETACH_ENTITY(e, false, true);
-		ENTITY::PROCESS_ENTITY_ATTACHMENTS(e);
-		if(ENTITY::IS_ENTITY_A_PED(e))
-			AI::CLEAR_PED_TASKS_IMMEDIATELY(e);
-		if(!ENTITY::IS_ENTITY_AN_OBJECT(obj))
+		Object obj = CHooking::get_entity_attached_to(e);
+		CHooking::detach_entity(e, false, true);
+		if(is_entity_a_ped(e))
+			CHooking::clear_ped_tasks_immediately(e);
+		if(!is_entity_an_object(obj))
 			return;
 		CHack::m_entityCleanup.push(obj);
 		return;
@@ -948,90 +1106,75 @@ namespace script
 	{
 		Ped		ped			= CPlayerMem::get_player_ped(player);
 		v3		remotePos	= CPlayerMem::get_player_coords(player);
-		Object obj	= OBJECT::CREATE_OBJECT(0x392d62aa, remotePos.x, remotePos.y, remotePos.z -1.f, true, false, false);	//$("prop_gold_cont_01")
+		Object	obj;
+		CHooking::create_object(0x392d62aa, remotePos.x, remotePos.y, remotePos.z, true, 1, -1, &obj, true, false, false);
+		//Object obj	= OBJECT::CREATE_OBJECT(0x392d62aa, remotePos.x, remotePos.y, remotePos.z -1.f, true, false, false);	//$("prop_gold_cont_01")
 		return obj;
 	}
 
-	void set_player_clothing(int group, int value, bool texture)
-	{
-		Ped playerPed = CPlayerMem::player_ped_id();
-		if (texture)
-			PED::SET_PED_COMPONENT_VARIATION(playerPed, group, PED::GET_PED_DRAWABLE_VARIATION(playerPed, group), value, PED::GET_PED_PALETTE_VARIATION(playerPed, group));
-		else
-			PED::SET_PED_COMPONENT_VARIATION(playerPed, group, value, 0, PED::GET_PED_PALETTE_VARIATION(playerPed, group));
-	}
-
-	void clown_particle_effect_on_entity(Entity e)
+	/*void clear_badsports()
 	{
 		return;
-		STREAMING::REQUEST_NAMED_PTFX_ASSET("scr_rcbarry2");
-		GRAPHICS::_USE_PARTICLE_FX_ASSET_NEXT_CALL("scr_rcbarry2");
-		//GRAPHICS::_START_PARTICLE_FX_NON_LOOPED_AT_COORD_2("scr_clown_appears", pos.x, pos.y, pos.z, 0.f, 0.f, 0.f, 1.f, false, false, false);
-		GRAPHICS::_START_PARTICLE_FX_LOOPED_ON_ENTITY_BONE("scr_clown_appears", e, 0.f, 0.f, -.3f, 0.f, 0.f, 0.f, 0, 1.f, false, false, false);
-		//GRAPHICS::_START_PARTICLE_FX_NON_LOOPED_ON_ENTITY_2("scr_clown_appears", e, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, false, false, false);
-	}
+		CHooking::stat_set_int(util::$("MPPLY_GRIEFING"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_OFFENSIVE_LANGUAGE"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_OFFENSIVE_TAGPLATE"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_OFFENSIVE_UGC"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_BAD_CREW_NAME"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_BAD_CREW_MOTTO"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_BAD_CREW_STATUS"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_BAD_CREW_EMBLEM"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_GAME_EXPLOITS"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_EXPLOITS"), 0, 1);
+		CHooking::stat_set_int(util::$("MPPLY_ISPUNISHED"), 0, 1);
 
-	void clear_badsports()
-	{
-		return;
-		STATS::STAT_SET_INT(util::$("MPPLY_GRIEFING"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_LANGUAGE"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_TAGPLATE"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_OFFENSIVE_UGC"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_NAME"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_MOTTO"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_STATUS"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_BAD_CREW_EMBLEM"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_GAME_EXPLOITS"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_EXPLOITS"), 0, 1);
-		STATS::STAT_SET_INT(util::$("MPPLY_ISPUNISHED"), 0, 1);
-
-		STATS::STAT_SET_INT(util::$("MP0_CHEAT_BITSET"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MP0_BAD_SPORT_BITSET"), 0, TRUE);
-		STATS::STAT_SET_BOOL(util::$("MPPLY_IS_HIGH_EARNER"), FALSE, TRUE);
-		STATS::STAT_SET_BOOL(util::$("MPPLY_IS_CHEATER"), FALSE, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_IS_CHEATER_TIME"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_WAS_I_BAD_SPORT"), 0, TRUE);
-		STATS::STAT_SET_FLOAT(util::$("MPPLY_OVERALL_BADSPORT"), 0, TRUE);
-		STATS::STAT_SET_FLOAT(util::$("MPPLY_OVERALL_CHEAT"), 0, TRUE);
-		STATS::STAT_SET_BOOL(util::$("MPPLY_CHAR_IS_BADSPORT"), FALSE, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_BECAME_BADSPORT_NUM"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_BECAME_CHEATER_NUM"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MP0_CHEAT_BITSET"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MP0_BAD_SPORT_BITSET"), 0, TRUE);
+		CHooking::stat_set_bool(util::$("MPPLY_IS_HIGH_EARNER"), FALSE, TRUE);
+		CHooking::stat_set_bool(util::$("MPPLY_IS_CHEATER"), FALSE, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_IS_CHEATER_TIME"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_WAS_I_BAD_SPORT"), 0, TRUE);
+		CHooking::stat_set_float(util::$("MPPLY_OVERALL_BADSPORT"), 0, TRUE);
+		CHooking::stat_set_float(util::$("MPPLY_OVERALL_CHEAT"), 0, TRUE);
+		CHooking::stat_set_bool(util::$("MPPLY_CHAR_IS_BADSPORT"), FALSE, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_BECAME_BADSPORT_NUM"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_BECAME_CHEATER_NUM"), 0, TRUE);
 		Any date[12];
 		memset(&date, 0, sizeof(date));
 		STATS::STAT_SET_DATE(util::$("MPPLY_BECAME_CHEATER_DT"), &date[0], 7, TRUE);
 		STATS::STAT_SET_DATE(util::$("MPPLY_BECAME_BADSPORT_DT"), &date[0], 7, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_DESTROYED_PVEHICLES"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_BADSPORT_MESSAGE"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_KILLS_PLAYERS_CHEATER"), 69, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_DEATHS_PLAYERS_CHEATER"), 420, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_LAST_REPORT_PENALTY"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_LAST_COMMEND_PENALTY"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_LAST_REPORT_RESTORE"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_LAST_COMMEND_RESTORE"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_REPORT_STRENGTH"), 32, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_COMMEND_STRENGTH"), 32, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT_DELTA"), 0, TRUE);
-		STATS::STAT_SET_INT(util::$("MPPLY_VOTED_OUT_QUIT"), 0, TRUE);
-		STATS::STAT_SET_BOOL(util::$("MPPLY_WAS_I_BAD_SPORT"), FALSE, TRUE);
-		STATS::STAT_SET_BOOL(util::$("MPPLY_WAS_I_CHEATER"), FALSE, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_DESTROYED_PVEHICLES"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_BADSPORT_MESSAGE"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_KILLS_PLAYERS_CHEATER"), 69, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_DEATHS_PLAYERS_CHEATER"), 420, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_LAST_REPORT_PENALTY"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_LAST_COMMEND_PENALTY"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_LAST_REPORT_RESTORE"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_LAST_COMMEND_RESTORE"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_REPORT_STRENGTH"), 32, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_COMMEND_STRENGTH"), 32, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_VOTED_OUT"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_VOTED_OUT_DELTA"), 0, TRUE);
+		CHooking::stat_set_int(util::$("MPPLY_VOTED_OUT_QUIT"), 0, TRUE);
+		CHooking::stat_set_bool(util::$("MPPLY_WAS_I_BAD_SPORT"), FALSE, TRUE);
+		CHooking::stat_set_bool(util::$("MPPLY_WAS_I_CHEATER"), FALSE, TRUE);
 
 		notify_above_map("Reports have been cleared. GL HF", 0);
-	}
+	}*/
 
 	void teleport_player_on_foot(Ped ped, float X, float Y, float Z)
 	{
-		AI::CLEAR_PED_TASKS_IMMEDIATELY(ped);
-		int scene = NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(X, Y, Z, 0.0, 0.0, 0.0, 2, 0, 0, 0, 0, 0);
-		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(ped, scene, "mini@strip_club@private_dance@part3", "priv_dance_p3", 8.0f, -8.0, 5, 0, 30, 0);
-		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
+		CHooking::clear_ped_tasks_immediately(ped);
+		Vector3	remotePos	= { X, Y, Z };
+		Vector3 cam			= { 0 };
+		int	scene			= CHooking::network_create_synchronised_scene(&remotePos, &cam, 2, 0, 0, 0, 0.f, 0.f);
+		CHooking::network_add_ped_to_synchronised_scene(ped, scene, "mini@strip_club@private_dance@part3", "priv_dance_p3", 8.0f, -8.0, 5, 0, 30, 0, 0);
+		CHooking::network_start_synchronised_scene(scene);
 	}
 
 	v3 get_coords_infront_player(float dist)
 	{
 		v3 r = CPlayerMem::get_player_coords(CPlayerMem::player_id());
-		float	heading	= ENTITY::GET_ENTITY_HEADING(CPlayerMem::player_ped_id());
+		float	heading	= CHooking::get_entity_heading(CPlayerMem::player_ped_id());
 				r.x		+= dist * sin(util::deg_to_rad(heading)) * -1,
 				r.y		+= dist * cos(util::deg_to_rad(heading));
 		return r;
@@ -1046,7 +1189,11 @@ namespace script
 
 	v3	get_coords_infront_of_cam(float dist)
 	{
-		return CAM::GET_GAMEPLAY_CAM_COORD() + (v3(CAM::GET_GAMEPLAY_CAM_ROT(0)).transformRotToDir() * dist);
+		Vector3 gameplay_rot	= { 0 };
+		Vector3 gameplay_pos	= { 0 };
+		CHooking::get_gameplay_cam_rot(&gameplay_rot, 0);
+		CHooking::get_gameplay_cam_coord(&gameplay_pos);
+		return gameplay_pos + (v3(gameplay_rot).transformRotToDir() * dist);
 	}
 
 	v3	get_coords_infront_of_coords(v3 pos, v3 rot, float dist)
@@ -1062,19 +1209,16 @@ namespace script
 
 	void set_radio_station(std::string station)
 	{
-		BYTE		stIdx	= (BYTE)AUDIO::GET_PLAYER_RADIO_STATION_INDEX();
-		if(stIdx == 0xFF || (std::string) AUDIO::GET_RADIO_STATION_NAME(stIdx) != station)
-			AUDIO::SET_RADIO_TO_STATION_NAME(&station[0]);
+		BYTE		stIdx	= (BYTE) CHooking::get_player_radio_station_index();
+		if(stIdx == 0xFF || (std::string) CHooking::get_radio_station_name(stIdx) != station)
+			CHooking::set_radio_to_station_name(CHooking::m_gameInfo, &station[0]);
 	}
 
 	void	set_entity_invisible(Entity e, bool invis, bool local)
 	{
-		ENTITY::SET_ENTITY_VISIBLE(e, invis, false);
+		CHooking::set_entity_visible(e, invis, false);
 		if(local)
-		{
-			NETWORK::SET_LOCAL_PLAYER_VISIBLE_LOCALLY(true);
-			NETWORK::SET_PLAYER_VISIBLE_LOCALLY(CPlayerMem::player_id(), true);
-		}
+			CHooking::set_local_player_visible_locally(true);
 	}
 
 	int super_run(float force, bool stop, bool keyState)
@@ -1082,12 +1226,13 @@ namespace script
 		Ped playerPed = CPlayerMem::player_ped_id();
 		if(keyState)
 		{
-			ENTITY::APPLY_FORCE_TO_ENTITY(playerPed, 1, 0, force, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1);
+			apply_force_to_entity(playerPed, 1, 0.f, force, 0.f, 0.f, 0.f, 0.f, true, true);
 			return 1;
 		}
-		else if(stop && !ENTITY::IS_ENTITY_IN_AIR(playerPed))
+		else if(stop && !CHooking::is_entity_in_air(playerPed))
 		{
-			ENTITY::SET_ENTITY_VELOCITY(playerPed, 0.f, 0.f, 0.f);
+			Vector3 vel	= { 0 };
+			CHooking::set_entity_velocity(playerPed, &vel);
 			return 0;
 		}
 		return -1;
@@ -1095,11 +1240,11 @@ namespace script
 
 	bool set_entity_gravity(Entity e, bool gravity)
 	{
-		ENTITY::SET_ENTITY_HAS_GRAVITY(e, gravity);
-		if(ENTITY::IS_ENTITY_A_PED(e))
-			PED::SET_PED_GRAVITY(e, gravity);
-		else if(ENTITY::IS_ENTITY_A_VEHICLE(e))
-			VEHICLE::SET_VEHICLE_GRAVITY(e, gravity);
+		CHooking::set_entity_has_gravity(e, gravity);
+		if(is_entity_a_ped(e))
+			CHooking::set_ped_gravity(e, gravity);
+		else if(is_entity_a_vehicle(e))
+			util::handle_to_ptr<CVehicle>(e)->fGravity = 0.f;
 		else
 			return false;
 		return true;
@@ -1125,8 +1270,8 @@ namespace script
 
 		if(clock() - tmr > delay && CHack::m_nearbyPed.empty() && CHack::m_nearbyVehicle.empty())
 		{
-			script::update_nearby_ped(playerPed, 0x80);
-			script::update_nearby_vehicle(playerPed, 0x80, driveable);
+			script::update_nearby_ped();
+			script::update_nearby_vehicle(driveable);
 			tmr = clock();
 		}
 		else if(!CHack::m_nearbyPed.empty())
@@ -1140,52 +1285,54 @@ namespace script
 			CHack::m_nearbyVehicle.pop();
 		}
 
-		if(ent != NULL && ENTITY::IS_AN_ENTITY(ent))
+		if(ent != NULL && is_an_entity(ent))
 		{
 			v3 pos = get_entity_coords(ent);
 			if(action == CHAOSMODE_BOUNCE && request_control_of_entity(ent))	//bounce
-				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, 0, 0, ENTITY::IS_ENTITY_A_PED(ent) ? 10.f : 5.f, 0, 0, 0, 0, 1, 1, 1, 0, 1);
+				apply_force_to_entity(ent, 1, 0, 0, is_entity_a_ped(ent) ? 10.f : 5.f, 0, 0, 0, 1, 1);
 			else if(action == CHAOSMODE_ASCENTION && request_control_of_entity(ent))	//ascention
-				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, 0.f, 0.f, 50.f, 0.f, 0.f, 0.f, 0, false, true, true, false, true);
+				apply_force_to_entity(ent, 1, 0.f, 0.f, 150.f, 0.f, 0.f, 0.f, false, true);
 			else if(action == CHAOSMODE_ARMAGEDDON && request_control_of_entity(ent))	//armageddon
-				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, (float) util::random_int(-25, 25), (float) util::random_int(-25, 25), (float) util::random_int(-15, 15), (float) util::random_int(-10, 10), (float) util::random_int(-10, 10), (float) util::random_int(-10, 10), 0, 1, 1, 1, 0, 1); 
+				apply_force_to_entity(ent, 1, (float) util::random_int(-50, 50), (float) util::random_int(-50, 50), (float) util::random_int(-30, 30), (float) util::random_int(-20, 20), (float) util::random_int(-20, 20), (float) util::random_int(-20, 20), 1, 1); 
 			else if(action == CHAOSMODE_MAYHEM)	//mayhem
-				FIRE::ADD_EXPLOSION(pos.x, pos.y, pos.z, 29, 1, false, false, 0, 0);
+				add_explosion(pos, 29, 1, false, false, 0);
 			else if(action == CHAOSMODE_FORCEFIELD && request_control_of_entity(ent))	//forcefield
 			{
 				v3 playerPos		= CPlayerMem::get_player_coords(CPlayerMem::player_id());
 				v3 playerPos_pos	= pos - playerPos;
 				float	x				= playerPos_pos.x < 0.f ? playerPos_pos.x * -1.f : playerPos_pos.x,
 						y				= playerPos_pos.y < 0.f ? playerPos_pos.y * -1.f : playerPos_pos.y;
-				float	ratio			= 50.f	/ (x > y ? x : y);
-				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, playerPos_pos.x * ratio, playerPos_pos.y * ratio, ENTITY::IS_ENTITY_A_PED(ent) ? 20.f : 5.f, (float) util::random_int(-5, 5), (float) util::random_int(-5, 5), (float) util::random_int(-5, 5), 0, false, true, true, false, true);
+				float	ratio			= 100.f	/ (x > y ? x : y);
+				apply_force_to_entity(ent, 1, playerPos_pos.x * ratio, playerPos_pos.y * ratio, is_entity_a_ped(ent) ? 20.f : 5.f, (float) util::random_int(-5, 5), (float) util::random_int(-5, 5), (float) util::random_int(-5, 5), false, true);
 			}
 			else if(action == CHAOSMODE_GRAVITYFIELD && request_control_of_entity(ent))	//gravity field
 			{
-				float v = 2.f;
 				set_entity_gravity(ent, false);
-				if(ENTITY::IS_ENTITY_A_PED(ent) && !PED::IS_PED_RAGDOLL(ent))
+				Vector3 velocity	= { 0 };
+				CHooking::get_entity_velocity(&velocity, ent);
+				velocity.z = 2.f;
+				if(is_entity_a_ped(ent) && !is_ped_ragdoll(ent))
 				{
-					PED::SET_PED_TO_RAGDOLL(ent, 2000, 0, 2, false, false, false);
-					v = 5.f;
+					CHooking::set_ped_to_ragdoll(ent, 2000, 0, 2, false, false, false);
+					velocity.z = 5.f;
 				}
-				v3 velocity	= ENTITY::GET_ENTITY_VELOCITY(ent);
-				ENTITY::SET_ENTITY_VELOCITY(ent, velocity.x, velocity.y, v);
+				CHooking::set_entity_velocity(ent, &velocity);
 			}
 			else if(action == CHAOSMODE_SMASH && request_control_of_entity(ent))	//smash
 			{
 				teleport_entity_to_coords(ent, {pos.x, pos.y, pos.z + 10.f}, false);
-				if(ENTITY::IS_ENTITY_A_PED(ent))
+				if(is_entity_a_ped(ent))
 					set_ped_health(ent, 0);
 				else
-					ENTITY::SET_ENTITY_ROTATION(ent, 0.f, 180.f, 0.f, 0, false);
-				ENTITY::SET_ENTITY_VELOCITY(ent, 0.f, 0.f, -150.f);
+					CHooking::set_entity_rotation(ent, &UPSIDE_DOWN, 0);
+				Vector3 vel(0.f, 0.f, -150.f);
+				CHooking::set_entity_velocity(ent, &vel);
 			}
-			else if(action == CHAOSMODE_MASSACRE && ENTITY::IS_ENTITY_A_PED(ent))	//massacre
-					shoot_ped(ent);
-			else if(action == CHAOSMODE_ENERGYFIELD && request_control_of_entity(ent) && ENTITY::IS_ENTITY_A_VEHICLE(ent))
+			else if(action == CHAOSMODE_MASSACRE && is_entity_a_ped(ent))	//massacre
+				shoot_ped(ent);
+			else if(action == CHAOSMODE_ENERGYFIELD && request_control_of_entity(ent) && is_entity_a_vehicle(ent))
 			{
-				VEHICLE::SET_VEHICLE_UNDRIVEABLE(ent, true);
+				CHooking::set_vehicle_undriveable(ent, true);
 				CVehicle* veh = util::handle_to_ptr<CVehicle>(ent);
 				veh->fHealth2	= 0;
 			}
@@ -1202,7 +1349,7 @@ namespace script
 		if(smash_vehicle.empty())
 		{
 			queue_int	tmpQueue;
-			script::update_nearby_vehicle(playerPed, 0x80, true, &tmpQueue);
+			script::update_nearby_vehicle(true, &tmpQueue);
 			while(!tmpQueue.empty())
 			{
 				smash_vehicle.push_back(tmpQueue.front());
@@ -1222,7 +1369,8 @@ namespace script
 				if(!request_control_of_entity(ent))
 					return false;
 				set_entity_gravity(ent, false);
-				ENTITY::SET_ENTITY_VELOCITY(ent, 0.f, 0.f, 2.f);
+				Vector3 vel(0.f, 0.f, 2.f);
+				CHooking::set_entity_velocity(ent, &vel);
 			}
 			else if(clock() - tmr > 5000)
 			{
@@ -1231,8 +1379,9 @@ namespace script
 				if(smash_vehicle.empty())
 					r	= true;
 				set_entity_gravity(ent, true);
-				ENTITY::SET_ENTITY_ROTATION(ent, 0.f, 180.f, 0.f, 0, false);
-				ENTITY::SET_ENTITY_VELOCITY(ent, 0.f, 0.f, -150.f);
+				CHooking::set_entity_rotation(ent, &UPSIDE_DOWN, 0);
+				Vector3 vel(0.f, 0.f, -150.f);
+				CHooking::set_entity_velocity(ent, &vel);
 			}
 		}
 
@@ -1252,14 +1401,17 @@ namespace script
 			else
 			{
 				bhTmr	= clock();
-				ENTITY::FREEZE_ENTITY_POSITION(bh, true);
+				CHooking::freeze_entity_position(bh, true);
 			}
-		else if(!ENTITY::IS_AN_ENTITY(bh))
+		else if(!is_an_entity(bh))
+		{
 			bhTmr	= 0;
+			return true;
+		}
 		if(clock() - refreshTmr > 0x100 && CHack::m_nearbyPed.empty() && CHack::m_nearbyVehicle.empty())
 		{
-			script::update_nearby_ped(playerPed, 0x80, false);
-			script::update_nearby_vehicle(playerPed, 0x80, false);
+			script::update_nearby_ped(false);
+			script::update_nearby_vehicle(false);
 			refreshTmr = clock();
 		}
 		else if(!CHack::m_nearbyPed.empty())
@@ -1274,7 +1426,7 @@ namespace script
 
 		}
 
-		if(ent != NULL && ENTITY::IS_AN_ENTITY(ent))
+		if(ent != NULL && is_an_entity(ent))
 		{
 			v3 pos		= get_entity_coords(ent);
 			v3 bhPos	= get_entity_coords(bh);
@@ -1286,8 +1438,8 @@ namespace script
 				v3 pos_bhPos	= bhPos - pos;
 				float	x				= pos_bhPos.x < 0.f ? pos_bhPos.x * -1.f : pos_bhPos.x,
 						y				= pos_bhPos.y < 0.f ? pos_bhPos.y * -1.f : pos_bhPos.y;
-				float	ratio			= 20.f	/ (x > y ? x : y);
-				ENTITY::APPLY_FORCE_TO_ENTITY(ent, 1, pos_bhPos.x * ratio, pos_bhPos.y * ratio, ENTITY::IS_ENTITY_A_PED(ent) ? 1.f : .5f, (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), 0, false, true, true, false, true);
+				float	ratio			= 75.f	/ (x > y ? x : y);
+				apply_force_to_entity(ent, 1, pos_bhPos.x * ratio, pos_bhPos.y * ratio, is_entity_a_ped(ent) ? 1.f : .5f, (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), (float) util::random_int(-2, 2), false, true);
 			}
 		}
 
@@ -1302,15 +1454,16 @@ namespace script
 
 	bool	drop_money_on_player(Player player, int amount, DWORD hash)
 	{
-		//if(NETWORK::NETWORK_IS_SESSION_STARTED())
-		//	return false;
-		v3		pos			= CPlayerMem::get_player_coords(player);
-		Hash	modelHash	= amount > 2000 ? 0x113FD533U : hash;	// 0x113FD533 = prop_money_bag_01
-		STREAMING::REQUEST_MODEL(modelHash);
-		if(!STREAMING::HAS_MODEL_LOADED(modelHash))
+		Vector3		pos			= CPlayerMem::get_player_coords(player);
+		pos.z	+= 2.f;
+		Hash		modelHash	= amount > 2000 ? 0x113FD533U : hash;	// 0x113FD533 = prop_money_bag_01
+		if(!CHooking::is_model_in_cdimage(modelHash))
+			return true;
+		CHooking::request_model(modelHash);
+		if(!CHooking::has_model_loaded(modelHash))
 			return false;
-		OBJECT::CREATE_AMBIENT_PICKUP(0xce6fdd6bU, pos.x, pos.y, pos.z + 2.f, 0, amount, modelHash, 0, 1);	//0xce6fdd6b = PICKUP_MONEY_CASE
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(modelHash);
+		CHooking::create_ambient_pickup(0xce6fdd6bU, &pos, 0, amount, modelHash, false, true);
+		CHooking::set_model_as_no_longer_needed(modelHash);
 		return true;
 	}
 
@@ -1321,12 +1474,12 @@ namespace script
 		if(clock() - *tmr > 0x60)
 		{
 			if(CHack::m_nearbyPed.empty())
-				script::update_nearby_ped(CPlayerMem::player_ped_id(), 0x80);
+				script::update_nearby_ped();
 			else
 			{
 				Entity ent	= CHack::m_nearbyPed.front();
 				CHack::m_nearbyPed.pop();
-				if(ent > 0 && ENTITY::DOES_ENTITY_EXIST(ent))
+				if(ent > 0 && is_an_entity(ent))
 				{
 					if(!request_control_of_entity(ent))
 						return;
@@ -1334,7 +1487,7 @@ namespace script
 					if(cped != nullptr && cped != CHack::m_pCPedPlayer && cped->fHealth > 100.f && cped->fHealth < 250)
 					{
 						cped->iCash = 2000;
-						AI::CLEAR_PED_TASKS_IMMEDIATELY(ent);
+						CHooking::clear_ped_tasks_immediately(ent);
 						teleport_entity_to_coords(ent, {playerPos.x, playerPos.y, playerPos.z + 2.5f}, false);
 						cped->fHealth = 0;
 					}
@@ -1343,23 +1496,23 @@ namespace script
 			}
 		}
 
-		if(CHooking::m_replayIntf->pickup_interface->number_of_pickups > 0)
+		if(CHooking::m_replayIntf->pCPickupInterface->iCurPickups > 0)
 		{
-			int max	= CHooking::m_replayIntf->pickup_interface->max_pickups;
+			int max	= CHooking::m_replayIntf->pCPickupInterface->iMaxPickups;
 			for(int i = 0; i < max; ++i)
 			{
-				CPickup*	pickup	= CHooking::m_replayIntf->pickup_interface->get_pickup(i);
-				if(pickup == nullptr || pickup->Navigation == nullptr || pickup->iMoney < 100)
+				CPickup*	pickup	= CHooking::m_replayIntf->pCPickupInterface->get_pickup(i);
+				if(pickup == nullptr || pickup->pCNavigation == nullptr || pickup->iValue < 100)
 					continue;
-				pickup->Navigation->v3Pos	= playerPos;
-				pickup->VisualPosition		= playerPos;
+				pickup->pCNavigation->v3Pos	= playerPos;
+				pickup->v3VisualPos			= playerPos;
 			}
 		}
 	}
 
 	void	stealth_money(int mils, bool remove)
 	{
-		if(!NETWORK::NETWORK_IS_SESSION_STARTED())
+		if(!CHooking::network_is_session_started())
 			return;
 
 		int	max		= remove ? 2000 : 15;
@@ -1386,25 +1539,32 @@ namespace script
 				--loops;
 			}
 			Any transactionID	= INT_MAX;
-			if(UNK3::_NETWORK_SHOP_BEGIN_SERVICE(&transactionID, 1474183246, remove	? -1359375127 : -1586170317, remove ? 537254313 : 1445302971, amount, 4))
-				UNK3::_NETWORK_SHOP_CHECKOUT_START(transactionID);
+			if(CHooking::network_shop_begin_service(&transactionID, 1474183246, remove	? -1359375127 : -1586170317, remove ? 537254313 : 1445302971, amount, 4))
+				 CHooking::network_shop_checkout_start(transactionID);
 		}
+	}
+
+	void	trigger_script_event(eScriptEvent id, Player player, uint64_t arg2, uint64_t arg3)
+	{
+		constexpr BYTE	c		= 4;
+		int32_t			flags	= (1 << player);
+		uint64_t		args[c]	= { id, (uint64_t) player, arg2, arg3 };
+		CHooking::trigger_script_event(true, args, c, flags);
 	}
 
 	void set_time(int h, int m)
 	{
 		if(h == -1)
-			h = TIME::GET_CLOCK_HOURS();
+			h = CHooking::m_clockTime->hour;
 		if(m == -1)
-			m = TIME::GET_CLOCK_MINUTES();
-		TIME::SET_CLOCK_TIME(h, m, 0);
-		NETWORK::NETWORK_OVERRIDE_CLOCK_TIME(h, m, 0);
+			m = CHooking::m_clockTime->minute;
+		*CHooking::m_clockTime = { h, m, 0 };
+		CHooking::network_override_clock_time(h, m, 0, 0);
 	}
 
 	void set_weather(std::string w)
 	{
-		GAMEPLAY::CLEAR_OVERRIDE_WEATHER();
-		GAMEPLAY::SET_WEATHER_TYPE_NOW_PERSIST(&w[0]);
+		CHooking::set_weather_type_now_persist(&w[0]);
 	}
 
 	void freeze_time(bool b)
@@ -1418,16 +1578,16 @@ namespace script
 		}
 		if(h == -1 || m == -1)
 		{
-			h	= TIME::GET_CLOCK_HOURS();
-			m	= TIME::GET_CLOCK_MINUTES();
+			h	= CHooking::m_clockTime->hour;
+			m	= CHooking::m_clockTime->minute;
 		}
-		TIME::SET_CLOCK_TIME(h, m, 0);
-		NETWORK::NETWORK_OVERRIDE_CLOCK_TIME(h, m, 0);
+		*CHooking::m_clockTime = { h, m, 0 };
+		CHooking::network_override_clock_time(h, m, 0, 0);
 	}
 
 	void draw_speedometer(Vehicle v, bool mph)
 	{
-		float	speed	= ENTITY::GET_ENTITY_SPEED(v) * 3.6f;
+		float	speed	= CHooking::get_entity_speed(v) * 3.6f;
 		if(mph)
 			speed	= speed * .621f;
 		char msg[0xFF];
@@ -1461,53 +1621,62 @@ namespace script
 
 	void draw_crosshair(CColor color, int flag, int size, int thickness)
 	{
-		if(flag == 1 && !CAM::IS_AIM_CAM_ACTIVE())
+		if(flag == 1 && !CHooking::is_aim_cam_active())
 			return;
 
-		GRAPHICS::DRAW_RECT(.5f, .5f, util::pixel_to_rel(size, false), util::pixel_to_rel(thickness, true), color.r, color.g, color.b, color.a);	//horizontal
-		GRAPHICS::DRAW_RECT(.5f, .5f, util::pixel_to_rel(thickness, false), util::pixel_to_rel(size, true), color.r, color.g, color.b, color.a);	//vertical
+		CHooking::draw_rect(.5f, .5f, util::pixel_to_rel(size, false), util::pixel_to_rel(thickness, true), color.r, color.g, color.b, color.a);	//horizontal
+		CHooking::draw_rect(.5f, .5f, util::pixel_to_rel(thickness, false), util::pixel_to_rel(size, true), color.r, color.g, color.b, color.a);	//vertical
 
-		//GRAPHICS::DRAW_RECT(.496f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
-		//GRAPHICS::DRAW_RECT(.504f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
+		//CHooking::draw_rect(.496f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
+		//CHooking::draw_rect(.504f, .5f, .005f, .001f, color.r, color.g, color.b, color.a);	//horizontal
 	}
 
 	void noclip(Entity e, int action, float speed, bool freeCam, bool restore)
 	{
-		if(!ENTITY::IS_ENTITY_A_PED(e) && !ENTITY::IS_ENTITY_A_VEHICLE(e))
+		if(!is_entity_a_ped(e) && !is_entity_a_vehicle(e))
 			return;
-		ENTITY::FREEZE_ENTITY_POSITION(e, !restore);
-		ENTITY::SET_ENTITY_COLLISION(e, restore, restore);
+		CHooking::freeze_entity_position(e, !restore);
+		CHooking::set_entity_collision(e, restore, true, false);
 		if(restore)
 			return;
 		float turnSpeed = speed > 5 ? 1.5f : ((speed / 10) + 1.f);
 
 		if(!freeCam)
 		{
+			Vector3 rot	= { 0 };
 			if(action & NOCLIP_FORWARD)	//forward
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), ENTITY::GET_ENTITY_ROTATION(e, 0), .25f * speed), false);
+			{
+				CHooking::get_entity_rotation(&rot, e, 0);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), rot, .25f * speed), false);
+			}
 			if(action & NOCLIP_BACK)	//back
-				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), ENTITY::GET_ENTITY_ROTATION(e, 0), -.25f * speed), false);
+			{
+				CHooking::get_entity_rotation(&rot, e, 0);
+				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), rot, -.25f * speed), false);
+			}
 			if(action & NOCLIP_LEFT)	//left
-				ENTITY::SET_ENTITY_HEADING(e, ENTITY::GET_ENTITY_HEADING(e) + 2.5f * turnSpeed);
+				CHooking::set_entity_heading(e, CHooking::get_entity_heading(e) + 2.5f * turnSpeed);
 			if(action & NOCLIP_RIGHT)	//right
-				ENTITY::SET_ENTITY_HEADING(e, ENTITY::GET_ENTITY_HEADING(e) - 2.5f * turnSpeed);
+				CHooking::set_entity_heading(e, CHooking::get_entity_heading(e) - 2.5f * turnSpeed);
 		}
 		else
 		{
-			v3	camRot	= CAM::GET_GAMEPLAY_CAM_ROT(0);
-			ENTITY::SET_ENTITY_ROTATION(e, camRot.x, camRot.y, camRot.z, 0, false);
+			Vector3 camRot	= { 0 };
+			CHooking::get_gameplay_cam_rot(&camRot, 0);
+			//v3	camRot	= CAM::GET_GAMEPLAY_CAM_ROT(0);
+			CHooking::set_entity_rotation(e, &camRot, 0);
 			if(action & NOCLIP_FORWARD)	//forward
 				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			if(action & NOCLIP_BACK)	//back
 				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, -.25f * speed), false);
 			if(action & NOCLIP_LEFT)	//left
 			{
-				camRot = { 0.f, 0.f, camRot.z + 90.f };
+				camRot = { 0.f, 0, 0.f, 0, camRot.z + 90.f, 0 };
 				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			}
 			if(action & NOCLIP_RIGHT)	//right
 			{
-				camRot = { 0.f, 0.f, camRot.z - 90.f };
+				camRot = { 0.f, 0, 0.f, 0, camRot.z - 90.f, 0 };
 				teleport_entity_to_coords(e, get_coords_infront_of_coords(get_entity_coords(e), camRot, .25f * speed), false);
 			}
 		}
@@ -1516,6 +1685,36 @@ namespace script
 		if(action & NOCLIP_DOWN)	//down
 			teleport_entity_to_coords(e, get_coords_above_coords(get_entity_coords(e), -.2f * speed), false);
 	}
+
+	/*Entity get_raycast_entity()
+	{
+		Vector3	pos		= {};
+		Vector3	start	= {};
+		Vector3	end		= {};
+		v3		dir		= {};
+		int		ray		= 0;
+		BOOL	hit		= 0;
+		Hash	hash	= 0;
+		Entity	entity	= 0;
+
+		if(!CHooking::is_player_free_aiming(CPlayerMem::player_id()))
+			return entity;
+
+
+		CHooking::get_gameplay_cam_rot(&pos, 0);	//this uses pos as a tmp value
+		dir		= v3(pos).transformRotToDir();	
+		CHooking::get_gameplay_cam_coord(&pos);
+		start	= pos + dir;
+		end		= pos + (dir * 0x800);
+
+
+		ray		= CHooking::start_ray_cast(&start, &end, -1, 0, true);
+		CHooking::get_ray_cast(ray, &hit, &end, &start, &hash, &entity);
+
+		if(!hit || entity == 0 || !is_an_entity(entity) || !is_entity_a_ped(entity))
+			entity = 0;
+		return entity;
+	}*/
 
 	/*
 		flag
@@ -1526,7 +1725,7 @@ namespace script
 	{
 		static bool		down	= false;
 		static clock_t	tmr		= 0;
-		Ped				ped		= get_entity_crosshair(0x03);
+		Ped				ped		= get_entity_crosshair(XHAIR_PEDS_ONLY | XHAIR_ALIVE_ONLY);
 
 		if(!(flag & TRGBOT_PLAYERS))
 			goto LABEL_CONTINUE;
@@ -1575,21 +1774,20 @@ namespace script
 	{
 		Entity e	= NULL;
 		Player player = CPlayerMem::player_id();
-		//if(PLAYER::IS_PLAYER_FREE_AIMING(player) && PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
-		if(PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &e) && ENTITY::DOES_ENTITY_EXIST(e))
+		if(CHooking::is_player_free_aiming(player) && CHooking::get_entity_player_is_free_aiming_at(player, &e) && is_an_entity(e))
 		{
-			if(ENTITY::IS_ENTITY_A_PED(e))
+			if(is_entity_a_ped(e))
 			{
 				if(is_ped_in_any_vehicle(e))
 				{
-					Vehicle v = PED::GET_VEHICLE_PED_IS_IN(e, false);
-					if(ENTITY::IS_ENTITY_A_VEHICLE(v))
+					Vehicle v = CHooking::get_vehicle_ped_is_using(e);
+					if(is_entity_a_vehicle(v))
 						e = v;
 				}
 			}
-			if(flag & XHAIR_PEDS_ONLY && !ENTITY::IS_ENTITY_A_PED(e))
+			if(flag & XHAIR_PEDS_ONLY && !is_entity_a_ped(e))
 				e	= NULL;
-			if(flag & XHAIR_ALIVE_ONLY && ENTITY::IS_ENTITY_DEAD(e))
+			if(flag & XHAIR_ALIVE_ONLY && is_entity_dead(e))
 				e	= NULL;
 		}
 		else
@@ -1619,21 +1817,21 @@ namespace script
 
 	void	editor_reset_target(int flag = 0, float dist = 0.f)
 	{
-		if(editor_locked_entity	!= NULL && ENTITY::IS_AN_ENTITY(editor_locked_entity))
+		if(editor_locked_entity	!= NULL && is_an_entity(editor_locked_entity))
 		{
 			if(flag & EDITOR_FLAG_THROW)
 			{
 				v3 dir	= get_coords_infront_of_cam(dist + 100.f) - get_entity_coords(editor_locked_entity);
-				ENTITY::FREEZE_ENTITY_POSITION(editor_locked_entity, false);
-				ENTITY::APPLY_FORCE_TO_ENTITY(editor_locked_entity, 1, dir.x, dir.y, dir.z, 0.f, 0.f, 0.f, 0, false, true, true, false, true);
+				CHooking::freeze_entity_position(editor_locked_entity, false);
+				apply_force_to_entity(editor_locked_entity, 1, dir.x, dir.y, dir.z, 0.f, 0.f, 0.f, false, true);
 			}
 			if(flag & EDITOR_FLAG_INVISIBLE)
-				ENTITY::SET_ENTITY_VISIBLE(editor_locked_entity, false, false);
+				CHooking::set_entity_visible(editor_locked_entity, false, false);
 		}
 		editor_locked_entity = NULL;
 	}
 
-	bool	entity_editor(int action, float dist, int flag, v3 rot, Entity ent)
+	bool	entity_editor(int action, float dist, int flag, Vector3 rot, Entity ent)
 	{
 		if(action & EDIT_ACTION_RESET || (ent != NULL && editor_locked_entity != ent))
 			editor_reset_target(flag, dist);
@@ -1650,7 +1848,7 @@ namespace script
 			if(action & EDIT_ACTION_LOCK)
 				editor_locked_entity	= e;
 		}	
-		if(!ENTITY::DOES_ENTITY_EXIST(e))
+		if(!is_an_entity(e))
 		{
 			editor_locked_entity	= NULL;
 			return false;
@@ -1666,11 +1864,11 @@ namespace script
 		if(flag & EDITOR_FLAG_TEXT_TYPE)
 		{
 			std::string str	= "Entity";
-			if(ENTITY::IS_ENTITY_A_PED(e))
+			if(is_entity_a_ped(e))
 				str	= "Ped";
-			else if(ENTITY::IS_ENTITY_A_VEHICLE(e))
+			else if(is_entity_a_vehicle(e))
 				str = "Vehicle";
-			else if(ENTITY::IS_ENTITY_AN_OBJECT(e))
+			else if(is_entity_an_object(e))
 				str = "Object";
 
 			CColor	color = { 255, 255, 255, 255 };
@@ -1697,21 +1895,18 @@ namespace script
 		if(flag & EDITOR_FLAG_ROT)
 		{
 			if(flag & EDITOR_FLAG_REL_ROT)
-				rot.z += CAM::GET_GAMEPLAY_CAM_ROT(0).z;
-			ENTITY::SET_ENTITY_ROTATION(e, rot.x, rot.y, rot.z, 0, false);
+			{
+				Vector3 camRot	= { 0 };
+				CHooking::get_gameplay_cam_rot(&camRot, 0);
+				rot.z += camRot.z;
+			}
+			CHooking::set_entity_rotation(e, &rot, 0);
 		}
-		ENTITY::SET_ENTITY_VISIBLE(e, true, false);
-		ENTITY::FREEZE_ENTITY_POSITION(e, (flag & EDITOR_FLAG_FREEZE));
-		ENTITY::SET_ENTITY_COLLISION(e, !(flag & EDITOR_FLAG_COLLISION), true);
+		CHooking::set_entity_visible(e, true, false);
+		CHooking::freeze_entity_position(e, !!(flag & EDITOR_FLAG_FREEZE));
+		CHooking::set_entity_collision(e, !(flag & EDITOR_FLAG_COLLISION), true, false);
 		teleport_entity_to_coords(e, coords, false);
 		return true;
-	}
-
-	void ped_scenario(Ped p, char* anim, bool r)
-	{
-		AI::CLEAR_PED_TASKS_IMMEDIATELY(p);
-		if(!r)
-			AI::TASK_START_SCENARIO_IN_PLACE(p, anim, 0, true);
 	}
 
 	bool send_assasins_after_player(Player player)
@@ -1727,8 +1922,8 @@ namespace script
 						{pos.x + util::random_int(-20, 20), pos.y + util::random_int(-20, 20), pos.z},
 						&ped,
 						false,
-						2);
-			AI::TASK_COMBAT_PED(ped, remotePed, 0, 0);
+						PEDSPAWN_ARMY);
+			CHooking::ai_task_combat_ped(ped, remotePed, 0, 0);
 			count[player]++;
 			return false;
 		}
@@ -1739,28 +1934,45 @@ namespace script
 
 	void	shoot_ped(Ped ped, DWORD bone, bool owned)
 	{
-		v3 dir		= v3(ENTITY::GET_ENTITY_ROTATION(ped, 0)).transformRotToDir();
-		v3 pos1		= PED::GET_PED_BONE_COORDS(ped, bone, 0.f, 0.f, 0.f) + dir;
-		v3 pos2		= pos1 - (dir * 1.5f);
-		GAMEPLAY::SHOOT_SINGLE_BULLET_BETWEEN_COORDS(	pos1.x,
-														pos1.y,
-														pos1.z,
-														pos2.x,
-														pos2.y,
-														pos2.z,
+		Vector3 rot	= { 0 };
+		Vector3 pos = { 0 };
+		CHooking::get_ped_bone_coords(&pos, ped, bone, &rot);
+		CHooking::get_entity_rotation(&rot, ped, 0);
+		v3 dir		= v3(rot).transformRotToDir();
+		Vector3 pos1		= v3(pos) + dir;
+		Vector3 pos2		= v3(pos) - dir;
+		CHooking::shoot_single_bullet_between_coords(	&pos1,
+														&pos2,
 														500,
 														false,
 														0xc472fe2, //script::$("WEAPON_HEAVYSNIPER")
 														owned ? CPlayerMem::player_ped_id() : NULL,
 														true,
 														false,
-														200.f);
+														200.f,
+														0,
+														0,
+														0,
+														0);
 	}
 
 	void	explode_ped(Ped ped, int type)
 	{
-		Vector3 remotePos = get_entity_coords(ped);
-		FIRE::ADD_EXPLOSION(remotePos.x, remotePos.y, remotePos.z, type, 1, true, false, 0, 0);
+		v3 remotePos = get_entity_coords(ped);
+		add_explosion(remotePos, type, 1, true, false, 0);
+	}
+
+	void	explode_nearby_players(Player source)
+	{
+		Player local	= CPlayerMem::player_id();
+		Ped ped			= CPlayerMem::get_player_ped(source);
+		for(int i = 0; i < MAX_PLAYERS; ++i)
+		{
+			if(source == i || i == local || CPlayerMem::get_player_ped(i) == 0)
+				continue;
+			Vector3 pos = CPlayerMem::get_player_coords(i);
+			CHooking::add_owned_explosion(ped, &pos, 2, 1.f, true, false, 0.f);
+		}
 	}
 
 	void	lester_offradar_toggle(bool b)
@@ -1772,42 +1984,43 @@ namespace script
 
 	void	lester_offradar_add(int ms)
 	{
-		ULONGLONG	time	= NETWORK::GET_NETWORK_TIME(); //GetTickCount64(); //synced from host
-		ULONGLONG*	ptr		= reinterpret_cast<ULONGLONG*>(CHooking::getGlobalPtr(GLOBALPTR_OTR_TIME));
+		uint64_t	time	= CHooking::get_network_time(); //GetTickCount64(); //synced from host
+		uint64_t*	ptr		= reinterpret_cast<uint64_t*>(CHooking::getGlobalPtr(GLOBALPTR_OTR_TIME));
 		if(*ptr < time + (ms / 2))
 			*ptr = time + ms;
 	}
 
 	void	spectate_player(Ped p, bool b)
 	{
-		NETWORK::NETWORK_SET_IN_SPECTATOR_MODE(b, p);
+		CHooking::network_set_in_spectator_mode(b, p);
 	}
 
 	bool	animate_player(Player player, std::string dict, std::string anim, bool freeze, bool restore)
 	{
 		Ped remotePed	= CPlayerMem::get_player_ped(player);
-		AI::CLEAR_PED_TASKS_IMMEDIATELY(remotePed);
+		CHooking::clear_ped_tasks_immediately(remotePed);
 		if(restore)
 			return true;
-		STREAMING::REQUEST_ANIM_DICT(&dict[0]);
-		if(!STREAMING::HAS_ANIM_DICT_LOADED(&dict[0]))
+		CHooking::request_anim_dict(&dict[0]);
+		if(!CHooking::has_anim_dict_loaded(&dict[0]))
 			return false;
-		v3	remotePos	= CPlayerMem::get_player_coords(player);
-		int	scene		= NETWORK::NETWORK_CREATE_SYNCHRONISED_SCENE(remotePos.x, remotePos.y, remotePos.z, 0, 0, 0, 2, 0, 1, 1, 0.f, freeze ? 0.f : 1.f);
-		NETWORK::NETWORK_ADD_PED_TO_SYNCHRONISED_SCENE(remotePed, scene, &dict[0], &anim[0], 8.f, 1.f, -1, 1, 1.f, 1);
-		NETWORK::NETWORK_START_SYNCHRONISED_SCENE(scene);
+		Vector3	remotePos	= CPlayerMem::get_player_coords(player);
+		Vector3 cam			= { 0 };
+		int	scene		= CHooking::network_create_synchronised_scene(&remotePos, &cam, 2, 0, 1, 1, 0.f, freeze ? 0.f : 1.f);
+		CHooking::network_add_ped_to_synchronised_scene(remotePed, scene, &dict[0], &anim[0], 8.f, 1.f, -1, 1, 1.f, 1, 0);
+		CHooking::network_start_synchronised_scene(scene);
 		return true;
 	}
 
 	bool	animate_local_player(Ped playerPed, std::string dict, std::string anim, bool restore)
 	{
-		AI::CLEAR_PED_TASKS_IMMEDIATELY(playerPed);
+		CHooking::clear_ped_tasks_immediately(playerPed);
 		if(restore)
 			return true;
-		STREAMING::REQUEST_ANIM_DICT(&dict[0]);
-		if(!STREAMING::HAS_ANIM_DICT_LOADED(&dict[0]))
+		CHooking::request_anim_dict(&dict[0]);
+		if(!CHooking::has_anim_dict_loaded(&dict[0]))
 			return false;
-		AI::TASK_PLAY_ANIM(playerPed, &dict[0], &anim[0], 8.f, 1.f, -1, 1, 1.f, 0, 0, 0);
+		CHooking::ai_task_play_anim(playerPed, &dict[0], &anim[0], 8.f, 1.f, -1, 1, 1.f, 0, 0, 0, 0, 0);
 		return true;
 	}
 
@@ -1825,7 +2038,7 @@ namespace script
 			}
 			return true;
 		}
-		ped	= PED::CLONE_PED(playerPed, ENTITY::GET_ENTITY_HEADING(playerPed), 1, 1);
+		ped	= CHooking::clone_ped(playerPed, CHooking::get_entity_heading(playerPed), 1, 1);
 		if(clones[player].size() > 8)
 		{
 			CHack::m_entityCleanup.push(clones[player].front());
@@ -1839,22 +2052,28 @@ namespace script
 		return true;
 	}
 
-	bool give_player_wanted_level(Player player, int reportCount)
+	bool give_player_wanted_level(Player player)
 	{
-		static int		c[MAX_PLAYERS]	= { 0 };
-		static clock_t	t[MAX_PLAYERS]	= { 0 };
-
-		if(c[player] < reportCount)
+		static int	count[MAX_PLAYERS]	= { 0 };
+		v3	pos			= CPlayerMem::get_player_coords(player);
+		Ped	remotePed	= CPlayerMem::get_player_ped(player);
+		if(count[player] < 0x8)
 		{
-			if(clock() - t[player] > 0x400)
-			{
-				PLAYER::REPORT_CRIME(player, 14, PLAYER::GET_WANTED_LEVEL_THRESHOLD(5));
-				++c[player];
-				t[player]	= clock();
-			}
+			Ped ped;
+			spawn_ped(	0x15f8700d,// female cop
+						PedTypeHuman,
+						{pos.x + util::random_int(-20, 20), pos.y + util::random_int(-20, 20), pos.z + 50.f},
+						&ped,
+						false,
+						PEDSPAWN_ARMY);
+			Vector3 pedPos	= get_entity_coords(ped);
+			CHooking::add_owned_explosion(remotePed, &pedPos, 2, 1.f, false, true, 0.f);
+			
+			count[player]++;
 			return false;
 		}
-		c[player]	= 0;
+
+		count[player]	= 0;
 		return true;
 	}
 
@@ -1880,18 +2099,21 @@ namespace script
 		static const	v3		pos					= CPlayerMem::get_player_coords(player);
 		constexpr		Hash	objHash				= 0xceea3f4b;	//0xceea3f4b = barracks
 
-		STREAMING::REQUEST_MODEL(objHash);
-		if(!STREAMING::HAS_MODEL_LOADED(objHash))
+		if(!CHooking::is_model_in_cdimage(objHash))
+			return true;
+		CHooking::request_model(objHash);
+		if(!CHooking::has_model_loaded(objHash))
 			return false;
-		OBJECT::CREATE_OBJECT(objHash, pos.x, pos.y, pos.z, true, false, false);
-		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(objHash);
+		Object	obj;
+		CHooking::create_object(objHash, pos.x, pos.y, pos.z, true, 1, -1, &obj, true, false, false);
+		CHooking::set_model_as_no_longer_needed(objHash);
 		return true;
 	}
 
 	int	get_online_player_index()
 	{
 		int c;
-		STATS::STAT_GET_INT(0x2f2f120f, &c, -1);	//MPPLY_LAST_MP_CHAR
+		CHooking::stat_get_int(0x2f2f120f, &c, -1);	//MPPLY_LAST_MP_CHAR
 		return c;
 	}
 
@@ -1902,14 +2124,14 @@ namespace script
 			// MP0_SCRIPT_INCREASE_STAM MP0_SCRIPT_INCREASE_STRN MP0_SCRIPT_INCREASE_LUNG MP0_SCRIPT_INCREASE_DRIV MP0_SCRIPT_INCREASE_FLY MP0_SCRIPT_INCREASE_SHO MP0_SCRIPT_INCREASE_STL
 			Hash stats[] = { 0xac49e44e, 0x38fd10e2, 0x813ab1bd, 0x3f45212c, 0x671634fd, 0x432ca7d2, 0xfebcb503 };
 			for(Hash h : stats)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
 		}
 		else
 		{
 			// MP1_SCRIPT_INCREASE_STAM MP1_SCRIPT_INCREASE_STRN MP1_SCRIPT_INCREASE_LUNG MP1_SCRIPT_INCREASE_DRIV MP1_SCRIPT_INCREASE_FLY MP1_SCRIPT_INCREASE_SHO MP1_SCRIPT_INCREASE_STL
 			Hash stats[] = { 0xb4c71144, 0x33c5e654, 0xe7f00851, 0xa21f35e8, 0xb1135b8, 0x61efed9a, 0x33ad14bd };
 			for (Hash h : stats)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
 		}
 		notify_above_map("Stats Unlocked", 0);
 	}
@@ -1921,48 +2143,48 @@ namespace script
 			// MP0_AWD_FMATTGANGHQ MP0_AWD_FMWINEVERYGAMEMODE MP0_AWD_FMRACEWORLDRECHOLDER MP0_AWD_FMFULLYMODDEDCAR MP0_AWD_FMMOSTKILLSSURVIVE MP0_AWD_FMKILL3ANDWINGTARACE MP0_AWD_FMKILLSTREAKSDM
 			Hash Tattoos[] = { 0x49e3d35b, 0xbdda53b4, 0x655e0bad, 0xe9472bb4, 0xc41b8767, 0x43d56fad, 0x3099c3fe };
 			for(Hash h : Tattoos)
-				STATS::STAT_SET_BOOL(h, 1, 1);
+				CHooking::stat_set_bool(h, 1, 1);
  
-			STATS::STAT_SET_INT(0x12f3b311, 20, 1); // MP0_AWD_HOLD_UP_SHOPS
+			CHooking::stat_set_int(0x12f3b311, 20, 1); // MP0_AWD_HOLD_UP_SHOPS
  
 			// MP0_AWD_LAPDANCES MP0_AWD_SECURITY_CARS_ROBBED MP0_AWD_FMKILLBOUNTY MP0_AWD_CAR_BOMBS_ENEMY_KILLS
 			Hash Stats25[] = { 0x4314583e, 0x5413e4e9, 0xfb6b31f1, 0xaae88a2f };
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
 			// MP0_AWD_FM_DM_WINS MP0_AWD_FM_TDM_MVP MP0_AWD_RACES_WON MP0_AWD_FMREVENGEKILLSDM
 			Hash Stats50[] = { 0x4c2e3849, 0xc479c331, 0x54305ac6, 0xb2f3860f };
 			for (Hash h :Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
-			STATS::STAT_SET_INT(0xfac3eb18, 500, 1); // MP0_AWD_FM_DM_TOTALKILLS
-			STATS::STAT_SET_INT(0xee25f949, 500, 1); // MP0_PLAYER_HEADSHOTS
-			STATS::STAT_SET_INT(0xcff5c480, 1000, 1); // MP0_DB_PLAYER_KILLS
-			STATS::STAT_SET_INT(0xaba179f2, 50000, 1); // MP0_AWD_FMBBETWIN
+			CHooking::stat_set_int(0xfac3eb18, 500, 1); // MP0_AWD_FM_DM_TOTALKILLS
+			CHooking::stat_set_int(0xee25f949, 500, 1); // MP0_PLAYER_HEADSHOTS
+			CHooking::stat_set_int(0xcff5c480, 1000, 1); // MP0_DB_PLAYER_KILLS
+			CHooking::stat_set_int(0xaba179f2, 50000, 1); // MP0_AWD_FMBBETWIN
 		}
 		else
 		{
 			// MP1_AWD_FMATTGANGHQ MP1_AWD_FMWINEVERYGAMEMODE MP1_AWD_FMRACEWORLDRECHOLDER MP1_AWD_FMFULLYMODDEDCAR MP1_AWD_FMMOSTKILLSSURVIVE MP1_AWD_FMKILL3ANDWINGTARACE MP1_AWD_FMKILLSTREAKSDM
 			Hash Tattoos[] = { 0x2039515c, 0x4ae88781, 0x90867f4c, 0xe7c84055, 0x98ff48a5, 0xbe3fd785, 0xf3d60861 };
 			for (Hash h : Tattoos)
-				STATS::STAT_SET_BOOL(h, 1, 1);
+				CHooking::stat_set_bool(h, 1, 1);
  
-			STATS::STAT_SET_INT(0x36177f20, 20, 1); // MP1_AWD_HOLD_UP_SHOPS
+			CHooking::stat_set_int(0x36177f20, 20, 1); // MP1_AWD_HOLD_UP_SHOPS
  
 			// MP1_AWD_LAPDANCES MP1_AWD_SECURITY_CARS_ROBBED MP1_AWD_FMKILLBOUNTY MP1_AWD_CAR_BOMBS_ENEMY_KILLS
 			Hash Stats25[] = { 0xf29d01d9, 0x46533e0c, 0x1af2de9e, 0x4f6cded8 };
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
 			// MP1_AWD_FM_DM_WINS MP1_AWD_FM_TDM_MVP MP1_AWD_RACES_WON MP1_AWD_FMREVENGEKILLSDM
 			Hash Stats50[] = { 0x34069be5, 0x2199954e, 0x43bda5d0, 0x52326867 };
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
-			STATS::STAT_SET_INT(0x76da8dde, 500, 1); // MP1_AWD_FM_DM_TOTALKILLS
-			STATS::STAT_SET_INT(0x3363cba7, 500, 1); // MP1_PLAYER_HEADSHOTS
-			STATS::STAT_SET_INT(0xeec100c9, 1000, 1); // MP1_DB_PLAYER_KILLS
-			STATS::STAT_SET_INT(0xf678de96, 50000, 1); // MP1_AWD_FMBBETWIN
+			CHooking::stat_set_int(0x76da8dde, 500, 1); // MP1_AWD_FM_DM_TOTALKILLS
+			CHooking::stat_set_int(0x3363cba7, 500, 1); // MP1_PLAYER_HEADSHOTS
+			CHooking::stat_set_int(0xeec100c9, 1000, 1); // MP1_DB_PLAYER_KILLS
+			CHooking::stat_set_int(0xf678de96, 50000, 1); // MP1_AWD_FMBBETWIN
 		}
 		notify_above_map("Tattoos Unlocked", 0);
 	}
@@ -1988,7 +2210,7 @@ namespace script
 				0xf2bc376c, 0x12d219
 			};
 			for (Hash h : Parachutes)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 		}
 		else
 		{
@@ -2008,7 +2230,7 @@ namespace script
 				0xddac840c, 0xf89fb9f2
 			};
 			for (Hash h : Parachutes)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 		}
 		notify_above_map("Parachutes Unlocked", 0);
 	}
@@ -2021,24 +2243,24 @@ namespace script
 			// MP0_AWD_WIN_CAPTURES MP0_AWD_FINISH_HEISTS MP0_AWD_FINISH_HEIST_SETUP_JOB MP0_AWD_WIN_LAST_TEAM_STANDINGS MP0_AWD_ONLY_PLAYER_ALIVE_LTS
 			Hash Stats50[] = { 0xcfe6e176, 0x2f5bf8f, 0xe4c4cc91, 0x95546c90, 0xaa71df87 };
 			for(Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
        
 			// MP0_AWD_DROPOFF_CAP_PACKAGES MP0_AWD_KILL_CARRIER_CAPTURE MP0_AWD_NIGHTVISION_KILLS
 			Hash Stats100[] = { 0x624901df, 0xbc4421b6, 0x3c9d6f53 };
 			for (Hash h : Stats100)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
 		}
 		else
 		{
 			// MP1_AWD_WIN_CAPTURES MP1_AWD_FINISH_HEISTS MP1_AWD_FINISH_HEIST_SETUP_JOB MP1_AWD_WIN_LAST_TEAM_STANDINGS MP1_AWD_ONLY_PLAYER_ALIVE_LTS
 			Hash Stats50[] = { 0xd9c9649, 0x2037f997, 0x5550ea43, 0xb957bde2, 0x512fc8f4 };
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
 			// MP1_AWD_DROPOFF_CAP_PACKAGES MP1_AWD_KILL_CARRIER_CAPTURE MP1_AWD_NIGHTVISION_KILLS
 			Hash Stats100[] = { 0x47ae528d, 0x2a8544ef, 0x77d6ea19 };
 			for (Hash h : Stats100)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
 		}
 		notify_above_map("Rims Unlocked", 0);
 	}
@@ -2055,19 +2277,19 @@ namespace script
 				0xbee92cbe, 0x4d85836e, 0xb56ead95, 0x3d5d8200
 			};
 			for (Hash h : StatsMinusOne)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
  
 			// MP0_AWD_FMRALLYWONDRIVE MP0_AWD_FMRALLYWONNAV MP0_AWD_FMWINSEARACE MP0_AWD_FMWINAIRRACE
 			Hash Stats1[] = { 0xbb5b1a96, 0x6ae2181d, 0xc5c0f286, 0x40bf1a36 };
 			for (Hash h : Stats1)
-				STATS::STAT_SET_INT(h, 1, 1);
+				CHooking::stat_set_int(h, 1, 1);
  
 			// MP0_RACES_WON MP0_NUMBER_TURBO_STARTS_IN_RACE MP0_USJS_COMPLETED MP0_AWD_FM_RACES_FASTEST_LAP
 			Hash Stats50[] = { 0x39a76053, 0x13c6b4b1, 0x13071b8f, 0xc13d4f3a };
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
-			STATS::STAT_SET_INT(0xad05f506, 100, 1); // MP0_NUMBER_SLIPSTREAMS_IN_RACE
+			CHooking::stat_set_int(0xad05f506, 100, 1); // MP0_NUMBER_SLIPSTREAMS_IN_RACE
 		}
 		else
 		{
@@ -2079,29 +2301,29 @@ namespace script
 				0x7799e88b, 0x993c61b8, 0x20553352, 0x5a8bf1f7
 			};
 			for (Hash h : StatsMinusOne)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
  
 			// MP1_AWD_FMRALLYWONDRIVE MP1_AWD_FMRALLYWONNAV MP1_AWD_FMWINSEARACE MP1_AWD_FMWINAIRRACE
 			Hash Stats1[] = { 0xb43e0e1a, 0xb1590553, 0x58857e4, 0x16f2fd31 };
 			for (Hash h : Stats1)
-				STATS::STAT_SET_INT(h, 1, 1);
+				CHooking::stat_set_int(h, 1, 1);
  
 			// MP1_RACES_WON MP1_NUMBER_TURBO_STARTS_IN_RACE MP1_USJS_COMPLETED MP1_AWD_FM_RACES_FASTEST_LAP
 			Hash Stats50[] = { 0xb241d53b, 0xb0470aea, 0xde88d22f, 0xe751f17 };
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
-			STATS::STAT_SET_INT(0xe5fd50e2, 100, 1); // MP1_NUMBER_SLIPSTREAMS_IN_RACE
+			CHooking::stat_set_int(0xe5fd50e2, 100, 1); // MP1_NUMBER_SLIPSTREAMS_IN_RACE
 		}
 		notify_above_map("Vehicles Unlocked", 0);
 	}
 
 	void unlocks_trophies()
 	{
-		STATS::STAT_SET_INT(0x53c59a8e, -1, 1); // MPPLY_HEIST_ACH_TRACKER
-		STATS::STAT_SET_INT(0x796d2d6a, 25, 1); // MPPLY_AWD_FM_CR_DM_MADE
-		STATS::STAT_SET_INT(0xd5d5279d, 25, 1); // MPPLY_AWD_FM_CR_RACES_MADE
-		STATS::STAT_SET_INT(0xe00c1321, 100, 1); // MPPLY_AWD_FM_CR_PLAYED_BY_PEEP
+		CHooking::stat_set_int(0x53c59a8e, -1, 1); // MPPLY_HEIST_ACH_TRACKER
+		CHooking::stat_set_int(0x796d2d6a, 25, 1); // MPPLY_AWD_FM_CR_DM_MADE
+		CHooking::stat_set_int(0xd5d5279d, 25, 1); // MPPLY_AWD_FM_CR_RACES_MADE
+		CHooking::stat_set_int(0xe00c1321, 100, 1); // MPPLY_AWD_FM_CR_PLAYED_BY_PEEP
  
 		if (get_online_player_index() == 0)
 		{
@@ -2120,14 +2342,14 @@ namespace script
 			};
  
 			for (Hash h : StatsBools)
-				STATS::STAT_SET_BOOL(h, 1, 1);
+				CHooking::stat_set_bool(h, 1, 1);
  
-			STATS::STAT_SET_INT(0x723f39d6, 4, 1); // MP0_AWD_PASSENGERTIME
-			STATS::STAT_SET_INT(0x653a8f83, 4, 1); // MP0_AWD_TIME_IN_HELICOPTER
-			STATS::STAT_SET_INT(0x45e1432a, 5, 1); // MP0_MOST_FLIPS_IN_ONE_JUMP
-			STATS::STAT_SET_INT(0xe9e500bc, 5, 1); // MP0_MOST_SPINS_IN_ONE_JUMP
-			STATS::STAT_SET_INT(0x833d3192, 10, 1); // MP0_AWD_FMHORDWAVESSURVIVE
-			STATS::STAT_SET_INT(0x12f3b311, 20, 1); // MP0_AWD_HOLD_UP_SHOPS
+			CHooking::stat_set_int(0x723f39d6, 4, 1); // MP0_AWD_PASSENGERTIME
+			CHooking::stat_set_int(0x653a8f83, 4, 1); // MP0_AWD_TIME_IN_HELICOPTER
+			CHooking::stat_set_int(0x45e1432a, 5, 1); // MP0_MOST_FLIPS_IN_ONE_JUMP
+			CHooking::stat_set_int(0xe9e500bc, 5, 1); // MP0_MOST_SPINS_IN_ONE_JUMP
+			CHooking::stat_set_int(0x833d3192, 10, 1); // MP0_AWD_FMHORDWAVESSURVIVE
+			CHooking::stat_set_int(0x12f3b311, 20, 1); // MP0_AWD_HOLD_UP_SHOPS
  
 			Hash Stats25[] =
 			{
@@ -2146,7 +2368,7 @@ namespace script
 			};
  
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
 			Hash Stats50[] =
 			{
@@ -2159,15 +2381,15 @@ namespace script
 			};
  
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
 			// MP0_SNIPERRFL_ENEMY_KILLS MP0_PASS_DB_PLAYER_KILLS MP0_AWD_FM_DM_KILLSTREAK
 			Hash Stats100[] = { 0x422d310, 0x2dd16b4e , 0xe41251dd };
  
 			for (Hash h : Stats100)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
  
-			STATS::STAT_SET_INT(0x25ed089e, 255, 1); // MP0_AWD_FMDRIVEWITHOUTCRASH
+			CHooking::stat_set_int(0x25ed089e, 255, 1); // MP0_AWD_FMDRIVEWITHOUTCRASH
  
  
 			Hash Stats500[] =
@@ -2179,11 +2401,11 @@ namespace script
 			};
  
 			for (Hash h : Stats500)
-				STATS::STAT_SET_INT(h, 500, 1);
+				CHooking::stat_set_int(h, 500, 1);
  
-			STATS::STAT_SET_INT(0x7bd82f11, 1000, 1); // MP0_KILLS_PLAYERS
-			STATS::STAT_SET_FLOAT(0xb14148de, 1000, 1); // MP0_LONGEST_WHEELIE_DIST
-			STATS::STAT_SET_INT(0x69a50e0d, 2147483647, 1); // MP0_CHAR_WANTED_LEVEL_TIME5STAR
+			CHooking::stat_set_int(0x7bd82f11, 1000, 1); // MP0_KILLS_PLAYERS
+			CHooking::stat_set_float(0xb14148de, 1000, 1); // MP0_LONGEST_WHEELIE_DIST
+			CHooking::stat_set_int(0x69a50e0d, 2147483647, 1); // MP0_CHAR_WANTED_LEVEL_TIME5STAR
 		}
 		else
 		{
@@ -2202,15 +2424,15 @@ namespace script
 			};
  
 			for (Hash h : StatsBools)
-				STATS::STAT_SET_BOOL(h, 1, 1);
+				CHooking::stat_set_bool(h, 1, 1);
  
  
-			STATS::STAT_SET_INT(0xa24ba69a, 4, 1); // MP1_AWD_PASSENGERTIME
-			STATS::STAT_SET_INT(0x1fa36d2, 4, 1); // MP1_AWD_TIME_IN_HELICOPTER
-			STATS::STAT_SET_INT(0xeecca992, 5, 1); // MP1_MOST_FLIPS_IN_ONE_JUMP
-			STATS::STAT_SET_INT(0x34c1f2c1, 5, 1); // MP1_MOST_SPINS_IN_ONE_JUMP
-			STATS::STAT_SET_INT(0x18f27d05, 10, 1); // MP1_AWD_FMHORDWAVESSURVIVE
-			STATS::STAT_SET_INT(0x36177f20, 20, 1); // MP1_AWD_HOLD_UP_SHOPS
+			CHooking::stat_set_int(0xa24ba69a, 4, 1); // MP1_AWD_PASSENGERTIME
+			CHooking::stat_set_int(0x1fa36d2, 4, 1); // MP1_AWD_TIME_IN_HELICOPTER
+			CHooking::stat_set_int(0xeecca992, 5, 1); // MP1_MOST_FLIPS_IN_ONE_JUMP
+			CHooking::stat_set_int(0x34c1f2c1, 5, 1); // MP1_MOST_SPINS_IN_ONE_JUMP
+			CHooking::stat_set_int(0x18f27d05, 10, 1); // MP1_AWD_FMHORDWAVESSURVIVE
+			CHooking::stat_set_int(0x36177f20, 20, 1); // MP1_AWD_HOLD_UP_SHOPS
  
 			Hash Stats25[] =
 			{
@@ -2229,7 +2451,7 @@ namespace script
 			};
  
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
 			Hash Stats50[] =
 			{
@@ -2242,15 +2464,15 @@ namespace script
 			};
  
 			for (Hash h : Stats50)
-				STATS::STAT_SET_INT(h, 50, 1);
+				CHooking::stat_set_int(h, 50, 1);
  
 			// MP1_SNIPERRFL_ENEMY_KILLS MP1_PASS_DB_PLAYER_KILLS MP1_AWD_FM_DM_KILLSTREAK
 			Hash Stats100[] = { 0xff18ad04, 0x5f639fb2 , 0x2e9eeca9 };
  
 			for (Hash h : Stats100)
-				STATS::STAT_SET_INT(h, 100, 1);
+				CHooking::stat_set_int(h, 100, 1);
  
-			STATS::STAT_SET_INT(0x5eaa0099, 255, 1); // MP1_AWD_FMDRIVEWITHOUTCRASH
+			CHooking::stat_set_int(0x5eaa0099, 255, 1); // MP1_AWD_FMDRIVEWITHOUTCRASH
  
 			Hash Stats500[] =
 			{
@@ -2261,11 +2483,11 @@ namespace script
 			};
  
 			for (Hash h : Stats500)
-				STATS::STAT_SET_INT(h, 500, 1);
+				CHooking::stat_set_int(h, 500, 1);
  
-			STATS::STAT_SET_INT(0xf21f4859, 1000, 1); // MP1_KILLS_PLAYERS
-			STATS::STAT_SET_FLOAT(0x361609bc, 1000, 1); // MP1_LONGEST_WHEELIE_DIST
-			STATS::STAT_SET_INT(0x5873796d, 2147483647, 1); // MP1_CHAR_WANTED_LEVEL_TIME5STAR
+			CHooking::stat_set_int(0xf21f4859, 1000, 1); // MP1_KILLS_PLAYERS
+			CHooking::stat_set_float(0x361609bc, 1000, 1); // MP1_LONGEST_WHEELIE_DIST
+			CHooking::stat_set_int(0x5873796d, 2147483647, 1); // MP1_CHAR_WANTED_LEVEL_TIME5STAR
  
 		}
 		notify_above_map("Trophies Unlocked", 0);
@@ -2278,14 +2500,14 @@ namespace script
 			// MP0_CLTHS_AVAILABLE_HAIR MP0_CLTHS_AVAILABLE_HAIR_1 MP0_CLTHS_AVAILABLE_HAIR_2 MP0_CLTHS_AVAILABLE_HAIR_3 MP0_CLTHS_AVAILABLE_HAIR_4 MP0_CLTHS_AVAILABLE_HAIR_5 MP0_CLTHS_AVAILABLE_HAIR_6 MP0_CLTHS_AVAILABLE_HAIR_7
 			Hash HairStyles[] = { 0x3cc6316a, 0x50763097 ,0x67ad5f05 ,0x2d1769da, 0x4269947e, 0x2c646868, 0x42e09560, 0xa07a3af };
 			for (Hash h : HairStyles)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 		}
 		else
 		{
 			// MP1_CLTHS_AVAILABLE_HAIR MP1_CLTHS_AVAILABLE_HAIR_1 MP1_CLTHS_AVAILABLE_HAIR_2 MP1_CLTHS_AVAILABLE_HAIR_3 MP1_CLTHS_AVAILABLE_HAIR_4 MP1_CLTHS_AVAILABLE_HAIR_5 MP1_CLTHS_AVAILABLE_HAIR_6 MP1_CLTHS_AVAILABLE_HAIR_7
 			Hash HairStyles[] = { 0x2a9fd8ce, 0x485a4609 ,0x569fe294 ,0xd6f4633b, 0xac7e0e4f, 0xf94d47f, 0x1dc670e2, 0x81da390c };
 			for (Hash h : HairStyles)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 		}
 		notify_above_map("Hairstyles Unlocked", 0);
 	}
@@ -2307,7 +2529,7 @@ namespace script
 				0xdb9d091b, 0xe97424c9, 0xbf3e505e
 			};
 			for (Hash h : StatsMinusOne)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 
 			//skins
 			Hash Skins[] =
@@ -2326,7 +2548,7 @@ namespace script
 				0x9ce23b8d,
 			};
 			for (Hash h : Skins)
-				STATS::STAT_SET_INT(h, 600, 1);
+				CHooking::stat_set_int(h, 600, 1);
 		}
 		else
 		{
@@ -2342,7 +2564,7 @@ namespace script
 				0xa98d53f2, 0x1ed43e86, 0x2cc3da65
 			};
 			for (Hash h : StatsMinusOne)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 
 			//skins
 			Hash Skins[] =
@@ -2361,7 +2583,7 @@ namespace script
 				0x9fab8be1, 
 			};
 			for (Hash h : Skins)
-				STATS::STAT_SET_INT(h, 600, 1);
+				CHooking::stat_set_int(h, 600, 1);
 		}
 		notify_above_map("Weapons Unlocked", 0);
 	}
@@ -2456,22 +2678,22 @@ namespace script
 				0xcb76a780, 0xe6a9dde6, 0xefe2f058, 0x1f90cd,
 			};
 			for (Hash h : Clothes)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 
 			//tshirts
-			STATS::STAT_SET_BOOL(0x9cf3d019, 1, 1); // MP0_AWD_FINISH_HEIST_NO_DAMAGE
-			STATS::STAT_SET_BOOL(0x45b6712, 1, 1); // MP0_AWD_STORE_20_CAR_IN_GARAGES
+			CHooking::stat_set_bool(0x9cf3d019, 1, 1); // MP0_AWD_FINISH_HEIST_NO_DAMAGE
+			CHooking::stat_set_bool(0x45b6712, 1, 1); // MP0_AWD_STORE_20_CAR_IN_GARAGES
  
-			STATS::STAT_SET_INT(0x2ae837e4, 1, 1); // MP0_AWD_FMPICKUPDLCCRATE1ST also in trophies
-			STATS::STAT_SET_INT(0x833d3192, 10, 1); // MP0_AWD_FMHORDWAVESSURVIVE also in trophies
+			CHooking::stat_set_int(0x2ae837e4, 1, 1); // MP0_AWD_FMPICKUPDLCCRATE1ST also in trophies
+			CHooking::stat_set_int(0x833d3192, 10, 1); // MP0_AWD_FMHORDWAVESSURVIVE also in trophies
  
 			// MP0_AWD_WIN_CAPTURE_DONT_DYING MP0_AWD_DO_HEIST_AS_MEMBER MP0_AWD_WIN_GOLD_MEDAL_HEISTS MP0_AWD_KILL_TEAM_YOURSELF_LTS MP0_AWD_DO_HEIST_AS_THE_LEADER
 			Hash Stats25[] = { 0x68d14c4e, 0x470055dc, 0x9f9ff03c, 0x4930d051, 0xc32a1dd9 };
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
-			STATS::STAT_SET_INT(0x30418014, 100, 1); // MP0_AWD_PICKUP_CAP_PACKAGES
-			STATS::STAT_SET_INT(0xe2a9b0c4, 100, 1); // MP0_AWD_KILL_PSYCHOPATHS
+			CHooking::stat_set_int(0x30418014, 100, 1); // MP0_AWD_PICKUP_CAP_PACKAGES
+			CHooking::stat_set_int(0xe2a9b0c4, 100, 1); // MP0_AWD_KILL_PSYCHOPATHS
 		}
 		else
 		{
@@ -2565,22 +2787,22 @@ namespace script
 				4230086385, 3536858162, 3798453089
 			};
 			for (Hash h : Clothes)
-				STATS::STAT_SET_INT(h, -1, 1);
+				CHooking::stat_set_int(h, -1, 1);
 
 			//tshirts
-			STATS::STAT_SET_BOOL(0x59d644b9, 1, 1); // MP1_AWD_FINISH_HEIST_NO_DAMAGE
-			STATS::STAT_SET_BOOL(0xa5f06324, 1, 1); // MP1_AWD_STORE_20_CAR_IN_GARAGES
+			CHooking::stat_set_bool(0x59d644b9, 1, 1); // MP1_AWD_FINISH_HEIST_NO_DAMAGE
+			CHooking::stat_set_bool(0xa5f06324, 1, 1); // MP1_AWD_STORE_20_CAR_IN_GARAGES
  
-			STATS::STAT_SET_INT(0x3804231b, 1, 1); // MP1_AWD_FMPICKUPDLCCRATE1ST
-			STATS::STAT_SET_INT(0x18f27d05, 10, 1); // MP1_AWD_FMHORDWAVESSURVIVE
+			CHooking::stat_set_int(0x3804231b, 1, 1); // MP1_AWD_FMPICKUPDLCCRATE1ST
+			CHooking::stat_set_int(0x18f27d05, 10, 1); // MP1_AWD_FMHORDWAVESSURVIVE
  
 			// MP1_AWD_WIN_CAPTURE_DONT_DYING MP1_AWD_DO_HEIST_AS_MEMBER MP1_AWD_WIN_GOLD_MEDAL_HEISTS MP1_AWD_KILL_TEAM_YOURSELF_LTS MP1_AWD_DO_HEIST_AS_THE_LEADER
 			Hash Stats25[] = { 0x7b245db0, 0xffcb5243, 0x3d6a96c, 0x5c7450f8, 0xc13e46bc };
 			for (Hash h : Stats25)
-				STATS::STAT_SET_INT(h, 25, 1);
+				CHooking::stat_set_int(h, 25, 1);
  
-			STATS::STAT_SET_INT(0x87b6d2d, 100, 1); // MP1_AWD_PICKUP_CAP_PACKAGES
-			STATS::STAT_SET_INT(0xe5e29eea, 100, 1); // MP1_AWD_KILL_PSYCHOPATHS
+			CHooking::stat_set_int(0x87b6d2d, 100, 1); // MP1_AWD_PICKUP_CAP_PACKAGES
+			CHooking::stat_set_int(0xe5e29eea, 100, 1); // MP1_AWD_KILL_PSYCHOPATHS
 		}
 		notify_above_map("Clothes Unlocked", 0);
 	}

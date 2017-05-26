@@ -128,9 +128,9 @@ bool	CPattern::match(int i, uint64_t startAddress, bool virt)
 	do
 	{
 		if(virt)
-			begin	= virtual_find_pattern(startAddress, (BYTE*) m_szByte, m_szMask);
+			begin	= virtual_find_pattern(startAddress, (BYTE*) m_szByte, m_szMask) + 1;
 		else
-			begin	= find_pattern(begin, end, (BYTE*) m_szByte, m_szMask);
+			begin	= find_pattern(begin, end, (BYTE*) m_szByte, m_szMask) + 1;
 		if(begin == NULL)
 			break;
 		j++;
@@ -153,7 +153,8 @@ bool	CPattern::byte_compare(const BYTE* pData, const BYTE* btMask, const char* s
 
 uint64_t	CPattern::find_pattern(uint64_t address, uint64_t end, BYTE *btMask, char *szMask)
 {
-	for(uint64_t i = 0; i < (end - address); i++)
+	size_t len = strlen(szMask) + 1;
+	for(uint64_t i = 0; i < (end - address - len); i++)
 	{
 		BYTE*	ptr	= (BYTE*) (address + i);
 		if(byte_compare(ptr, btMask, szMask))

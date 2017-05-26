@@ -182,6 +182,16 @@ bool CMenu::checkKeyState(DWORD key, int flag)
 
 void CMenu::checkKeys()
 {
+	static HWND	hWndTarget	= FindWindowA("grcWindow", nullptr);
+	HWND		hFgWnd		= GetForegroundWindow();
+	if(hFgWnd != hWndTarget)
+		CMenu::m_bFgWnd	= false;
+	else
+		CMenu::m_bFgWnd	= true;
+
+	if(checkKeyState(m_keyIndex[KEY_EXIT], 1) || !CLog::m_fatal.empty())
+		killProcess();
+
 	if(checkKeyState(m_keyIndex[KEY_MENU], 1))
 		toggleMenu();
 	
