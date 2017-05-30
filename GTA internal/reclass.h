@@ -120,7 +120,12 @@ public:
 	BYTE btSeatBelt; //0x13EC 
 	char pad_0x13ED[0xB]; //0x13ED
 	BYTE btSeatbeltWindshield; //0x13F8 
-	char pad_0x13F9[0x72]; //0x13F9
+	char pad_0x13F9[0x7]; //0x13F9
+	BYTE btForcedAim; //0x1400 
+	BYTE N00000936; //0x1401 
+	BYTE N00000939; //0x1402 
+	BYTE N00000937; //0x1403 
+	char pad_0x1404[0x67]; //0x1404
 	BYTE btIsInVehicle; //0x146B 
 	char pad_0x146C[0x44]; //0x146C
 	float fArmor; //0x14B0 
@@ -189,6 +194,11 @@ public:
 			fHealth	= value;
 		else if(fHealth	< fHealthMax)
 			fHealth	= fHealthMax;
+	}
+
+	void setForcedAim(bool toggle)
+	{
+		btForcedAim ^= (btForcedAim ^ -(char)toggle) & 0x20;
 	}
 }; //Size=0x15D8
 
@@ -268,7 +278,9 @@ public:
 	BYTE N00000954; //0x089A 
 	char pad_0x089B[0x41]; //0x089B
 	float N0000081E; //0x08DC 
-	char pad_0x08E0[0x104]; //0x08E0
+	char pad_0x08E0[0x58]; //0x08E0
+	float fDirtLevel; //0x0938			max = 15.f
+	char pad_0x093C[0xA8]; //0x093C
 	DWORD dwCarAlarmLength; //0x09E4 
 	char pad_0x09E8[0x148]; //0x09E8
 	BYTE btOpenableDoors; //0x0B30 
@@ -318,20 +330,20 @@ public:
 class CWantedData
 {
 public:
-	char pad_0x0000[0x2C]; //0x0000
-	float fWantedCanChange; //0x002C 
-	char pad_0x0030[0x10]; //0x0030
-	v3 v3WantedCenterPos; //0x0040 
-	char pad_0x004C[0x4]; //0x004C
-	v3 v3WantedCenterPos2; //0x0050 
-	char pad_0x005C[0x38]; //0x005C
-	BYTE btFlag0; //0x0094 
-	BYTE btFlag1; //0x0095 
-	BYTE btFlag2; //0x0096 
-	BYTE btFlag3; //0x0097 
-	char pad_0x0098[0xC]; //0x0098
-	DWORD dwWantedLevelFake; //0x00A4 
-	DWORD dwWantedLevel; //0x00A8 
+	char pad_0x0000[0x1C]; //0x0000
+	float fWantedCanChange; //0x001C 
+	char pad_0x0020[0x10]; //0x0020
+	v3 v3WantedCenterPos; //0x0030 
+	char pad_0x003C[0x4]; //0x003C
+	v3 v3WantedCenterPos2; //0x0040 
+	char pad_0x004C[0x38]; //0x004C
+	BYTE btFlag0; //0x0084 
+	BYTE btFlag1; //0x0085 
+	BYTE btFlag2; //0x0086 
+	BYTE btFlag3; //0x0087 
+	char pad_0x0088[0xC]; //0x0088
+	DWORD dwWantedLevelFake; //0x0094 
+	DWORD dwWantedLevel; //0x0098 
 
 }; //Size=0x00AC
 
@@ -358,8 +370,8 @@ public:
 	CPed* pCPed; //0x0160 
 	char pad_0x0168[0x29]; //0x0168
 	BYTE btFrameFlags; //0x0191 
-	char pad_0x0192[0x55E]; //0x0192
-	CWantedData CWantedData; //0x06F0 
+	char pad_0x0192[0x56E]; //0x0192
+	CWantedData CWantedData; //0x0700 
 	char pad_0x079C[0x464]; //0x079C
 	float fStamina; //0x0C00 
 	float fStaminaMax; //0x0C04 
@@ -472,126 +484,126 @@ public:
 class CVehicleMods
 {
 public:
-    void* N00002582; //0x0000 
-    void* N00002583; //0x0008 
-    char _0x0010[16];
-    CVehicleModsVisual* vehicleModsVisual; //0x0020 
-    char _0x0028[840];
-    CTireInfo* pTireInfo; //0x0370 
-    char _0x0378[40];
-    CColor NeonColor; //0x03A0 
-    char _0x03A4[12];
-    BYTE btTuningTires; //0x03B0 
-    BYTE N41D07714; //0x03B1 
-    BYTE btSpoiler; //0x03B2 
-    BYTE btFrontBumper; //0x03B3 
-    BYTE btRearBumber; //0x03B4 
-    BYTE btSideSkirt; //0x03B5 
-    BYTE btExhaust; //0x03B6 
-    BYTE btChassis; //0x03B7 
-    BYTE btGrille; //0x03B8 
-    BYTE btHood; //0x03B9 
-    BYTE btFender; //0x03BA 
-    BYTE btRightfender; //0x03BB 
-    BYTE btRoof; //0x03BC 
-    BYTE btPlateholder; //0x03BD 
-    BYTE btVanityPlates; //0x03BE 
-    BYTE btTrim; //0x03BF 
-    BYTE btOrnamentHead; //0x03C0 
-    BYTE btDashboard; //0x03C1 
-    BYTE btDial; //0x03C2 
-    BYTE btDoorSpeaker; //0x03C3 
-    BYTE btSteats; //0x03C4 
-    BYTE btSteeringwheel; //0x03C5 
-    BYTE btShifterLeavers; //0x03C6 
-    BYTE btPlaques; //0x03C7 
-    BYTE btSpeakers; //0x03C8 
-    BYTE btTrunk; //0x03C9 
-    BYTE btHydraulics; //0x03CA 
-    BYTE btEngineBlock; //0x03CB 
-    BYTE btAirFilter; //0x03CC 
-    BYTE btStruts; //0x03CD 
-    BYTE btArchCover; //0x03CE 
-    BYTE btAerials; //0x03CF 
-    BYTE btTrim2; //0x03D0 
-    BYTE btFuel; //0x03D1 
-    BYTE btWindow; //0x03D2 
-    BYTE btunk1; //0x03D3 
-    BYTE btLivery; //0x03D4 
-    BYTE N41D48824; //0x03D5 
+	void* N00002582; //0x0000 
+	void* N00002583; //0x0008 
+	char _0x0010[16];
+	CVehicleModsVisual* vehicleModsVisual; //0x0020 
+	char _0x0028[840];
+	CTireInfo* pTireInfo; //0x0370 
+	char _0x0378[40];
+	CColor NeonColor; //0x03A0 
+	char _0x03A4[12];
+	BYTE btTuningTires; //0x03B0 
+	BYTE N41D07714; //0x03B1 
+	BYTE btSpoiler; //0x03B2 
+	BYTE btFrontBumper; //0x03B3 
+	BYTE btRearBumber; //0x03B4 
+	BYTE btSideSkirt; //0x03B5 
+	BYTE btExhaust; //0x03B6 
+	BYTE btChassis; //0x03B7 
+	BYTE btGrille; //0x03B8 
+	BYTE btHood; //0x03B9 
+	BYTE btFender; //0x03BA 
+	BYTE btRightfender; //0x03BB 
+	BYTE btRoof; //0x03BC 
+	BYTE btPlateholder; //0x03BD 
+	BYTE btVanityPlates; //0x03BE 
+	BYTE btTrim; //0x03BF 
+	BYTE btOrnamentHead; //0x03C0 
+	BYTE btDashboard; //0x03C1 
+	BYTE btDial; //0x03C2 
+	BYTE btDoorSpeaker; //0x03C3 
+	BYTE btSteats; //0x03C4 
+	BYTE btSteeringwheel; //0x03C5 
+	BYTE btShifterLeavers; //0x03C6 
+	BYTE btPlaques; //0x03C7 
+	BYTE btSpeakers; //0x03C8 
+	BYTE btTrunk; //0x03C9 
+	BYTE btHydraulics; //0x03CA 
+	BYTE btEngineBlock; //0x03CB 
+	BYTE btAirFilter; //0x03CC 
+	BYTE btStruts; //0x03CD 
+	BYTE btArchCover; //0x03CE 
+	BYTE btAerials; //0x03CF 
+	BYTE btTrim2; //0x03D0 
+	BYTE btFuel; //0x03D1 
+	BYTE btWindow; //0x03D2 
+	BYTE btunk1; //0x03D3 
+	BYTE btLivery; //0x03D4 
+	BYTE N41D48824; //0x03D5 
 	BYTE btEngine; //0x03D6 
-    BYTE btBreaks; //0x03D7 
-    BYTE btTransmission; //0x03D8 
-    BYTE btHorns; //0x03D9 
-    BYTE btSuspension; //0x03DA 
-    BYTE btArmor; //0x03DB 
-    BYTE N41884B66; //0x03DC 
-    BYTE btTurbo; //0x03DD 
-    BYTE N41D63CF5; //0x03DE 
-    BYTE btTireSmoke; //0x03DF 
-    BYTE N41D63CF6; //0x03E0 
-    BYTE btXenonLight; //0x03E1 
-    BYTE btTireIndex; //0x03E2 
-    BYTE N41D631AD; //0x03E3 
-    BYTE N41884B65; //0x03E4 
-    BYTE btOrnamentBody; //0x03E5 
-    char _0x03E6[14];
-    BYTE N41D9A820; //0x03F4 
-    BYTE btPrimary; //0x03F5 
-    BYTE btSecondary; //0x03F6 
-    BYTE N46554D5E; //0x03F7 
-    BYTE btTireColor; //0x03F8 
-    BYTE N41DA70FC; //0x03F9 
-    BYTE N41DA7E0A; //0x03FA 
-    BYTE btTireColorR; //0x03FB 
-    BYTE btTireColorG; //0x03FC 
-    BYTE btTireColorB; //0x03FD 
-    BYTE btWindowTint; //0x03FE 
-    BYTE btTireType; //0x03FF 
-    BYTE N41884B5A; //0x0400 
-    BYTE btNeonLeft; //0x0401 
-    BYTE btNeonRight; //0x0402 
-    BYTE btNeonFront; //0x0403 
-    BYTE btNeonBack; //0x0404 
+	BYTE btBreaks; //0x03D7 
+	BYTE btTransmission; //0x03D8 
+	BYTE btHorns; //0x03D9 
+	BYTE btSuspension; //0x03DA 
+	BYTE btArmor; //0x03DB 
+	BYTE N41884B66; //0x03DC 
+	BYTE btTurbo; //0x03DD 
+	BYTE N41D63CF5; //0x03DE 
+	BYTE btTireSmoke; //0x03DF 
+	BYTE N41D63CF6; //0x03E0 
+	BYTE btXenonLight; //0x03E1 
+	BYTE btTireIndex; //0x03E2 
+	BYTE N41D631AD; //0x03E3 
+	BYTE N41884B65; //0x03E4 
+	BYTE btOrnamentBody; //0x03E5 
+	char _0x03E6[14];
+	BYTE N41D9A820; //0x03F4 
+	BYTE btPrimary; //0x03F5 
+	BYTE btSecondary; //0x03F6 
+	BYTE btPearlescent; //0x03F7 
+	BYTE btWheelColor; //0x03F8 
+	BYTE N41DA70FC; //0x03F9 
+	BYTE N41DA7E0A; //0x03FA 
+	BYTE btTireColorR; //0x03FB 
+	BYTE btTireColorG; //0x03FC 
+	BYTE btTireColorB; //0x03FD 
+	BYTE btWindowTint; //0x03FE 
+	BYTE btTireType; //0x03FF 
+	BYTE N41884B5A; //0x0400 
+	BYTE btNeonLeft; //0x0401 
+	BYTE btNeonRight; //0x0402 
+	BYTE btNeonFront; //0x0403 
+	BYTE btNeonBack; //0x0404 
 };
 class CTireInfo
 {
 public:
-    char _0x0000[8];
-    CColor tireColor; //0x0008 
-    char _0x000C[4];
-    BYTE btCostumTires; //0x0010 
+	char _0x0000[8];
+	CColor tireColor; //0x0008 
+	char _0x000C[4];
+	BYTE btCustumTires; //0x0010 
 };//Size=0x0108
 
 
 class CLicencePlateInfo
 {
 public:
-    char _0x0000[40];
-    char* plateName; //0x0028 
-    char _0x0030[136];
-    char* tireName; //0x00B8 
-    char _0x00C0[136];
-    char* visualName; //0x0148 
-    char _0x0150[48];
+	char _0x0000[40];
+	char* plateName; //0x0028 
+	char _0x0030[136];
+	char* tireName; //0x00B8 
+	char _0x00C0[136];
+	char* visualName; //0x0148 
+	char _0x0150[48];
 };
 
 class CVehicleModsVisual
 {
 public:
-    char _0x0000[164];
-    CColor PrimaryColor; //0x00A4 
-    CColor SecondaryColor; //0x00A8 
-    CColor unknownColor; //0x00AC 
-    CColor wheelColor; //0x00B0 
-    CColor modelColor; //0x00B4 
-    CColor seatColor; //0x00B8 
-    CColor speedometerColor; //0x00BC 
-    CColor perlColor; //0x00C0 
-    char _0x00C4[92];
-    CLicencePlateInfo* pLicencePlateInfo; //0x0120 
-    char licencePlate[8]; //0x0128 
-    char _0x0130[2956];
+	char _0x0000[164];
+	CColor PrimaryColor; //0x00A4 
+	CColor SecondaryColor; //0x00A8 
+	CColor unknownColor; //0x00AC 
+	CColor wheelColor; //0x00B0 
+	CColor modelColor; //0x00B4 
+	CColor seatColor; //0x00B8 
+	CColor speedometerColor; //0x00BC 
+	CColor perlColor; //0x00C0 
+	char _0x00C4[92];
+	CLicencePlateInfo* pLicencePlateInfo; //0x0120 
+	char licencePlate[8]; //0x0128 
+	char _0x0130[2956];
 
 };//Size=0x0CBC
 

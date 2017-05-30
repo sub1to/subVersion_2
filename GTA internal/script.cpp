@@ -257,6 +257,12 @@ namespace script
 		return pEntity != nullptr && pEntity->isInvisible();
 	}
 
+	void set_vehicle_stolen(Vehicle vehicle, bool toggle)
+	{
+		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(vehicle);
+		pVeh->set_stolen(toggle);
+	}
+
 	void apply_force_to_entity(Ped ped, int forceType, float x, float y, float z, float rx, float ry, float rz, bool isRel, bool highForce)
 	{
 		Vector3 dir	= { x, y, z };
@@ -337,10 +343,8 @@ namespace script
 
 	bool is_ped_a_player(Ped ped)
 	{
-		for(int i = 0; i < MAX_PLAYERS; i++)
-			if(CPlayerMem::get_player_ped(i) == (ped))
-				return true;
-		return false;
+		CPed* pPed = util::handle_to_ptr<CPed>(ped);
+		return pPed != nullptr && pPed->pCPlayerInfo != nullptr;
 	}
 
 	bool request_control_of_id(Entity netid)
@@ -818,7 +822,7 @@ namespace script
 			1 << 2	VEHSPAWN_UPGRADE	upgrade
 			1 << 3	VEHSPAWN_LICENSE	license
 	*/
-	bool spawn_vehicle(Hash model, Vehicle* vehOut, BYTE flags, int colours)//bool warp, bool bypass, bool upgrade)
+	bool spawn_vehicle(Hash model, Vehicle* vehOut, BYTE flags, int64_t colours)//bool warp, bool bypass, bool upgrade)
 	{
 		Vector3		pos	= get_coords_infront_player(6.f);
 		Ped		playerPed	= CPlayerMem::player_ped_id();
@@ -882,7 +886,7 @@ namespace script
 		*CHooking::getGlobalPtr(GLOBALPTR_SP_VEH_BYPASS) = b;
 	}
 
-	bool	upgrade_car(Vehicle v, bool wheels, int colours)
+	bool	upgrade_car(Vehicle v, bool wheels, int64_t colours)
 	{
 		if(!request_control_of_entity(v))
 			return false;
@@ -892,24 +896,29 @@ namespace script
 		CVehicle* pVeh	= util::handle_to_ptr<CVehicle>(v);
 		CHooking::set_vehicle_mod_kit(v, 0);
 		CHooking::set_vehicle_number_plate_index(pVeh, PLATE_YELLOWONBLACK);
-		CHooking::set_vehicle_wheel_type(v, WHEEL_TYPE_HIGHEND);
+		if(wheels)
+			CHooking::set_vehicle_wheel_type(v, WHEEL_TYPE_HIGHEND);
 		CHooking::toggle_vehicle_mod(v, MOD_TURBO, 1);
 		CHooking::toggle_vehicle_mod(v, MOD_XENONLIGHTS, 1);
 		CHooking::set_vehicle_mod(v, 0, CHooking::get_num_vehicle_mod(v, 0) - 2, false);		//biggest spoiler = ugly
 		if(pVeh->pCVehicleMods != nullptr)
 			pVeh->pCVehicleMods->btWindowTint	= (BYTE) 1;
 		if(colours != -1)
-			set_vehicle_color(v, colours & 0xFF, (colours >> 0x08) & 0xFF);
+			set_vehicle_color(v, colours & 0xFF, (colours >> 0x08) & 0xFF, (colours >> 0x10) & 0xFF, (colours >> 0x18) & 0xFF);
 		for(int i = 1; i < 0x30; ++i)
 		{
-			if(!wheels && i > 22 && i < 25)
+			if(i > 22 && i < 25)
+			{
+				if(wheels)
+					CHooking::set_vehicle_mod(v, i, WHEEL_HIGHEND_CARBONSHADOW, false);	//WHEEL_HIGHEND_CARBONSHADOW
 				continue;
+			}
 			CHooking::set_vehicle_mod(v, i, CHooking::get_num_vehicle_mod(v, i) - 1, false);
 		}
 		return true;
 	}
 
-	bool	set_vehicle_color(Vehicle v, int p, int s)
+	bool	set_vehicle_color(Vehicle v, int p, int s, int pearl, int wheel)
 	{
 		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(v);
 		if(pVeh == nullptr || pVeh->pCVehicleMods == nullptr)
@@ -918,6 +927,10 @@ namespace script
 			pVeh->pCVehicleMods->btPrimary		= (BYTE) p;
 		if(s != -1)
 			pVeh->pCVehicleMods->btSecondary	= (BYTE) s;
+		if(pearl != -1)
+			pVeh->pCVehicleMods->btPearlescent	= (BYTE) pearl;
+		if(wheel != -1)
+			pVeh->pCVehicleMods->btWheelColor	= (BYTE) wheel;
 
 		CHooking::apply_vehicle_colors(pVeh, true);
 		return true;
@@ -1031,9 +1044,12 @@ namespace script
 
 	void fix_vehicle(Vehicle v)
 	{
+		CVehicle* pVeh = util::handle_to_ptr<CVehicle>(v);
+		pVeh->fDirtLevel	= 0.f;
 		CHooking::set_vehicle_fixed(v);
 		CHooking::set_vehicle_deformation_fixed(util::handle_to_ptr<CVehicle>(v));
 		CHooking::set_vehicle_undriveable(v, false);
+
 	}
 
 	void clean_ped(Ped p)
@@ -1362,7 +1378,7 @@ namespace script
 		{
 			if(i >= smash_vehicle.size())
 				i	= 0;
-			if(clock() - tmr < 500)
+			if(clock() - tmr < 8000)
 			{
 				Entity ent	= smash_vehicle[i];
 				i++;
@@ -1372,7 +1388,7 @@ namespace script
 				Vector3 vel(0.f, 0.f, 2.f);
 				CHooking::set_entity_velocity(ent, &vel);
 			}
-			else if(clock() - tmr > 5000)
+			else if(clock() - tmr > 8000)
 			{
 				Entity ent	= smash_vehicle.front();
 				smash_vehicle.pop_front();
@@ -1546,6 +1562,8 @@ namespace script
 
 	void	trigger_script_event(eScriptEvent id, Player player, uint64_t arg2, uint64_t arg3)
 	{
+		if(!CHooking::network_is_session_started())
+			return;
 		constexpr BYTE	c		= 4;
 		int32_t			flags	= (1 << player);
 		uint64_t		args[c]	= { id, (uint64_t) player, arg2, arg3 };

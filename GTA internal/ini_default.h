@@ -22,10 +22,8 @@
 #define INI_DEFAULT_H
 
 const char* INI_DEFAULT	=
-";\n"
-";	Keys\n"
-";	Full list of valid keys in KEYS.txt\n"
-";\n"
+"[Version]\n"
+"version=0\n"
 "[Keys]\n"
 "Exit=F9\n"
 "Menu=NUM-\n"

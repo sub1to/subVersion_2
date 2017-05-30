@@ -57,6 +57,23 @@ class CPatternResult
 		}
 
 		template <typename rT>
+		rT* get_rel(int offset = 0)
+		{
+			rT*		result	= nullptr;
+			int32_t	rel;
+			char*	ptr		= get<char>(offset);
+
+			if(ptr == nullptr)
+				goto LABEL_RETURN;
+
+			rel	= *(int32_t*) ptr;
+			result = reinterpret_cast<rT*>(ptr + rel + sizeof(rel));
+
+		LABEL_RETURN:
+			return result;
+		}
+
+		template <typename rT>
 		rT*	section_begin()
 		{
 			return reinterpret_cast<rT*>(m_pBegin);

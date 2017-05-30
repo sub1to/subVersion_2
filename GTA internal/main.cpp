@@ -19,6 +19,8 @@
 
 #include "stdafx.h"
 
+const char	g_szVersion[]	= "1.1.0";
+
 //handles
 HMODULE		g_hModule;
 HANDLE		g_hThreadMain;
@@ -38,10 +40,10 @@ int __stdcall DllMain
 		g_hModule = hModule;
 		g_hThreadMain = CreateThread
 		(
-			NULL,
+			nullptr,
 			0,
 			mainThread,
-			NULL,
+			nullptr,
 			0,
 			nullptr
 		);
@@ -68,7 +70,9 @@ DWORD __stdcall mainThread(LPVOID lpParam)
 	feature::populate();	//add the features
 
 	//init renderer
-	CRender::initialze(g_hModule, "subVersion 2.1.0 | by sub1to");
+	char msg[0xFF]	= {};
+	sprintf_s(msg, "subVersion %s | by sub1to", g_szVersion);
+	CRender::initialze(g_hModule, msg);
 
 	//init hooking
 	CHooking::init();
@@ -100,10 +104,13 @@ DWORD __stdcall _killProcess(LPVOID pParam)
 
 void killProcess()
 {
-	CreateThread(	NULL,
+	if(GetThreadId(GetCurrentThread()) == GetThreadId(g_hThreadMain))
+		_killProcess(nullptr);
+
+	CreateThread(	nullptr,
 					0,
 					_killProcess,
-					NULL,
+					nullptr,
 					0,
 					nullptr);
 }

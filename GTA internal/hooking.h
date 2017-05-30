@@ -22,7 +22,7 @@
 #ifndef HOOKING_H
 #define HOOKING_H
 
-typedef BOOL	(__cdecl*	fpIsPlayerOnline)();
+typedef BOOL	(__cdecl*	fpIsPlayerOnline)(void*);
 typedef BOOL	(__cdecl*	fpIsPlayerPlaying)(Player player);
 typedef Player	(__cdecl*	fpPlayerId)();
 typedef Ped		(__cdecl*	fpGetPlayerPed)(Player player);
@@ -220,7 +220,7 @@ class CHooking
 		static __int64**				m_globalBase;
 		static MemoryPool**				m_entityPool;
 		static MemoryPool**				m_pedPool;
-		static CRITICAL_SECTION			m_critSec;
+		//static CRITICAL_SECTION			m_critSec;
 		static threeBytes*				m_infAmmo;
 		static threeBytes*				m_noReload;
 		static CViewPort*				m_viewPort;
@@ -235,9 +235,10 @@ class CHooking
 		static clockTime*				m_clockTime;
 		static uint64_t*				m_networkTime;
 		static void*					m_gameInfo;
+		static CPlayers*				m_players;
 
 
-		static fpIsPlayerOnline						is_player_online;
+		static fpIsPlayerOnline						IS_PLAYER_ONLINE;
 		static fpIsPlayerPlaying					is_player_playing;
 		static fpPlayerId							player_id;
 		static fpGetPlayerPed						get_player_ped;

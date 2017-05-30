@@ -76,6 +76,18 @@ bool CMenu::initialze(std::string szIniDir, std::string szIniName)
 
 	m_iniParser.read();
 
+	//The iniparser is not compatible with the previous version anymore, so the ini needs to be reset.
+	//*
+	DWORD version;
+	DWORD hash		= util::$(g_szVersion);
+	if(!m_iniParser.getValue<DWORD>("version", "Version", version) || (version != 0 && version != hash))
+	{
+		resetIni();
+		m_iniParser.read();
+	}
+	m_iniParser.setValue<DWORD>("version", hash, "Version");
+	//*/
+
 	struct keyInit
 	{
 		eKeys	index;
@@ -502,7 +514,7 @@ int		CMenu::addFeature(int cat, int parent, std::string name, featType type, std
 		return id;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMin		= min;
 	static_cast<CFeatSlider*>(m_pFeature[id])->m_fMax		= max;
-	float v;
+	float v = 0.f;
 	m_iniParser.getValue<float>(iniKey, "FeatureValue", v);
 	if(v <= max && v >= min)
 		static_cast<CFeatSlider*>(m_pFeature[id])->m_fValue	= v;

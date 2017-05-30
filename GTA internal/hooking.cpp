@@ -28,7 +28,7 @@ CBlipList*				CHooking::m_blipList;
 CReplayInterface*		CHooking::m_replayIntf;
 __int64**				CHooking::m_globalBase;
 MemoryPool**			CHooking::m_entityPool;
-CRITICAL_SECTION		CHooking::m_critSec;
+//CRITICAL_SECTION		CHooking::m_critSec;
 threeBytes*				CHooking::m_infAmmo;
 threeBytes*				CHooking::m_noReload;
 CViewPort*				CHooking::m_viewPort;
@@ -44,9 +44,10 @@ clockTime*				CHooking::m_clockTime;
 uint64_t*				CHooking::m_networkTime;
 MemoryPool**			CHooking::m_pedPool;
 void*					CHooking::m_gameInfo;
+CPlayers*				CHooking::m_players;
 
 
-fpIsPlayerOnline					CHooking::is_player_online;
+fpIsPlayerOnline					CHooking::IS_PLAYER_ONLINE;
 fpIsPlayerPlaying					CHooking::is_player_playing;
 fpPlayerId							CHooking::player_id;
 fpGetPlayerPed						CHooking::get_player_ped;
@@ -246,7 +247,7 @@ void CHooking::init()
 {
 	CLog::msg("Initializing hooks");
 
-	InitializeCriticalSection(&m_critSec);
+//	InitializeCriticalSection(&m_critSec);
 	findPatterns();
 	//set max menu padding
 	//this can only be done after this point, because it requires the resolution
@@ -260,7 +261,6 @@ void CHooking::init()
 		killProcess();
 
 	antiCheatBypass(true);
-	ownedExplosionBypass(true);
 
 	CLog::msg("Hooks ready");
 }
@@ -283,14 +283,13 @@ void CHooking::onTick()
 
 void CHooking::cleanup()
 {
-	ownedExplosionBypass(false);
 	antiCheatBypass(false);
 	CLog::msg("Cleaning up hooks");
 	for(int i = 0; i < m_hooks.size(); i++)
 		if(MH_DisableHook(m_hooks[i]) != MH_OK && MH_RemoveHook(m_hooks[i]) != MH_OK)
 			CLog::error("Failed to unhook %p", (void*) m_hooks[i]);
 	MH_Uninitialize();
-	DeleteCriticalSection(&m_critSec);
+	//DeleteCriticalSection(&m_critSec);
 }
 
 __int64* CHooking::getGlobalPtr(int index)
@@ -416,6 +415,8 @@ void CHooking::ownedExplosionBypass(bool toggle)
 {
 	constexpr twoBytes patched	= { 0x39, 0xDB };
 	constexpr twoBytes restore	= { 0x3B, 0xD8 };
+	if(m_ownedExplosionBypass == nullptr)
+		return;
 	*m_ownedExplosionBypass		= toggle ? patched : restore;
 }
 
@@ -434,25 +435,22 @@ bool initHooks()
 void antiCheatBypass(bool b = true)
 {
 	CHooking::defuseEvent(REVENT_REQUEST_PICKUP_EVENT, b);		//bypass pickup detection
+	CHooking::ownedExplosionBypass(b);
 	//CHooking::defuseEvent(REVENT_REPORT_MYSELF_EVENT, b);
 	//CHooking::defuseEvent(REVENT_REPORT_CASH_SPAWN_EVENT, b);
 }
 
-fpIsPlayerPlaying	OG_IS_PLAYER_PLAYING	= nullptr;
-BOOL __cdecl HK_IS_PLAYER_PLAYING(Player player)
+fpIsPlayerOnline	OG_IS_PLAYER_ONLINE	= nullptr;
+BOOL __cdecl HK_IS_PLAYER_ONLINE(void* pContext)
 {
-	if(TryEnterCriticalSection(&CHooking::m_critSec))
+	static uint64_t	last = 0;
+	uint64_t		cur = *CHooking::m_frameCount;
+	if (last != cur)
 	{
-		static uint64_t	last = 0;
-		uint64_t		cur = *CHooking::m_frameCount;
-		if (last != cur)
-		{
-			last = cur;
-			CHooking::onTick();
-		}
-		LeaveCriticalSection(&CHooking::m_critSec);
+		last = cur;
+		CHooking::onTick();
 	}
-	return OG_IS_PLAYER_PLAYING(player);
+	return OG_IS_PLAYER_ONLINE(pContext);
 }
 
 /*fpTriggerScriptEvent OG_TRIGGER_SCRIPT_EVENT	= nullptr;
@@ -467,10 +465,10 @@ BOOL	__cdecl HK_TRIGGER_SCRIPT_EVENT(bool unk0, uint64_t* args, int argCount, in
 
 bool hookNatives()
 {
-	MH_STATUS status = MH_CreateHook(CHooking::is_player_playing, HK_IS_PLAYER_PLAYING, (void**) &OG_IS_PLAYER_PLAYING);
-	if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::is_player_playing) != MH_OK)
+	MH_STATUS status = MH_CreateHook(CHooking::IS_PLAYER_ONLINE, HK_IS_PLAYER_ONLINE, (void**) &OG_IS_PLAYER_ONLINE);
+	if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::IS_PLAYER_ONLINE) != MH_OK)
 		return false;
-	CHooking::m_hooks.push_back(CHooking::is_player_playing);
+	CHooking::m_hooks.push_back(CHooking::IS_PLAYER_ONLINE);
 
 	//status = MH_CreateHook(CHooking::trigger_script_event, HK_TRIGGER_SCRIPT_EVENT, (void**) &OG_TRIGGER_SCRIPT_EVENT);
 	//if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::trigger_script_event) != MH_OK)
@@ -480,328 +478,428 @@ bool hookNatives()
 	return true;
 }
 
+void	failPat(const char* name)
+{
+	CLog::fatal("Failed to find %s pattern.", name);
+	killProcess();
+}
+
+template <typename T>
+void	setPat
+(
+	const char*	name,
+	char*		pat,
+	char*		mask, 
+	T**			out, 
+	bool		rel, 
+	int			offset	= 0, 
+	int			deref	= 0, 
+	int			skip	= 0
+)
+{
+	T*	ptr		= nullptr;
+
+	CPattern pattern(pat, mask);
+	pattern.find(1 + skip);
+	if(rel)
+		ptr			= pattern.get(skip).get_rel<T>(offset);
+	else
+		ptr			= pattern.get(skip).get<T>(offset);
+
+	while(true)
+	{
+		if(ptr == nullptr)
+			failPat(name);
+
+		if(deref <= 0)
+			break;
+		ptr		= *(T**) ptr;
+		--deref;
+	}
+
+	*out		= ptr;
+	return;
+}
+
+template <typename T>
+void	setFn
+(
+	const char*	name, 
+	char*		pat, 
+	char*		mask, 
+	T*			out, 
+	int			skip	= 0
+)
+{
+	char*	ptr		= nullptr;
+
+	CPattern pattern(pat, mask);
+	pattern.find(1 + skip);
+	ptr	= pattern.get(skip).get<char>(0);
+
+	if(ptr == nullptr)
+		failPat(name);
+
+	*out		= (T) ptr;
+	return;
+}
+
 void findPatterns()
 {
 	char*	ptr			= nullptr;
 	constexpr char	pattern_event[]	= "\x4C\x8D\x05";
 
 	//game state
-	CPattern pattern_gameState		(	"\x83\x3D\x00\x00\x00\x00\x00\x8A\xD9\x74\x0A",
-										"xx?????xxxx");
-	ptr	= pattern_gameState.find(0).get(0).get<char>(2);
-	ptr == nullptr ?	killProcess("Failed find game state pattern")				: CHooking::m_gameState			= (eGameState*)				(ptr + *(int32_t*) ptr + 5);
+	setPat<eGameState>(	"game state",
+						"\x8B\x05\x00\x00\x00\x00\x33\xED\x8B\xF2",
+						"xx????xxxx",
+						&CHooking::m_gameState,
+						true,
+						2);
 
 	//world
-	CPattern pattern_world			(	"\x48\x8B\x05\x00\x00\x00\x00\x4C\x8B\x68\x08\x4C\x89\xAD\xD8\x03\x00\x00\x4D\x85\xED\x0F\x84\x93\x04\x00\x00\x8D\x4B\x0F\x48\x8D",
-										"xxx????xxxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_world.find(0).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find world pattern")					: CHack::m_pCWorld				= ((CWorld_Wrap*)			(ptr + *(int32_t*) ptr + 4))->CWorld;
+	setPat<CWorld>(		"world",
+						"\x48\x8B\x05\x00\x00\x00\x00\x4C\x8B\x68\x08\x4C\x89\xAD\xD8\x03\x00\x00\x4D\x85\xED\x0F\x84\x93\x04\x00\x00\x8D\x4B\x0F\x48\x8D",
+						"xxx????xxxxxxxxxxxxxxxxxxxxxxxxx",
+						&CHack::m_pCWorld,
+						true,
+						3,
+						1);
 
 	//blips
-	CPattern pattern_blip			(	"\x4C\x8D\x05\x00\x00\x00\x00\x0F\xB7\xC1",
-										"xxx????xxx");
-	ptr	= pattern_blip.find(0).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find blip pattern")					: CHooking::m_blipList			= (CBlipList*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<CBlipList>(	"blip list",
+						"\x4C\x8D\x05\x00\x00\x00\x00\x0F\xB7\xC1",
+						"xxx????xxx",
+						&CHooking::m_blipList,
+						true,
+						3);
 
 	//replay interface
-	CPattern pattern_replay			(	"\x48\x8D\x0D\x00\x00\x00\x00\x48\x8B\xD7\xE8\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x8A\xD8\xE8\x00\x00\x00\x00\x84\xDB\x75\x13\x48\x8D\x0D\x00\x00\x00\x00",
-										"xxx????xxxx????xxx????xxx????xxxxxxx????");
-	ptr	= pattern_replay.find(0).get(0).get<char>(3);
-	ptr	== nullptr ?	killProcess("Failed to find replay interface pattern")		: CHooking::m_replayIntf		= *(CReplayInterface**)		(ptr + *(int32_t*) ptr + 4);
+	setPat<CReplayInterface>(	"replay interface",
+								"\x48\x8D\x0D\x00\x00\x00\x00\x48\x8B\xD7\xE8\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x8A\xD8\xE8\x00\x00\x00\x00\x84\xDB\x75\x13\x48\x8D\x0D\x00\x00\x00\x00",
+								"xxx????xxxx????xxx????xxx????xxxxxxx????",
+								&CHooking::m_replayIntf,
+								true,	
+								3,
+								1);
 
 	//global
-	CPattern pattern_global			(	"\x4C\x8D\x05\x00\x00\x00\x00\x4D\x8B\x08\x4D\x85\xC9\x74\x11",
-										"xxx????xxxxxxxx");
-	ptr	= pattern_global.find(0).get(0).get<char>(3);
-	ptr	== nullptr ?	killProcess("Failed to find global pattern")				: CHooking::m_globalBase		= (__int64**)				(ptr + *(int32_t*) ptr + 4);
+	setPat<__int64*>(	"global",
+						"\x4C\x8D\x05\x00\x00\x00\x00\x4D\x8B\x08\x4D\x85\xC9\x74\x11",
+						"xxx????xxxxxxxx",
+						&CHooking::m_globalBase,
+						true,
+						3);
 
 	//player list
-	CPattern pattern_playerList		(	"\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",
-										"xxx????x????xxxx????xxx");
-	ptr	= pattern_playerList.find(1).get(0).get<char>(3);
-	ptr	== nullptr ?	killProcess("Failed to find player list pattern")			: CHack::m_pCPlayers			= (CPlayers*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<CPlayers>(	"player list",
+						"\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xCF",
+						"xxx????x????xxxx????xxx",
+						&CHooking::m_players,
+						true,
+						3);
 
 	//entity pool
-	CPattern pattern_entityPool		(	"\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",
-										"xxx????xxxxxxx");
-	ptr	= pattern_entityPool.find(1).get(0).get<char>(3);
-	ptr	== nullptr ?	killProcess("Failed to find entity pool pattern")			: CHooking::m_entityPool		= (MemoryPool**)			(ptr + *(int32_t*) ptr + 4);
+	setPat<MemoryPool*>(	"entity pool",
+							"\x4C\x8B\x0D\x00\x00\x00\x00\x44\x8B\xC1\x49\x8B\x41\x08",
+							"xxx????xxxxxxx",
+							&CHooking::m_entityPool,
+							true,
+							3);
 
 	//ped pool
-	CPattern pattern_pedPool		(	"\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10",
-										"xxx????xxxxxxxx");
-	ptr	= pattern_pedPool.find(1).get(0).get<char>(3);
-	ptr	== nullptr ?	killProcess("Failed to find ped pool pattern")				: CHooking::m_pedPool			= (MemoryPool**)			(ptr + *(int32_t*) ptr + 4);
-
-	//inf ammo
-	CPattern pattern_ammo			(	"\x41\x2B\xD1\xE8",
-										"xxxx");
-	ptr	= pattern_ammo.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find infinite ammo pattern")			: CHooking::m_infAmmo			= (threeBytes*)				ptr;
-
-	//no reload
-	CPattern pattern_magazine		(	"\x41\x2B\xC9\x3B\xC8\x0F",
-										"xxxxxx");
-	ptr	= pattern_magazine.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find no reload pattern")				: CHooking::m_noReload			= (threeBytes*)				ptr;
-
+	setPat<MemoryPool*>(	"ped pool",
+							"\x48\x8B\x05\x00\x00\x00\x00\x41\x0F\xBF\xC8\x0F\xBF\x40\x10",
+							"xxx????xxxxxxxx",
+							&CHooking::m_pedPool,
+							true,
+							3);
+	
 	//viewport
-	CPattern pattern_viewport		(	"\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x2D\x00\x00\x00\x00\x48\x8B\xCD",
-										"xxx????xxx????xxx");
-	ptr	= pattern_viewport.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find viewport pattern")				: CHooking::m_viewPort			= *(CViewPort**)			(ptr + *(int32_t*) ptr + 4);
+	setPat<CViewPort>(	"viewport",
+						"\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x2D\x00\x00\x00\x00\x48\x8B\xCD",
+						"xxx????xxx????xxx",
+						&CHooking::m_viewPort,
+						true,
+						3,
+						1);
 
 	//resolution
-	CPattern pattern_resolution		(	"\x8B\x0D\x00\x00\x00\x00\x49\x8D\x56\x28",
-										"xx????xxxx");
-	ptr	= pattern_resolution.find(1).get(0).get<char>(2);
-	ptr == nullptr ?	killProcess("Failed to find resolution pattern")			: CHooking::m_resolution		= (screenReso*)				(ptr + *(int32_t*) ptr + 4);
-
-	//hash table
-	CPattern pattern_obj_table		(	"\x01\x00\x00\x08\x43\x7f\x2e\x27\x00\x00\xFF\x0F\x00",
-										"xxxxxxxxxxxxx");
-	ptr	= pattern_obj_table.virtual_find(1).get(0).get<char>(4);
-	ptr == nullptr ?	killProcess("Failed to find object hash table pattern")		: CHooking::m_objectHashTable	= (void*)					ptr;
-	CHooking::m_objectHashTableSectionEnd	= pattern_obj_table.get(0).section_end<void>();
+	setPat<screenReso>(	"resolution",
+						"\x8B\x0D\x00\x00\x00\x00\x49\x8D\x56\x28",
+						"xx????xxxx",
+						&CHooking::m_resolution,
+						true,
+						2);
 
 	//player name
-	CPattern pattern_online_name	(	"\x48\x8B\x05\x00\x00\x00\x00\xC3\x8A\xD1",
-										"xxx????xxx");
-	ptr	= pattern_online_name.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find name changer pattern")			: CHooking::m_onlineName		= *(void**)					(ptr + *(int32_t*) ptr + 4);
-
-	//owned explosion bypass
-	CPattern pattern_owned_explosion_bypass		(	"\x3B\xD8\x0F\x94\xC3",
-													"xxxxx");
-	ptr	= pattern_owned_explosion_bypass.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find owned explosion bypass pattern"): CHooking::m_ownedExplosionBypass	= (twoBytes*)			ptr;
+	setPat<void>(		"name changer",
+						"\x48\x8B\x05\x00\x00\x00\x00\xC3\x8A\xD1",
+						"xxx????xxx",
+						&CHooking::m_onlineName,
+						true,
+						3,
+						1);
 
 	//frame count
-	CPattern pattern_frame_count	(	"\x8B\x15\x00\x00\x00\x00\x41\xFF\xCF",
-										"xx????xxx");
-	ptr	= pattern_frame_count.find(1).get(0).get<char>(2);
-	ptr == nullptr ?	killProcess("Failed to find frame count pattern")			: CHooking::m_frameCount		= (uint64_t*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<uint64_t>(	"frame count",
+						"\x8B\x15\x00\x00\x00\x00\x41\xFF\xCF",
+						"xx????xxx",
+						&CHooking::m_frameCount,
+						true,
+						2);
 
 	//text color
-	CPattern pattern_text_info	(	"\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x44\x24\x00\x8B\x05\x00\x00\x00\x00\x89\x44\x24\x28",
-										"xxx????xxxx?xx????xxxx");
-	ptr	= pattern_text_info.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find text info pattern")				: CHooking::m_textInfo		= (CTextInfo*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<CTextInfo>(	"text info",
+						"\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x44\x24\x00\x8B\x05\x00\x00\x00\x00\x89\x44\x24\x28",
+						"xxx????xxxx?xx????xxxx",
+						&CHooking::m_textInfo,
+						true,
+						3);
 
 	//onscreen keyboard result
-	CPattern pattern_keyboard_result	(	"\x48\x8D\x0D\x00\x00\x00\x00\x41\x3B\xC0",
-											"xxx????xxx");
-	ptr	= pattern_keyboard_result.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find onscreen keyboard result pattern")	: CHooking::m_onscreenKeyboardResult	= (char*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<char>(		"onscreen keyboard result",
+						"\x48\x8D\x0D\x00\x00\x00\x00\x41\x3B\xC0",
+						"xxx????xxx",
+						&CHooking::m_onscreenKeyboardResult,
+						true,
+						3);
 
 	//clock time
-	CPattern pattern_clock_time	(	"\x48\x8D\x0D\x00\x00\x00\x00\x8B\xFA\xE8\x00\x00\x00\x00\x44\x8D\x0C\x5B",
-									"xxx????xxx????xxxx");
-	ptr	= pattern_clock_time.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find clock time pattern")	: CHooking::m_clockTime	= (clockTime*)				(ptr + *(int32_t*) ptr + 4);
+	setPat<clockTime>(	"clock time",
+						"\x48\x8D\x0D\x00\x00\x00\x00\x8B\xFA\xE8\x00\x00\x00\x00\x44\x8D\x0C\x5B",
+						"xxx????xxx????xxxx",
+						&CHooking::m_clockTime,
+						true,
+						3);
 
 	//network time
-	CPattern pattern_network_time	(	"\x8B\x0D\x00\x00\x00\x00\x3B\xCB\x0F\x47\xCB",
-										"xx????xxxxx");
-	ptr	= pattern_network_time.find(1).get(0).get<char>(2);
-	ptr == nullptr ?	killProcess("Failed to find network time pattern")	: CHooking::m_networkTime	= (uint64_t*)			(ptr + *(int32_t*) ptr + 4);
+	setPat<uint64_t>(	"network time",
+						"\x8B\x0D\x00\x00\x00\x00\x3B\xCB\x0F\x47\xCB",
+						"xx????xxxxx",
+						&CHooking::m_networkTime,
+						true,
+						2);
 
 	//game info (p0 for set_radio_to_station_name)
-	CPattern pattern_game_info	(	"\x48\x8D\x0D\x00\x00\x00\x00\x41\xB0\x01\x33\xD2\x88\x1D",
-										"xxx????xxxxxxx");
-	ptr	= pattern_game_info.find(1).get(0).get<char>(3);
-	ptr == nullptr ?	killProcess("Failed to find game info pattern")	: CHooking::m_gameInfo	= (void*)						(ptr + *(int32_t*) ptr + 4);
+	setPat<void>(		"game info",
+						"\x48\x8D\x0D\x00\x00\x00\x00\x41\xB0\x01\x33\xD2\x88\x1D",
+						"xxx????xxxxxxx",
+						&CHooking::m_gameInfo,
+						true,
+						3);
 
+	//inf ammo
+	setPat<threeBytes>(	"infinite ammo",
+						"\x41\x2B\xD1\xE8",
+						"xxxx",
+						&CHooking::m_infAmmo,
+						false);
+
+	//no reload
+	setPat<threeBytes>(	"no reload",
+						"\x41\x2B\xC9\x3B\xC8\x0F",
+						"xxxxxx",
+						&CHooking::m_noReload,
+						false);
+
+	//owned explosion bypass
+	setPat<twoBytes>(	"owned explosion bypass",
+						"\x3B\xD8\x0F\x94\xC3",
+						"xxxxx",
+						&CHooking::m_ownedExplosionBypass,
+						false);
 
 
 	/*
 		//functions
 	*/
 	//is_player_online
-	CPattern pattern_is_player_online	(	"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0",
-											"xxxx????xxxxxx");
-	ptr	= pattern_is_player_online.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_player_online pattern")			: CHooking::is_player_online	= (fpIsPlayerOnline)	ptr;
+	setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
+								"\xE9\x00\x00\x00\x00\xC3\xCC\x48\x8B\xC4",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
+								"x????xxxxx",									//"xxxx????xxxxxx"
+								&CHooking::IS_PLAYER_ONLINE);
 
 	//is_player_playing
-	CPattern pattern_is_player_playing	(	"\x48\x83\xEC\x28\x33\xD2\xE8\x00\x00\x00\x00\x48\x85\xC0",
-											"xxxxxxx????xxx");
-	ptr	= pattern_is_player_playing.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_player_playing pattern")			: CHooking::is_player_playing	= (fpIsPlayerPlaying)		ptr;
+	setFn<fpIsPlayerPlaying>(	"is_player_playing",
+								"\x48\x83\xEC\x28\x33\xD2\xE8\x00\x00\x00\x00\x48\x85\xC0",
+								"xxxxxxx????xxx",
+								&CHooking::is_player_playing);
 
 	//player_id
-	CPattern pattern_player_id			(	"\x48\x83\xEC\x28\x80\x3D\x00\x00\x00\x00\x00\x74\x12\x48\x8B\x0D\x00\x00\x00\x00\xE8",
-											"xxxxxx?????xxxxx????x");
-	ptr	= pattern_player_id.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find player_id pattern")					: CHooking::player_id			= (fpPlayerId)				ptr;
+	setFn<fpPlayerId>(			"player_id",
+								"\x48\x83\xEC\x28\x80\x3D\x00\x00\x00\x00\x00\x74\x12\x48\x8B\x0D\x00\x00\x00\x00\xE8",
+								"xxxxxx?????xxxxx????x",
+								&CHooking::player_id);
 
 	//get_player_ped
-	CPattern pattern_get_player_ped		(	"\x40\x53\x48\x83\xEC\x20\x33\xDB\x83\xF9\xFF\x74\x09\xB2\x01\xE8\x00\x00\x00\x00\xEB\x16",
-											"xxxxxxxxxxxxxxxx????xx");
-	ptr	= pattern_get_player_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_player_ped pattern")			: CHooking::get_player_ped		= (fpGetPlayerPed)			ptr;
+	setFn<fpGetPlayerPed>(		"get_player_ped",
+								"\x40\x53\x48\x83\xEC\x20\x33\xDB\x83\xF9\xFF\x74\x09\xB2\x01\xE8\x00\x00\x00\x00\xEB\x16",
+								"xxxxxxxxxxxxxxxx????xx",
+								&CHooking::get_player_ped);
 
 	//get_player_team
-	CPattern pattern_get_player_team	(	"\x48\x83\xEC\x28\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0C\x48\x8B\xC8\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\x83\xC8\xFF",
-											"xxxxxxx????xxxxxxxxxxxxx????xxx");
-	ptr	= pattern_get_player_team.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_player_team pattern")			: CHooking::get_player_team		= (fpGetPlayerTeam)			ptr;
+	setFn<fpGetPlayerTeam>(			"get_player_team",
+									"\x48\x83\xEC\x28\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0C\x48\x8B\xC8\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\x83\xC8\xFF",
+									"xxxxxxx????xxxxxxxxxxxxx????xxx",
+									&CHooking::get_player_team);
 
 	//get_vehicle_ped_is_using
-	CPattern pattern_get_vehicle_ped_is_using	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xF9\x33\xDB\xE8\x00\x00\x00\x00\x48\x8B\xD0",
-													"xxxx?xxxxxxxxxx????xxx");
-	ptr	= pattern_get_vehicle_ped_is_using.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_vehicle_ped_is_using pattern")	: CHooking::get_vehicle_ped_is_using	= (fpGetVehiclePedIsUsing)	ptr;
+	setFn<fpGetVehiclePedIsUsing>(	"get_vehicle_ped_is_using",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xF9\x33\xDB\xE8\x00\x00\x00\x00\x48\x8B\xD0",
+									"xxxx?xxxxxxxxxx????xxx",
+									&CHooking::get_vehicle_ped_is_using);
 
 	//get_ped_in_vehicle_seat
-	CPattern pattern_get_ped_in_vehicle_seat	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xE8\x8D\x72\x01",
-													"xxxx?xxxx?xxxx?xxxxxxxxxxx");
-	ptr	= pattern_get_ped_in_vehicle_seat.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_in_vehicle_seat pattern")	: CHooking::get_ped_in_vehicle_seat		= (fpGetPedInVehicleSeat)	ptr;
+	setFn<fpGetPedInVehicleSeat>(	"get_ped_in_vehicle_seat",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xE8\x8D\x72\x01",
+									"xxxx?xxxx?xxxx?xxxxxxxxxxx",
+									&CHooking::get_ped_in_vehicle_seat);
 
 	//is_aim_cam_active
-	CPattern pattern_is_aim_cam_active	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x33\xD2\x48\x8B\xC8\x48\x8B\xF8",
-											"xxxx?xxxxxx????xxxxxxxx");
-	ptr	= pattern_is_aim_cam_active.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_aim_cam_active pattern")			: CHooking::is_aim_cam_active	= (fpIsAimCamActive)		ptr;
+	setFn<fpIsAimCamActive>(		"is_aim_cam_active",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x33\xD2\x48\x8B\xC8\x48\x8B\xF8",
+									"xxxx?xxxxxx????xxxxxxxx",
+									&CHooking::is_aim_cam_active);
 
 	//get_entity_player_is_free_aiming_at
-	CPattern pattern_get_entity_player_is_free_aiming_at	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\xB2\x01\x33\xDB\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x3F",
-																"xxxx?xxxxxxxxxxxxx????xxxxx");
-	ptr	= pattern_get_entity_player_is_free_aiming_at.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_player_is_free_aiming_at pattern")	: CHooking::get_entity_player_is_free_aiming_at	= (fpGetEntityPlayerIsFreeAimingAt)	ptr;
+	setFn<fpGetEntityPlayerIsFreeAimingAt>(	"get_entity_player_is_free_aiming_at",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\xB2\x01\x33\xDB\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x3F",
+											"xxxx?xxxxxxxxxxxxx????xxxxx",
+											&CHooking::get_entity_player_is_free_aiming_at);
 
 	//network_is_session_started
-	CPattern pattern_network_is_session_started	(	"\x48\x8B\x0D\x00\x00\x00\x00\x33\xC0\x48\x85\xC9\x74\x0E\x83\xB9\x00\x00\x00\x00\x00\x75\x05",
-													"xxx????xxxxxxxxx?????xx");
-	ptr	= pattern_network_is_session_started.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_is_session_started pattern")	: CHooking::network_is_session_started	= (fpNetworkIsSessionStarted)	ptr;
+	setFn<fpNetworkIsSessionStarted>(	"network_is_session_started",
+										"\x48\x8B\x0D\x00\x00\x00\x00\x33\xC0\x48\x85\xC9\x74\x0E\x83\xB9\x00\x00\x00\x00\x00\x75\x05",
+										"xxx????xxxxxxxxx?????xx",
+										&CHooking::network_is_session_started);
 
 	//get_entity_speed
-	CPattern pattern_get_entity_speed	(	"\x48\x83\xEC\x38\x0F\x29\x74\x24\x00\x0F\x57\xF6\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x3E",
-											"xxxxxxxx?xxxx????xxxxx");
-	ptr	= pattern_get_entity_speed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_speed pattern")			: CHooking::get_entity_speed	= (fpGetEntitySpeed)	ptr;
+	setFn<fpGetEntitySpeed>(		"get_entity_speed",
+									"\x48\x83\xEC\x38\x0F\x29\x74\x24\x00\x0F\x57\xF6\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x3E",
+									"xxxxxxxx?xxxx????xxxxx",
+									&CHooking::get_entity_speed);
 
 	//get_player_name
-	CPattern pattern_get_player_name	(	"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8B\xD9\x74\x22",
-											"xxxxxxxx?????xxxx");
-	ptr	= pattern_get_player_name.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_player_name pattern")			: CHooking::get_player_name	= (fpGetPlayerName)	ptr;
+	setFn<fpGetPlayerName>(			"get_player_name",
+									"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8B\xD9\x74\x22",
+									"xxxxxxxx?????xxxx",
+									&CHooking::get_player_name);
 
 	//draw_rect
-	CPattern pattern_draw_rect	(	"\x48\x8B\xC4\x48\x89\x58\x08\x57\x48\x83\xEC\x70\x48\x63\x0D\x00\x00\x00\x00\x0F",
-									"xxxxxxxxxxxxxxx????x");
-	ptr	= pattern_draw_rect.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find draw_rect pattern")					: CHooking::draw_rect	= (fpDrawRect)	ptr;
+	setFn<fpDrawRect>(				"draw_rect",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x57\x48\x83\xEC\x70\x48\x63\x0D\x00\x00\x00\x00\x0F",
+									"xxxxxxxxxxxxxxx????x",
+									&CHooking::draw_rect);
 
 	//draw_line
-	CPattern pattern_draw_line	(	"\x40\x53\x48\x83\xEC\x40\xF3\x0F\x10\x09\xF3\x0F\x10\x41\x00\xF3\x0F\x10\x51\x00\x45\x8B\xD0\xBB",
-									"xxxxxxxxxxxxxx?xxxx?xxxx");
-	ptr	= pattern_draw_line.find(2).get(1).get<char>(0);	//first one is draw_box
-	ptr == nullptr ?	killProcess("Failed to find draw_line pattern")					: CHooking::draw_line	= (fpDrawLine)	ptr;
+	setFn<fpDrawLine>(				"draw_line",
+									"\x40\x53\x48\x83\xEC\x40\xF3\x0F\x10\x09\xF3\x0F\x10\x41\x00\xF3\x0F\x10\x51\x00\x45\x8B\xD0\xBB",
+									"xxxxxxxxxxxxxx?xxxx?xxxx",
+									&CHooking::draw_line,
+									1);	//skip 1, first one is draw_box
 
 	//get_ground_z_for_3d_coord
-	CPattern pattern_get_ground_z_for_3d_coord	(	"\x4C\x8B\xDC\x49\x89\x5B\x10\x49\x89\x7B\x20",
-													"xxxxxxxxxxx");
-	ptr	= pattern_get_ground_z_for_3d_coord.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ground_z_for_3d_coord pattern")	: CHooking::get_ground_z_for_3d_coord	= (fpGetGroundZFor3dCoord)	ptr;
+	setFn<fpGetGroundZFor3dCoord>(	"get_ground_z_for_3d_coord",
+									"\x4C\x8B\xDC\x49\x89\x5B\x10\x49\x89\x7B\x20",
+									"xxxxxxxxxxx",
+									&CHooking::get_ground_z_for_3d_coord);
 
 	//create_vehicle
-	CPattern pattern_create_vehicle	(	"\x48\x89\x5C\x24\x00\x55\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x8B\xEC\x48\x83\xEC\x50\xF3\x0F\x10\x02",
-										"xxxx?xxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_create_vehicle.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find create_vehicle pattern")			: CHooking::create_vehicle	= (fpCreateVehicle)	ptr;
+	setFn<fpCreateVehicle>(			"create_vehicle",
+									"\x48\x89\x5C\x24\x00\x55\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x8B\xEC\x48\x83\xEC\x50\xF3\x0F\x10\x02",
+									"xxxx?xxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::create_vehicle);
 
 	//set_entity_coords_no_offset
-	CPattern pattern_set_entity_coords_no_offset	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x57\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x15",
-														"xxxxxxxxxxxxxxx????xxxx");
-	ptr	= pattern_set_entity_coords_no_offset.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_coords_no_offset pattern")	: CHooking::set_entity_coords_no_offset	= (fpSetEntityCoordsNoOffset)	ptr;
+	setFn<fpSetEntityCoordsNoOffset>(	"set_entity_coords_no_offset",
+										"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x57\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x15",
+										"xxxxxxxxxxxxxxx????xxxx",
+										&CHooking::set_entity_coords_no_offset);
 
 	//get_entity_heading
-	CPattern pattern_get_entity_heading	(	"\x48\x83\xEC\x38\x0F\x29\x74\x24\x00\xE8\x00\x00\x00\x00\x0F",
-											"xxxxxxxx?x????x");
-	ptr	= pattern_get_entity_heading.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_heading pattern")			: CHooking::get_entity_heading	= (fpGetEntityHeading)	ptr;
+	setFn<fpGetEntityHeading>(		"get_entity_heading",
+									"\x48\x83\xEC\x38\x0F\x29\x74\x24\x00\xE8\x00\x00\x00\x00\x0F",
+									"xxxxxxxx?x????x",
+									&CHooking::get_entity_heading);
 
 	//get_gameplay_cam_rot
-	CPattern pattern_get_gameplay_cam_rot	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x8B\xDA\x48\x8B\xF9\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\x48\x8D\x90\x00\x00\x00\x00",
-											"xxxx?xxxxxxxxxxx????xxxx?xxx????");
-	ptr	= pattern_get_gameplay_cam_rot.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_gameplay_cam_rot pattern")			: CHooking::get_gameplay_cam_rot	= (fpGetGameplayCamRot)	ptr;
+	setFn<fpGetGameplayCamRot>(		"get_gameplay_cam_rot",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x8B\xDA\x48\x8B\xF9\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\x48\x8D\x90\x00\x00\x00\x00",
+									"xxxx?xxxxxxxxxxx????xxxx?xxx????",
+									&CHooking::get_gameplay_cam_rot);
 
 	//get_gameplay_cam_coord
-	CPattern pattern_get_gameplay_cam_coord	(	"\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\xE8\x00\x00\x00\x00\x8B\x90\x00\x00\x00\x00",
-												"xxxxxxxxxx????xx????");
-	ptr	= pattern_get_gameplay_cam_coord.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_gameplay_cam_coord pattern")		: CHooking::get_gameplay_cam_coord	= (fpGetGameplayCamCoord)	ptr;
+	setFn<fpGetGameplayCamCoord>(	"get_gameplay_cam_coord",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\xE8\x00\x00\x00\x00\x8B\x90\x00\x00\x00\x00",
+									"xxxxxxxxxx????xx????",
+									&CHooking::get_gameplay_cam_coord);
 
 	//get_player_group
-	CPattern pattern_get_player_group	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x50\xB2\x01",
-											"xxxx?xxxxxxx");
-	ptr	= pattern_get_player_group.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_player_group pattern")	: CHooking::get_player_group	= (fpGetPlayerGroup)	ptr;
+	setFn<fpGetPlayerGroup>(		"get_player_group",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x50\xB2\x01",
+									"xxxx?xxxxxxx",
+									&CHooking::get_player_group);
 
 	//set_player_model
-	CPattern pattern_set_player_model	(	"\x40\x55\x53\x57\x48\x8B\xEC\x48\x83\xEC\x30\x8B\xF9",
-											"xxxxxxxxxxxxx");
-	ptr	= pattern_set_player_model.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_player_model pattern")	: CHooking::set_player_model	= (fpSetPlayerModel)	ptr;
+	setFn<fpSetPlayerModel>(		"set_player_model",
+									"\x40\x55\x53\x57\x48\x8B\xEC\x48\x83\xEC\x30\x8B\xF9",
+									"xxxxxxxxxxxxx",
+									&CHooking::set_player_model);
 
 	//set_ped_random_component_variation
-	CPattern pattern_set_ped_random_component_variation	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x40\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8",
-															"xxxx?xxxxxxxx????xxx");
-	ptr	= pattern_set_ped_random_component_variation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_random_component_variation pattern")	: CHooking::set_ped_random_component_variation	= (fpSetPedRandomComponentVariatian)	ptr;
+	setFn<fpSetPedRandomComponentVariatian>(	"set_ped_random_component_variation",
+												"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x40\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8",
+												"xxxx?xxxxxxxx????xxx",
+												&CHooking::set_ped_random_component_variation);
 
 	//set_ped_default_component_variation
-	CPattern pattern_set_ped_default_component_variation	(	"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x2F",
-																"xxxxxxx????xxxxxxxx");
-	ptr	= pattern_set_ped_default_component_variation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_default_component_variation pattern")	: CHooking::set_ped_default_component_variation	= (fpSetPedDefaultComponentVariation)	ptr;
+	setFn<fpSetPedDefaultComponentVariation>(	"set_ped_default_component_variation",
+												"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x2F",
+												"xxxxxxx????xxxxxxxx",
+												&CHooking::set_ped_default_component_variation);
 
 	//set_ped_default_component_variation
-	CPattern pattern_is_ped_in_any_vehicle	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x32\xDB",
-												"xxxx?xxxx?xxxxxxxxx????xx");
-	ptr	= pattern_is_ped_in_any_vehicle.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_ped_in_any_vehicle pattern")	: CHooking::is_ped_in_any_vehicle	= (fpIsPedInAnyVehicle)	ptr;
+	setFn<fpIsPedInAnyVehicle>(		"is_ped_in_any_vehicle",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x32\xDB",
+									"xxxx?xxxx?xxxxxxxxx????xx",
+									&CHooking::is_ped_in_any_vehicle);
 
 	//create_ped
-	CPattern pattern_create_ped	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x55\x57\x41\x56\x48\x8D\x68\xB1\x48\x81\xEC\x00\x00\x00\x00\x40\x8A\x75\x77",
-									"xxxxxxxxxxxxxxxxxxxxxx????xxxx");
-	ptr	= pattern_create_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find create_ped pattern")			: CHooking::create_ped	= (fpCreatePed)	ptr;
+	setFn<fpCreatePed>(				"create_ped",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x55\x57\x41\x56\x48\x8D\x68\xB1\x48\x81\xEC\x00\x00\x00\x00\x40\x8A\x75\x77",
+									"xxxxxxxxxxxxxxxxxxxxxx????xxxx",
+									&CHooking::create_ped);
 
 	//set_ped_into_vehicle
-	CPattern pattern_set_ped_into_vehicle	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x56\x57\x41\x56\x48\x83\xEC\x30\x41\x8B\xE8\x8B\xFA",
-												"xxxx?xxxx?xxxxxxxxxxxxx");
-	ptr	= pattern_set_ped_into_vehicle.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_into_vehicle pattern")	: CHooking::set_ped_into_vehicle	= (fpSetPedIntoVehicle)	ptr;
+	setFn<fpSetPedIntoVehicle>(		"set_ped_into_vehicle",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x56\x57\x41\x56\x48\x83\xEC\x30\x41\x8B\xE8\x8B\xFA",
+									"xxxx?xxxx?xxxxxxxxxxxxx",
+									&CHooking::set_ped_into_vehicle);
 
 	//set_ped_config_flag
-	CPattern pattern_set_ped_config_flag	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x53",
-												"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_set_ped_config_flag.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_config_flag pattern")	: CHooking::set_ped_config_flag	= (fpSetPedConfigFlag)	ptr;
+	setFn<fpSetPedConfigFlag>(		"set_ped_config_flag",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x53",
+									"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx",
+									&CHooking::set_ped_config_flag);
 
 	//clear_ped_blood_damage
-	CPattern pattern_clear_ped_blood_damage	(	"\x40\x53\x48\x83\xEC\x20\x8A\x91\x00\x00\x00\x00\x48\x8B\xD9\x80\xFA\xFF\x74\x51",
-												"xxxxxxxx????xxxxxxxx");
-	ptr	= pattern_clear_ped_blood_damage.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find clear_ped_blood_damage pattern")	: CHooking::clear_ped_blood_damage	= (fpClearPedBloodDamage)	ptr;
+	setFn<fpClearPedBloodDamage>(	"clear_ped_blood_damage",
+									"\x40\x53\x48\x83\xEC\x20\x8A\x91\x00\x00\x00\x00\x48\x8B\xD9\x80\xFA\xFF\x74\x51",
+									"xxxxxxxx????xxxxxxxx",
+									&CHooking::clear_ped_blood_damage);
 
 	//clear_ped_wetness
-	CPattern pattern_clear_ped_wetness	(	"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x23\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\x8B\x00\x00\x00\x00",
-											"xxxxxxx????xxxxxxxxxxxx????xxx????");
-	ptr	= pattern_clear_ped_wetness.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find clear_ped_wetness pattern")	: CHooking::clear_ped_wetness	= (fpClearPedWetness)	ptr;
+	setFn<fpClearPedWetness>(		"clear_ped_wetness",
+									"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x23\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\x8B\x00\x00\x00\x00",
+									"xxxxxxx????xxxxxxxxxxxx????xxx????",
+									&CHooking::clear_ped_wetness);
 
 	//create_object
-	CPattern pattern_create_object	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x41\x54\x41\x57\x48\x8D\x68\xD9",
-										"xxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_create_object.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find create_object pattern")	: CHooking::create_object	= (fpCreateObject)	ptr;
+	setFn<fpCreateObject>(			"create_object",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x41\x54\x41\x57\x48\x8D\x68\xD9",
+									"xxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::create_object);
 
 	//get_ped_nearby_vehicles
 	//CPattern pattern_get_ped_nearby_vehicles	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x40\x48\x8B\xDA\xE8\x00\x00\x00\x00\x33\xFF",
@@ -816,226 +914,227 @@ void findPatterns()
 	//ptr == nullptr ?	killProcess("Failed to find get_ped_nearby_peds pattern")	: CHooking::get_ped_nearby_peds	= (fpGetPedNearbyPeds)	ptr;
 
 	//get_ped_group_index
-	CPattern pattern_get_ped_group_index	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x50\xE8\x00\x00\x00\x00\x48\x85",
-												"xxxx?xxxxxx????xx");
-	ptr	= pattern_get_ped_group_index.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_group_index pattern")	: CHooking::get_ped_group_index	= (fpGetPedGroupIndex)	ptr;
+	setFn<fpGetPedGroupIndex>(		"get_ped_group_index",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x50\xE8\x00\x00\x00\x00\x48\x85",
+									"xxxx?xxxxxx????xx",
+									&CHooking::get_ped_group_index);
 
 	//clone_ped
-	CPattern pattern_clone_ped	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x30\x33\xDB\x41\x8A\xF1",
-									"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_clone_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find clone_ped pattern")	: CHooking::clone_ped	= (fpClonePed)	ptr;
+	setFn<fpClonePed>(				"clone_ped",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x30\x33\xDB\x41\x8A\xF1",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::clone_ped);
 
 	//network_shop_begin_service
-	CPattern pattern_network_shop_begin_service	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x50\x45\x8B\xF1",
-													"xxxx?xxxx?xxxx?xxxxxxxxxxxx");
-	ptr	= pattern_network_shop_begin_service.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_shop_begin_service pattern")	: CHooking::network_shop_begin_service	= (fpNetworkShopBeginService)	ptr;
+	setFn<fpNetworkShopBeginService>(	"network_shop_begin_service",
+										"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x50\x45\x8B\xF1",
+										"xxxx?xxxx?xxxx?xxxxxxxxxxxx",
+										&CHooking::network_shop_begin_service);
 
 	//network_shop_checkout_start
-	CPattern pattern_network_shop_checkout_start	(	"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x84\xC0\x75\x06",
-														"xxxxxxxxx????xxxx");
-	ptr	= pattern_network_shop_checkout_start.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_shop_checkout_start pattern")	: CHooking::network_shop_checkout_start	= (fpNetworkShopCheckoutStart)	ptr;
+	setFn<fpNetworkShopCheckoutStart>(	"network_shop_checkout_start",
+										"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x84\xC0\x75\x06",
+										"xxxxxxxxx????xxxx",
+										&CHooking::network_shop_checkout_start);
 
 	//stat_set_int
-	CPattern pattern_stat_set_int	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x89\x54\x24\x10\x55\x57\x41\x57",
-										"xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_stat_set_int.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find stat_set_int pattern")	: CHooking::stat_set_int	= (fpStatSetInt)	ptr;
+	setFn<fpStatSetInt>(			"stat_set_int",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x89\x54\x24\x10\x55\x57\x41\x57",
+									"xxxx?xxxx?xxxxxxxx",
+									&CHooking::stat_set_int);
 
 	//stat_set_float
-	CPattern pattern_stat_set_float	(	"\x48\x89\x5C\x24\x00\xF3\x0F\x11\x4C\x24\x00\x57\x48\x83\xEC\x40",
-										"xxxx?xxxxx?xxxxx");
-	ptr	= pattern_stat_set_float.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find stat_set_float pattern")	: CHooking::stat_set_float	= (fpStatSetFloat)	ptr;
+	setFn<fpStatSetFloat>(			"stat_set_float",
+									"\x48\x89\x5C\x24\x00\xF3\x0F\x11\x4C\x24\x00\x57\x48\x83\xEC\x40",
+									"xxxx?xxxxx?xxxxx",
+									&CHooking::stat_set_float);
 
 	//stat_set_bool
-	CPattern pattern_stat_set_bool	(	"\x48\x89\x5C\x24\x00\x88\x54\x24\x10\x57\x48\x83\xEC\x40",
-										"xxxx?xxxxxxxxx");
-	ptr	= pattern_stat_set_bool.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find stat_set_bool pattern")	: CHooking::stat_set_bool	= (fpStatSetBool)	ptr;
+	setFn<fpStatSetBool>(			"stat_set_bool",
+									"\x48\x89\x5C\x24\x00\x88\x54\x24\x10\x57\x48\x83\xEC\x40",
+									"xxxx?xxxxxxxxx",
+									&CHooking::stat_set_bool);
 
 	//stat_set_date
-	CPattern pattern_stat_set_date	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x60\x48\x8B\xDA\x8B\xF9",
-										"xxxx?xxxx?xxxxxxxxxx");
-	ptr	= pattern_stat_set_date.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find stat_set_date pattern")	: CHooking::stat_set_date	= (fpStatSetDate)	ptr;
+	setFn<fpStatSetDate>(			"stat_set_date",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x60\x48\x8B\xDA\x8B\xF9",
+									"xxxx?xxxx?xxxxxxxxxx",
+									&CHooking::stat_set_date);
 
 	//stat_get_int
-	CPattern pattern_stat_get_int	(	"\x48\x8B\xC4\x48\x89\x58\x10\x48\x89\x70\x18\x57\x48\x83\xEC\x30\x48\x8B\xF2",
-										"xxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_stat_get_int.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find stat_get_int pattern")	: CHooking::stat_get_int	= (fpStatGetInt)	ptr;
+	setFn<fpStatGetInt>(			"stat_get_int",
+									"\x48\x8B\xC4\x48\x89\x58\x10\x48\x89\x70\x18\x57\x48\x83\xEC\x30\x48\x8B\xF2",
+									"xxxxxxxxxxxxxxxxxxx",
+									&CHooking::stat_get_int);
 
 	//add_explosion
-	CPattern pattern_add_explosion	(	"\xE9\x00\x00\x00\x00\x8B\x85\x00\x00\x00\x00\xA8\x40\x48\x8D\x64\x24\x00\x48\x89\x2C\x24\x48\xBD\x00\x00\x00\x00\x00\x00\x00\x00\x48\x87\x2C\x24\x48\x89\x4C\x24",
-										"x????xx????xxxxxx?xxxxxx????????xxxxxxxx");
-	ptr	= pattern_add_explosion.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find add_explosion pattern")	: CHooking::add_explosion	= (fpAddExplosion)	ptr;
+	setFn<fpAddExplosion>(			"add_explosion",
+									"\xE9\x00\x00\x00\x00\x8B\x85\x00\x00\x00\x00\xA8\x40\x48\x8D\x64\x24\x00\x48\x89\x2C\x24\x48\xBD\x00\x00\x00\x00\x00\x00\x00\x00\x48\x87\x2C\x24\x48\x89\x4C\x24",
+									"x????xx????xxxxxx?xxxxxx????????xxxxxxxx",
+									&CHooking::add_explosion);
 
 	//give_delayed_weapon_to_ped
-	CPattern pattern_give_delayed_weapon_to_ped	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x30\x41\x8A\xE9\x41\x8B\xF0\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x63",
-													"xxxx?xxxx?xxxx?xxxxxxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_give_delayed_weapon_to_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find give_delayed_weapon_to_ped pattern")	: CHooking::give_delayed_weapon_to_ped	= (fpGiveDelayedWeaponToPed)	ptr;
+	setFn<fpGiveDelayedWeaponToPed>(	"give_delayed_weapon_to_ped",
+										"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x30\x41\x8A\xE9\x41\x8B\xF0\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x63",
+										"xxxx?xxxx?xxxx?xxxxxxxxxxxxxx????xxxxxxxx",
+										&CHooking::give_delayed_weapon_to_ped);
 
 	//remove_all_ped_weapons
-	CPattern pattern_remove_all_ped_weapons	(	"\x48\x83\xEC\x28\x8B\x05\x00\x00\x00\x00\x89\x05\x00\x00\x00\x00\xE8",
-												"xxxxxx????xx????x");
-	ptr	= pattern_remove_all_ped_weapons.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find remove_all_ped_weapons pattern")	: CHooking::remove_all_ped_weapons	= (fpRemoveAllPedWeapons)	ptr;
+	setFn<fpRemoveAllPedWeapons>(	"remove_all_ped_weapons",
+									"\x48\x83\xEC\x28\x8B\x05\x00\x00\x00\x00\x89\x05\x00\x00\x00\x00\xE8",
+									"xxxxxx????xx????x",
+									&CHooking::remove_all_ped_weapons);
 
 	//remove_weapon_from_ped
-	CPattern pattern_remove_weapon_from_ped	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\xE8\x00\x00\x00\x00\x33\xDB",
-												"xxxx?xxxxxxxx????xx");
-	ptr	= pattern_remove_weapon_from_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find remove_weapon_from_ped pattern")	: CHooking::remove_weapon_from_ped	= (fpRemoveWeaponFromPed)	ptr;
+	setFn<fpRemoveWeaponFromPed>(	"remove_weapon_from_ped",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\xE8\x00\x00\x00\x00\x33\xDB",
+									"xxxx?xxxxxxxx????xx",
+									&CHooking::remove_weapon_from_ped);
 
 	//set_mobile_radio
-	CPattern pattern_set_mobile_radio (	"\x40\x53\x48\x83\xEC\x20\x8A\xD9\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x8B\xD0\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x10",
-										"xxxxxxxxxxx????x????xxx????xxx????xxxxx");
-	ptr	= pattern_set_mobile_radio.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_mobile_radio pattern")	: CHooking::set_mobile_radio	= (fpSetMobileRadio)	ptr;
+	setFn<fpSetMobileRadio>(		"set_mobile_radio",
+									"\x40\x53\x48\x83\xEC\x20\x8A\xD9\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x8B\xD0\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x10",
+									"xxxxxxxxxxx????x????xxx????xxx????xxxxx",
+									&CHooking::set_mobile_radio);
 
 	//get_player_radio_station_index
-	CPattern pattern_get_player_radio_station_index (	"\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0C",
-														"xxxxxxx????x????xxxxx");
-	ptr	= pattern_get_player_radio_station_index.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_player_radio_station_index pattern")	: CHooking::get_player_radio_station_index	= (fpGetPlayerRadioStationIndex)	ptr;
+	setFn<fpGetPlayerRadioStationIndex>(	"get_player_radio_station_index",
+											"\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0C",
+											"xxxxxxx????x????xxxxx",
+											&CHooking::get_player_radio_station_index);
 
 	//get_radio_station_name
-	CPattern pattern_get_radio_station_name (	"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0D\x48\x8B\x80",
-												"xxxxx????xxxxxxxx");
-	ptr	= pattern_get_radio_station_name.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_radio_station_name pattern")	: CHooking::get_radio_station_name	= (fpGetRadioStationName)	ptr;
+	setFn<fpGetRadioStationName>(	"get_radio_station_name",
+									"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0D\x48\x8B\x80",
+									"xxxxx????xxxxxxxx",
+									&CHooking::get_radio_station_name);
 
 	//network_has_control_of_entity
-	CPattern pattern_network_has_control_of_entity (	"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x1F\x48\x8B\x88\x00\x00\x00\x00\x48\x85\xC9\x74\x0F",
-														"xxxxx????xxxxxxxx????xxxxx");
-	ptr	= pattern_network_has_control_of_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_has_control_of_entity pattern")	: CHooking::network_has_control_of_entity	= (fpNetworkHasControlOfEntity)	ptr;
+	setFn<fpNetworkHasControlOfEntity>(	"network_has_control_of_entity",
+										"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x1F\x48\x8B\x88\x00\x00\x00\x00\x48\x85\xC9\x74\x0F",
+										"xxxxx????xxxxxxxx????xxxxx",
+										&CHooking::network_has_control_of_entity);
 
 	//add_owned_explosion
-	CPattern pattern_add_owned_explosion (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x4C\x89\x70\x20\x55\x48\x8D\x68\xB9\x48\x81\xEC\x00\x00\x00\x00\x0F\x29\x70\xE8\x41\x8B\xF0",
-											"xxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxx");
-	ptr	= pattern_add_owned_explosion.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find add_owned_explosion pattern")	: CHooking::add_owned_explosion	= (fpAddOwnedExplosion)	ptr;
+	setFn<fpAddOwnedExplosion>(		"add_owned_explosion",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x4C\x89\x70\x20\x55\x48\x8D\x68\xB9\x48\x81\xEC\x00\x00\x00\x00\x0F\x29\x70\xE8\x41\x8B\xF0",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxx",
+									&CHooking::add_owned_explosion);
 
 	//network_request_control_of_entity
-	CPattern pattern_network_request_control_of_entity (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x84\xC0",
-															"xxxx?xxxxxxxx????xx");
-	ptr	= pattern_network_request_control_of_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_request_control_of_entity pattern")	: CHooking::network_request_control_of_entity	= (fpNetworkHasControlOfEntity)	ptr;
+	setFn<fpNetworkHasControlOfEntity>(	"network_request_control_of_entity",
+										"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x84\xC0",
+										"xxxx?xxxxxxxx????xx",
+										&CHooking::network_request_control_of_entity);
 
 	//network_request_control_of_entity
-	CPattern pattern_network_get_network_id_from_entity (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x33\xDB\x48\x8B\xF8\x48\x85\xC0\x74\x16",
-															"xxxx?xxxxxx????xxxxxxxxxx");
-	ptr	= pattern_network_get_network_id_from_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_get_network_id_from_entity pattern")	: CHooking::network_get_network_id_from_entity	= (fpNetworkGetNetworkIdFromEntity)	ptr;
+	setFn<fpNetworkGetNetworkIdFromEntity>(	"network_get_network_id_from_entity",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x33\xDB\x48\x8B\xF8\x48\x85\xC0\x74\x16",
+											"xxxx?xxxxxx????xxxxxxxxxx",
+											&CHooking::network_get_network_id_from_entity);
 
 	//network_has_control_of_network_id
-	CPattern pattern_network_has_control_of_network_id (	"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x1F",
-															"xxxxxxxxx????xxxxxx????xxxxx");
-	ptr	= pattern_network_has_control_of_network_id.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_has_control_of_network_id pattern")	: CHooking::network_has_control_of_network_id	= (fpNetworkHasControlOfNetworkId)	ptr;
+	setFn<fpNetworkHasControlOfNetworkId>(	"network_has_control_of_network_id",
+											"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x1F",
+											"xxxxxxxxx????xxxxxx????xxxxx",
+											&CHooking::network_has_control_of_network_id);
 
 	//network_request_control_of_network_id
-	CPattern pattern_network_request_control_of_network_id (	"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x2C",
-																"xxxxxxxxx????xxxxxx????xxxxx");
-	ptr	= pattern_network_request_control_of_network_id.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_request_control_of_network_id pattern")	: CHooking::network_request_control_of_network_id	= (fpNetworkRequestControlOfNetworkId)	ptr;
+	setFn<fpNetworkRequestControlOfNetworkId>(	"network_request_control_of_network_id",
+												"\x40\x53\x48\x83\xEC\x20\x8B\xD9\xE8\x00\x00\x00\x00\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x2C",
+												"xxxxxxxxx????xxxxxx????xxxxx",
+												&CHooking::network_request_control_of_network_id);
 
 	//set_network_id_can_migrate
-	CPattern pattern_set_network_id_can_migrate (	"\x85\xC9\x0F\x8E\x00\x00\x00\x00\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8A\xDA",
-													"xxxx????xxxx?xxxxxxx");
-	ptr	= pattern_set_network_id_can_migrate.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_network_id_can_migrate pattern")	: CHooking::set_network_id_can_migrate	= (fpSetNetworkIdCanMigrate)	ptr;
+	setFn<fpSetNetworkIdCanMigrate>(	"set_network_id_can_migrate",
+										"\x85\xC9\x0F\x8E\x00\x00\x00\x00\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8A\xDA",
+										"xxxx????xxxx?xxxxxxx",
+										&CHooking::set_network_id_can_migrate);
 
 	//network_create_synchronised_scene
-	CPattern pattern_network_create_synchronised_scene (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\x68\xC1",
-															"xxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_network_create_synchronised_scene.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_create_synchronised_scene pattern")	: CHooking::network_create_synchronised_scene	= (fpNetworkCreateSynchronisedScene)	ptr;
+	setFn<fpNetworkCreateSynchronisedScene>(	"network_create_synchronised_scene",
+												"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\x68\xC1",
+												"xxxxxxxxxxxxxxxxxxxx",
+												&CHooking::network_create_synchronised_scene);
 
 	//network_add_ped_to_synchronised_scene
-	CPattern pattern_network_add_ped_to_synchronised_scene (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x49\x8B\xD9",
-																"xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_network_add_ped_to_synchronised_scene.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_add_ped_to_synchronised_scene pattern")	: CHooking::network_add_ped_to_synchronised_scene	= (fpNetworkAddPedToSynchronisedScene)	ptr;
+	setFn<fpNetworkAddPedToSynchronisedScene>(	"network_add_ped_to_synchronised_scene",
+												"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x49\x8B\xD9",
+												"xxxx?xxxx?xxxxxxxx",
+												&CHooking::network_add_ped_to_synchronised_scene);
 
 	//network_start_synchronised_scene
-	CPattern pattern_network_start_synchronised_scene (	"\x40\x53\x48\x81\xEC\x00\x00\x00\x00\x8B\xD9\x44\x8B\xC1\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\x85\xDB\x78\x12",
-														"xxxxx????xxxxxxxx????xxxx?x????xxxx");
-	ptr	= pattern_network_start_synchronised_scene.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_start_synchronised_scene pattern")	: CHooking::network_start_synchronised_scene	= (fpNetworkStartSynchronisedScene)	ptr;
+	setFn<fpNetworkStartSynchronisedScene>(	"network_start_synchronised_scene",
+											"\x40\x53\x48\x81\xEC\x00\x00\x00\x00\x8B\xD9\x44\x8B\xC1\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\x85\xDB\x78\x12",
+											"xxxxx????xxxxxxxx????xxxx?x????xxxx",
+											&CHooking::network_start_synchronised_scene);
 
 	//clear_ped_tasks_immediately
-	CPattern pattern_clear_ped_tasks_immediately (	"\x40\x53\x48\x83\xEC\x30\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x0F\x84",
-													"xxxxxxx????xxxxxxxx");
-	ptr	= pattern_clear_ped_tasks_immediately.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find clear_ped_tasks_immediately pattern")	: CHooking::clear_ped_tasks_immediately	= (fpClearPedTasksImmediately)	ptr;
+	setFn<fpClearPedTasksImmediately>(	"clear_ped_tasks_immediately",
+										"\x40\x53\x48\x83\xEC\x30\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x0F\x84",
+										"xxxxxxx????xxxxxxxx",
+										&CHooking::clear_ped_tasks_immediately);
 
 	//set_entity_visible
-	CPattern pattern_set_entity_visible (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x40\x8A\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8",
-											"xxxx?xxxx?xxxxxxxxxxxx????xxx");
-	ptr	= pattern_set_entity_visible.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_visible pattern")	: CHooking::set_entity_visible	= (fpSetEntityVisible)	ptr;
+	setFn<fpSetEntityVisible>(		"set_entity_visible",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x40\x8A\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8",
+									"xxxx?xxxx?xxxxxxxxxxxx????xxx",
+									&CHooking::set_entity_visible);
 
 	//set_ped_as_group_member
-	CPattern pattern_set_ped_as_group_member (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x8B\xF8\xE8",
-												"xxxx?xxxx?xxxx?xxxxxxxx????xxxx");
-	ptr	= pattern_set_ped_as_group_member.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_as_group_member pattern")	: CHooking::set_ped_as_group_member	= (fpSetPedAsGroupMember)	ptr;
+	setFn<fpSetPedAsGroupMember>(	"set_ped_as_group_member",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x8B\xF8\xE8",
+									"xxxx?xxxx?xxxx?xxxxxxxx????xxxx",
+									&CHooking::set_ped_as_group_member);
 
 	//is_ped_group_member
-	CPattern pattern_is_ped_group_member (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\xE8\x00\x00\x00\x00\x33\xDB\x48\x8B\xF0\x48\x85\xC0\x74\x63",
-											"xxxx?xxxx?xxxxxxxx????xxxxxxxxxx");
-	ptr	= pattern_is_ped_group_member.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_ped_group_member pattern")	: CHooking::is_ped_group_member	= (fpIsPedGroupMember)	ptr;
+	setFn<fpIsPedGroupMember>(		"is_ped_group_member",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\xE8\x00\x00\x00\x00\x33\xDB\x48\x8B\xF0\x48\x85\xC0\x74\x63",
+									"xxxx?xxxx?xxxxxxxx????xxxxxxxxxx",
+									&CHooking::is_ped_group_member);
 
 	//set_ped_can_switch_weapon
-	CPattern pattern_set_ped_can_switch_weapon (	"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x33\xC9\x48\x85\xC0\x74\x19\x84\xDB\x0F\x94\xC1\xF7\xD9\x33\x88\x00\x00\x00\x00\x81\xE1\x00\x00\x00\x00\x31\x88\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\xCC\x48\x89\x5C\x24\x00\x48\x89\x74\x24",
-													"xxxxxxxxx????xxxxxxxxxxxxxxxx????xx????xx????xxxxxxxxxxx?xxxx");
-	ptr	= pattern_set_ped_can_switch_weapon.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_can_switch_weapon pattern")	: CHooking::set_ped_can_switch_weapon	= (fpSetPedCanSwitchWeapon)	ptr;
+	setFn<fpSetPedCanSwitchWeapon>(	"set_ped_can_switch_weapon",
+									"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x33\xC9\x48\x85\xC0\x74\x19\x84\xDB\x0F\x94\xC1\xF7\xD9\x33\x88\x00\x00\x00\x00\x81\xE1\x00\x00\x00\x00\x31\x88\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\xCC\x48\x89\x5C\x24\x00\x48\x89\x74\x24",
+									"xxxxxxxxx????xxxxxxxxxxxxxxxx????xx????xx????xxxxxxxxxxx?xxxx",
+									&CHooking::set_ped_can_switch_weapon);
 
 	//set_ped_gravity
-	CPattern pattern_set_ped_gravity (	"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8A\xDA\x75\x2E",
-										"xxxxxxxx?????xxxx");
-	ptr	= pattern_set_ped_gravity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_gravity pattern")	: CHooking::set_ped_gravity	= (fpSetPedGravity)	ptr;
+	setFn<fpSetPedGravity>(			"set_ped_gravity",
+									"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8A\xDA\x75\x2E",
+									"xxxxxxxx?????xxxx",
+									&CHooking::set_ped_gravity);
 
 	//set_entity_has_gravity
-	CPattern pattern_set_entity_has_gravity (	"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x19\x48\x8B\x48\x30",
-												"xxxxxxxxx????xxxxxxxxx");
-	ptr	= pattern_set_entity_has_gravity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_has_gravity pattern")	: CHooking::set_entity_has_gravity	= (fpSetEntityHasGravity)	ptr;
+	setFn<fpSetEntityHasGravity>(	"set_entity_has_gravity",
+									"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x19\x48\x8B\x48\x30",
+									"xxxxxxxxx????xxxxxxxxx",
+									&CHooking::set_entity_has_gravity);
 
 	//is_vehicle_drivable
-	CPattern pattern_is_vehicle_drivable (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x36",
-											"xxxx?xxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_is_vehicle_drivable.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_vehicle_drivable pattern")	: CHooking::is_vehicle_drivable	= (fpIsVehicleDrivable)	ptr;
+	setFn<fpIsVehicleDrivable>(		"is_vehicle_drivable",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x36",
+									"xxxx?xxxxxxxxx????xxxxxxxx",
+									&CHooking::is_vehicle_drivable);
 
 	//is_model_a_heli
-	CPattern pattern_is_model_a_heli (	"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1E\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x12\x83\xB9\x00\x00\x00\x00\x08",
-										"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxxx????x");
-	ptr	= pattern_is_model_a_heli.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_a_heli pattern")	: CHooking::is_model_a_heli	= (fpIsModelAHeli)	ptr;
-	
+	setFn<fpIsModelAHeli>(			"is_model_a_heli",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1E\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x12\x83\xB9\x00\x00\x00\x00\x08",
+									"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxxx????x",
+									&CHooking::is_model_a_heli);
+
 	//is_model_a_plane
-	CPattern pattern_is_model_a_plane (	"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1D\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x11\xBA",
-										"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxx");
-	ptr	= pattern_is_model_a_plane.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_a_plane pattern")	: CHooking::is_model_a_plane	= (fpIsModelAPlane)	ptr;
+	setFn<fpIsModelAPlane>(			"is_model_a_plane",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1D\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x11\xBA",
+									"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxx",
+									&CHooking::is_model_a_plane);
 
 	//is_model_a_car
-	CPattern pattern_is_model_a_car (	"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1D\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x11\x8B\x81",
-										"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_is_model_a_car.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_a_car pattern")	: CHooking::is_model_a_car	= (fpIsModelAPlane)	ptr;
+	setFn<fpIsModelAPlane>(			"is_model_a_car",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1D\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x11\x8B\x81",
+									"xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxxx",
+									&CHooking::is_model_a_car);
+
 
 	//is_model_a_boat
 	//\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x1E\x8A\x80\x00\x00\x00\x00\x24\x1F\x3C\x05\x75\x12\x83\xB9\x00\x00\x00\x00\x00\x0F\xB6\xDB\xBA\x00\x00\x00\x00\x0F\x44\xDA xxxxxxxxxx?xxxxx?????x????xxxxxxxxxx????xxxxxxxx?????xxxx????xxx
@@ -1056,490 +1155,491 @@ void findPatterns()
 	//\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x25 xxxxxxxxxx?xxxxx?????x????xxxxxxxx
 
 	//set_heli_blades_full_speed
-	CPattern pattern_set_heli_blades_full_speed (	"\x40\x53\x48\x83\xEC\x30\x0F\x29\x74\x24\x00\x0F\x28\xF1\x0F\x2F\x35",
-													"xxxxxxxxxx?xxxxxx");
-	ptr	= pattern_set_heli_blades_full_speed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_heli_blades_full_speed pattern")	: CHooking::set_heli_blades_full_speed	= (fpSetHeliBladesFullSpeed)	ptr;
+	setFn<fpSetHeliBladesFullSpeed>(	"set_heli_blades_full_speed",
+										"\x40\x53\x48\x83\xEC\x30\x0F\x29\x74\x24\x00\x0F\x28\xF1\x0F\x2F\x35",
+										"xxxxxxxxxx?xxxxxx",
+										&CHooking::set_heli_blades_full_speed);
 
 	//set_vehicle_forward_speed
-	CPattern pattern_set_vehicle_forward_speed (	"\x40\x53\x48\x83\xEC\x40\x0F\x29\x74\x24\x00\x48\x8B\xD9\x0F\x28\xF1\xE8\x00\x00\x00\x00\x48\x8B\x03",
-													"xxxxxxxxxx?xxxxxxx????xxx");
-	ptr	= pattern_set_vehicle_forward_speed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_forward_speed pattern")	: CHooking::set_vehicle_forward_speed	= (fpSetVehicleForwardSpeed)	ptr;
+	setFn<fpSetVehicleForwardSpeed>(	"set_vehicle_forward_speed",
+										"\x40\x53\x48\x83\xEC\x40\x0F\x29\x74\x24\x00\x48\x8B\xD9\x0F\x28\xF1\xE8\x00\x00\x00\x00\x48\x8B\x03",
+										"xxxxxxxxxx?xxxxxxx????xxx",
+										&CHooking::set_vehicle_forward_speed);
 
 	//set_vehicle_number_plate_text
-	CPattern pattern_set_vehicle_number_plate_text (	"\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x10\x48\x8B\x48\x48",
-														"xxxxxxxxxx????xxxxxxxxx");
-	ptr	= pattern_set_vehicle_number_plate_text.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_number_plate_text pattern")	: CHooking::set_vehicle_number_plate_text	= (fpSetVehicleNumberPlateText)	ptr;
+	setFn<fpSetVehicleNumberPlateText>(	"set_vehicle_number_plate_text",
+										"\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x10\x48\x8B\x48\x48",
+										"xxxxxxxxxx????xxxxxxxxx",
+										&CHooking::set_vehicle_number_plate_text);
 
 	//set_ped_to_ragdoll
-	CPattern pattern_set_ped_to_ragdoll (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x50\x41\x8B\xF9",
-											"xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_set_ped_to_ragdoll.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_to_ragdoll pattern")	: CHooking::set_ped_to_ragdoll	= (fpSetPedToRagdoll)	ptr;
+	setFn<fpSetPedToRagdoll>(		"set_ped_to_ragdoll",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x50\x41\x8B\xF9",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::set_ped_to_ragdoll);
 
 	//get_ped_bone_coords
-	CPattern pattern_get_ped_bone_coords (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\x68\xA1\x48\x81\xEC\x00\x00\x00\x00\x0F\x29\x70\xE8\x0F\x29\x78\xD8\x44\x0F\x29\x40\x00\x0F\x57\xF6",
-											"xxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx?xxx");
-	ptr	= pattern_get_ped_bone_coords.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_bone_coords pattern")	: CHooking::get_ped_bone_coords	= (fpGetPedBoneCoords)	ptr;
+	setFn<fpGetPedBoneCoords>(		"get_ped_bone_coords",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\x68\xA1\x48\x81\xEC\x00\x00\x00\x00\x0F\x29\x70\xE8\x0F\x29\x78\xD8\x44\x0F\x29\x40\x00\x0F\x57\xF6",
+									"xxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx?xxx",
+									&CHooking::get_ped_bone_coords);
 
 	//set_entity_as_mission_entity
-	CPattern pattern_set_entity_as_mission_entity (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x54\x41\x56\x41\x57\x48\x81\xEC\x00\x00\x00\x00\x45\x8A\xE0",
-													"xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx");
-	ptr	= pattern_set_entity_as_mission_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_as_mission_entity pattern")	: CHooking::set_entity_as_mission_entity	= (fpSetEntityAsMissionEntity)	ptr;
+	setFn<fpSetEntityAsMissionEntity>(	"set_entity_as_mission_entity",
+										"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x54\x41\x56\x41\x57\x48\x81\xEC\x00\x00\x00\x00\x45\x8A\xE0",
+										"xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx",
+										&CHooking::set_entity_as_mission_entity);
 
 	//apply_force_to_entity
-	CPattern pattern_apply_force_to_entity (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x20\x55\x41\x54\x41\x56\x48\x8D\x6C\x24",
-												"xxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_apply_force_to_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find apply_force_to_entity pattern")	: CHooking::apply_force_to_entity	= (fpApplyForceToEntity)	ptr;
+	setFn<fpApplyForceToEntity>(	"apply_force_to_entity",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x20\x55\x41\x54\x41\x56\x48\x8D\x6C\x24",
+									"xxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::apply_force_to_entity);
 
 	//set_entity_rotation
-	CPattern pattern_set_entity_rotation (	"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8D\x6C\x24\x00\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x02",
-											"xxxx?xxxx?xxxxx?xxx????xxxx");
-	ptr	= pattern_set_entity_rotation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_rotation pattern")	: CHooking::set_entity_rotation	= (fpSetEntityRotation)	ptr;
+	setFn<fpSetEntityRotation>(		"set_entity_rotation",
+									"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8D\x6C\x24\x00\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x02",
+									"xxxx?xxxx?xxxxx?xxx????xxxx",
+									&CHooking::set_entity_rotation);
 
 	//set_entity_heading
-	CPattern pattern_set_entity_heading (	"\x48\x89\x5C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x70\x0F\x29\x74\x24\x00\x0F\x28\xF1",
-											"xxxx?xxxxxxxxxxxx?xxx");
-	ptr	= pattern_set_entity_heading.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_heading pattern")	: CHooking::set_entity_heading	= (fpSetEntityHeading)	ptr;
+	setFn<fpSetEntityHeading>(		"set_entity_heading",
+									"\x48\x89\x5C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x70\x0F\x29\x74\x24\x00\x0F\x28\xF1",
+									"xxxx?xxxxxxxxxxxx?xxx",
+									&CHooking::set_entity_heading);
 
 	//freeze_entity_position
-	CPattern pattern_freeze_entity_position (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x20\x40\x8A\xF2\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x69",
-												"xxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_freeze_entity_position.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find freeze_entity_position pattern")	: CHooking::freeze_entity_position	= (fpFreezeEntityPosition)	ptr;
+	setFn<fpFreezeEntityPosition>(	"freeze_entity_position",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x20\x40\x8A\xF2\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x69",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxx",
+									&CHooking::freeze_entity_position);
 
 	//shoot_single_bullet_between_coords
-	CPattern pattern_shoot_single_bullet_between_coords (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\xA8\x00\x00\x00\x00\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x01\xF3\x0F\x10\x49\x00\xF3\x0F\x10\x51",
-															"xxxxxxxxxxxxxxxxxxx????xxx????xxxxxxxx?xxxx");
-	ptr	= pattern_shoot_single_bullet_between_coords.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find shoot_single_bullet_between_coords pattern")	: CHooking::shoot_single_bullet_between_coords	= (fpShootSingleBulletBetweenCoords)	ptr;
+	setFn<fpShootSingleBulletBetweenCoords>(	"shoot_single_bullet_between_coords",
+												"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x48\x8D\xA8\x00\x00\x00\x00\x48\x81\xEC\x00\x00\x00\x00\xF3\x0F\x10\x01\xF3\x0F\x10\x49\x00\xF3\x0F\x10\x51",
+												"xxxxxxxxxxxxxxxxxxx????xxx????xxxxxxxx?xxxx",
+												&CHooking::shoot_single_bullet_between_coords);
 
 	//set_ped_never_leaves_group
-	CPattern pattern_set_ped_never_leaves_group (	"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8A\xDA\x75\x21\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x17\x0F\xB6\xCB\xF7\xD9\x33\x88\x00\x00\x00\x00\x81\xE1\x00\x00\x00\x00\x31\x88\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x48\x8B\xC4",
-													"xxxxxxxx?????xxxxx????xxxxxxxxxxxx????xx????xx????xxxxxxxxx");
-	ptr	= pattern_set_ped_never_leaves_group.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_never_leaves_group pattern")	: CHooking::set_ped_never_leaves_group	= (fpSetPedNeverLeavesGroup)	ptr;
+	setFn<fpSetPedNeverLeavesGroup>(	"set_ped_never_leaves_group",
+										"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8A\xDA\x75\x21\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x17\x0F\xB6\xCB\xF7\xD9\x33\x88\x00\x00\x00\x00\x81\xE1\x00\x00\x00\x00\x31\x88\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x48\x8B\xC4",
+										"xxxxxxxx?????xxxxx????xxxxxxxxxxxx????xx????xx????xxxxxxxxx",
+										&CHooking::set_ped_never_leaves_group);
 
 	//set_group_formation
-	CPattern pattern_set_group_formation (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\x8B\xD9\xE8\x00\x00\x00\x00\x48\x8B\xC8\x8B\xD3\xE8\x00\x00\x00\x00\x85\xC0",
-											"xxxx?xxxxxxxxxx????xxxxxx????xx");
-	ptr	= pattern_set_group_formation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_group_formation pattern")	: CHooking::set_group_formation	= (fpSetGroupFormation)	ptr;
+	setFn<fpSetGroupFormation>(		"set_group_formation",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\x8B\xD9\xE8\x00\x00\x00\x00\x48\x8B\xC8\x8B\xD3\xE8\x00\x00\x00\x00\x85\xC0",
+									"xxxx?xxxxxxxxxx????xxxxxx????xx",
+									&CHooking::set_group_formation);
 
 	//get_ped_bone_index
-	CPattern pattern_get_ped_bone_index (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\x83\xCB\xFF",
-											"xxxx?xxxxxxxxxx");
-	ptr	= pattern_get_ped_bone_index.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_bone_index pattern")	: CHooking::get_ped_bone_index	= (fpGetPedBoneIndex)	ptr;
+	setFn<fpGetPedBoneIndex>(		"get_ped_bone_index",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\x83\xCB\xFF",
+									"xxxx?xxxxxxxxxx",
+									&CHooking::get_ped_bone_index);
 
 	//set_ped_component_variation
-	CPattern pattern_set_ped_component_variation (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x41\x8B\xF9",
-													"xxxx?xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_set_ped_component_variation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_component_variation pattern")	: CHooking::set_ped_component_variation	= (fpSetPedComponentVariation)	ptr;
+	setFn<fpSetPedComponentVariation>(	"set_ped_component_variation",
+										"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x41\x8B\xF9",
+										"xxxx?xxxx?xxxx?xxxxxxxx",
+										&CHooking::set_ped_component_variation);
 
 	//get_ped_drawable_varation
-	CPattern pattern_get_ped_drawable_varation (	"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\x90",
-													"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx");
-	ptr	= pattern_get_ped_drawable_varation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_drawable_varation pattern")	: CHooking::get_ped_drawable_varation	= (fpGetPedDrawableVariation)	ptr;
+	setFn<fpGetPedDrawableVariation>(	"get_ped_drawable_varation",
+										"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\x90",
+										"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx",
+										&CHooking::get_ped_drawable_varation);
 
 	//get_ped_texture_variation
-	CPattern pattern_get_ped_texture_variation (	"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\xCC",
-													"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx");
-	ptr	= pattern_get_ped_texture_variation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_texture_variation pattern")	: CHooking::get_ped_texture_variation	= (fpGetPedTextureVariation)	ptr;
+	setFn<fpGetPedTextureVariation>(	"get_ped_texture_variation",
+										"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\xCC",
+										"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx",
+										&CHooking::get_ped_texture_variation);
 
 	//get_ped_palette_variation
-	CPattern pattern_get_ped_palette_variation (	"\x48\x8B\x41\x48\x48\x63\xD2\x8A\x84\x10\x00\x00\x00\x00\xC3\x90\x40\x55",
-													"xxxxxxxxxx????xxxx");
-	ptr	= pattern_get_ped_palette_variation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_palette_variation pattern")	: CHooking::get_ped_palette_variation	= (fpGetPedPaletteVariation)	ptr;
+	setFn<fpGetPedPaletteVariation>(	"get_ped_palette_variation",
+										"\x48\x8B\x41\x48\x48\x63\xD2\x8A\x84\x10\x00\x00\x00\x00\xC3\x90\x40\x55",
+										"xxxxxxxxxx????xxxx",
+										&CHooking::get_ped_palette_variation);
 
 	//clear_add_ped_props
-	CPattern pattern_clear_add_ped_props (	"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x23\x48\x8B\xC8\xE8\x00\x00\x00\x00\x8B\x8B",
-											"xxxxxxx????xxxxxxxxxxxx????xx");
-	ptr	= pattern_clear_add_ped_props.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find clear_add_ped_props pattern")	: CHooking::clear_add_ped_props	= (fpClearAllPedProps)	ptr;
+	setFn<fpClearAllPedProps>(		"clear_add_ped_props",
+									"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x23\x48\x8B\xC8\xE8\x00\x00\x00\x00\x8B\x8B",
+									"xxxxxxx????xxxxxxxxxxxx????xx",
+									&CHooking::clear_add_ped_props);
 
 	//set_ped_prop_index
-	CPattern pattern_set_ped_prop_index (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x41\x8B\xE9",
-											"xxxx?xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_set_ped_prop_index.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_prop_index pattern")	: CHooking::set_ped_prop_index	= (fpSetPedPropIndex)	ptr;
+	setFn<fpSetPedPropIndex>(		"set_ped_prop_index",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x41\x8B\xE9",
+									"xxxx?xxxx?xxxx?xxxxxxxx",
+									&CHooking::set_ped_prop_index);
 
 	//is_entity_in_air
-	CPattern pattern_is_entity_in_air (	"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x80\x78\x28\x04",
-										"xxxxxxx????xxxxxxxx????xxxx");
-	ptr	= pattern_is_entity_in_air.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_entity_in_air pattern")	: CHooking::is_entity_in_air	= (fpIsEntityInAir)	ptr;
+	setFn<fpIsEntityInAir>(			"is_entity_in_air",
+									"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x80\x78\x28\x04",
+									"xxxxxxx????xxxxxxxx????xxxx",
+									&CHooking::is_entity_in_air);
 
 	//set_entity_velocity
-	CPattern pattern_set_entity_velocity (	"\x48\x8B\xC4\x48\x83\xEC\x38\xF3\x0F\x10\x02\xF3\x0F\x10\x4A\x00\xF3\x0F\x10\x52\x00\xF3\x0F\x11\x40\x00\xF3\x0F\x11\x48\x00\xF3\x0F\x11\x50\x00\xF3\x0F\x10\x44\x24\x00\xF3\x0F\x11\x40\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x12",
-										"xxxxxxxxxxxxxxx?xxxx?xxxx?xxxx?xxxx?xxxxx?xxxx?x????xxxxx");
-	ptr	= pattern_set_entity_velocity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_velocity pattern")	: CHooking::set_entity_velocity	= (fpSetEntityVelocity)	ptr;
+	setFn<fpSetEntityVelocity>(		"set_entity_velocity",
+									"\x48\x8B\xC4\x48\x83\xEC\x38\xF3\x0F\x10\x02\xF3\x0F\x10\x4A\x00\xF3\x0F\x10\x52\x00\xF3\x0F\x11\x40\x00\xF3\x0F\x11\x48\x00\xF3\x0F\x11\x50\x00\xF3\x0F\x10\x44\x24\x00\xF3\x0F\x11\x40\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x12",
+									"xxxxxxxxxxxxxxx?xxxx?xxxx?xxxx?xxxx?xxxxx?xxxx?x????xxxxx",
+									&CHooking::set_entity_velocity);
 
 	//get_entity_attached_to
-	CPattern pattern_get_entity_attached_to (	"\x40\x53\x48\x83\xEC\x20\x33\xDB\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x17",
-												"xxxxxxxxx????xxxxx");
-	ptr	= pattern_get_entity_attached_to.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_attached_to pattern")	: CHooking::get_entity_attached_to	= (fpGetEntityAttachedTo)	ptr;
+	setFn<fpGetEntityAttachedTo>(	"get_entity_attached_to",
+									"\x40\x53\x48\x83\xEC\x20\x33\xDB\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x17",
+									"xxxxxxxxx????xxxxx",
+									&CHooking::get_entity_attached_to);
 
 	//detach_entity
-	CPattern pattern_detach_entity (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x40\x8A\xEA\xE8",
-										"xxxx?xxxx?xxxx?xxxxxxxxxxxx");
-	ptr	= pattern_detach_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find detach_entity pattern")	: CHooking::detach_entity	= (fpDetachEntity)	ptr;
+	setFn<fpDetachEntity>(			"detach_entity",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF0\x40\x8A\xEA\xE8",
+									"xxxx?xxxx?xxxx?xxxxxxxxxxxx",
+									&CHooking::detach_entity);
 
 	//delete_entity
-	CPattern pattern_delete_entity (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xF1\x8B\x09\xE8\x00\x00\x00\x00\x48\x8B\xF8\x48\x85\xC0\x74\x56",
-										"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_delete_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find delete_entity pattern")	: CHooking::delete_entity	= (fpDeleteEntity)	ptr;
+	setFn<fpDeleteEntity>(			"delete_entity",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xF1\x8B\x09\xE8\x00\x00\x00\x00\x48\x8B\xF8\x48\x85\xC0\x74\x56",
+									"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx",
+									&CHooking::delete_entity);
 
 	//is_entity_attached
-	CPattern pattern_is_entity_attached (	"\x40\x53\x48\x83\xEC\x20\x32\xDB\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x37",
-											"xxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_is_entity_attached.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_entity_attached pattern")	: CHooking::is_entity_attached	= (fpIsEntityAttached)	ptr;
+	setFn<fpIsEntityAttached>(		"is_entity_attached",
+									"\x40\x53\x48\x83\xEC\x20\x32\xDB\xE8\x00\x00\x00\x00\x48\x8B\xC8\x48\x85\xC0\x74\x37",
+									"xxxxxxxxx????xxxxxxxx",
+									&CHooking::is_entity_attached);
 
 	//set_vehicle_as_no_longer_needed
-	CPattern pattern_set_entity_as_no_longer_needed (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xF1\x8B\x09\xE8\x00\x00\x00\x00\x48\x8B\xF8\x48\x85\xC0\x74\x77",
-														"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_set_entity_as_no_longer_needed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_as_no_longer_needed pattern")	: CHooking::set_entity_as_no_longer_needed	= (fpSetEntityAsNoLongerNeeded)	ptr;
+	setFn<fpSetEntityAsNoLongerNeeded>(	"set_entity_as_no_longer_needed",
+										"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xF1\x8B\x09\xE8\x00\x00\x00\x00\x48\x8B\xF8\x48\x85\xC0\x74\x77",
+										"xxxx?xxxx?xxxxxxxxxxx????xxxxxxxx",
+										&CHooking::set_entity_as_no_longer_needed);
 
 	//get_entity_velocity
-	CPattern pattern_get_entity_velocity (	"\x40\x53\x48\x83\xEC\x50\x0F\x29\x74\x24\x00\xF3\x0F\x10\x35\x00\x00\x00\x00\x48\x8B\xD9\x0F\x29\x7C\x24\x00\xF3\x0F\x10\x3D\x00\x00\x00\x00\x8B\xCA\x44\x0F\x29\x44\x24\x00\xF3\x44\x0F\x10\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x28",
-											"xxxxxxxxxx?xxxx????xxxxxxx?xxxx????xxxxxxx?xxxxx????x????xxxxx");
-	ptr	= pattern_get_entity_velocity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_velocity pattern")	: CHooking::get_entity_velocity	= (fpGetEntityVelocity)	ptr;
+	setFn<fpGetEntityVelocity>(		"get_entity_velocity",
+									"\x40\x53\x48\x83\xEC\x50\x0F\x29\x74\x24\x00\xF3\x0F\x10\x35\x00\x00\x00\x00\x48\x8B\xD9\x0F\x29\x7C\x24\x00\xF3\x0F\x10\x3D\x00\x00\x00\x00\x8B\xCA\x44\x0F\x29\x44\x24\x00\xF3\x44\x0F\x10\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x28",
+									"xxxxxxxxxx?xxxx????xxxxxxx?xxxx????xxxxxxx?xxxxx????x????xxxxx",
+									&CHooking::get_entity_velocity);
 
 	//get_entity_rotation
-	CPattern pattern_get_entity_rotation (	"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x70\xF3\x0F\x10\x05",
-											"xxxx?xxxx?xxxxxxxxxxxx");
-	ptr	= pattern_get_entity_rotation.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_rotation pattern")	: CHooking::get_entity_rotation	= (fpGetEntityRotation)	ptr;
+	setFn<fpGetEntityRotation>(		"get_entity_rotation",
+									"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x70\xF3\x0F\x10\x05",
+									"xxxx?xxxx?xxxxxxxxxxxx",
+									&CHooking::get_entity_rotation);
 
 	//get_entity_model
-	CPattern pattern_get_entity_model (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x33\xFF\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x58",
-										"xxxx?xxxxxxxx????xxxxx");
-	ptr	= pattern_get_entity_model.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_entity_model pattern")	: CHooking::get_entity_model	= (fpGetEntityModel)	ptr;
+	setFn<fpGetEntityModel>(		"get_entity_model",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x33\xFF\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x58",
+									"xxxx?xxxxxxxx????xxxxx",
+									&CHooking::get_entity_model);
 
 	//set_vehicle_on_ground_properly
-	CPattern pattern_set_vehicle_on_ground_properly (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x0F\x29\x74\x24\x00\x0F\x28\xF1\xE8\x00\x00\x00\x00\x48\x8B\xD8",
-														"xxxx?xxxxxxxxx?xxxx????xxx");
-	ptr	= pattern_set_vehicle_on_ground_properly.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_on_ground_properly pattern")	: CHooking::set_vehicle_on_ground_properly	= (fpSetVehicleOnGroundProperly)	ptr;
+	setFn<fpSetVehicleOnGroundProperly>(	"set_vehicle_on_ground_properly",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x0F\x29\x74\x24\x00\x0F\x28\xF1\xE8\x00\x00\x00\x00\x48\x8B\xD8",
+											"xxxx?xxxxxxxxx?xxxx????xxx",
+											&CHooking::set_vehicle_on_ground_properly);
 
 	//set_vehicle_undriveable
-	CPattern pattern_set_vehicle_undriveable (	"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x20\x84\xDB",
-												"xxxxxxxxx????xxxxxxx");
-	ptr	= pattern_set_vehicle_undriveable.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_undriveable pattern")	: CHooking::set_vehicle_undriveable	= (fpSetVehicleUndriveable)	ptr;
+	setFn<fpSetVehicleUndriveable>(	"set_vehicle_undriveable",
+									"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x20\x84\xDB",
+									"xxxxxxxxx????xxxxxxx",
+									&CHooking::set_vehicle_undriveable);
 
 	//set_vehicle_fixed
-	CPattern pattern_set_vehicle_fixed (	"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x28\x4C\x8B\x10",
-											"xxxxxxx????xxxxxxxxxxx");
-	ptr	= pattern_set_vehicle_fixed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_fixed pattern")	: CHooking::set_vehicle_fixed	= (fpSetVehicleFixed)	ptr;
+	setFn<fpSetVehicleFixed>(		"set_vehicle_fixed",
+									"\x40\x53\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x28\x4C\x8B\x10",
+									"xxxxxxx????xxxxxxxxxxx",
+									&CHooking::set_vehicle_fixed);
 
 	//set_vehicle_deformation_fixed
-	CPattern pattern_set_vehicle_deformation_fixed (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x40\x48\x83\xB9\x00\x00\x00\x00\x00\x48\x8B\xD9",
-														"xxxx?xxxxxxxx?????xxx");
-	ptr	= pattern_set_vehicle_deformation_fixed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_deformation_fixed pattern")	: CHooking::set_vehicle_deformation_fixed	= (fpSetVehicleDeformationFixed)	ptr;
+	setFn<fpSetVehicleDeformationFixed>(	"set_vehicle_deformation_fixed",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x40\x48\x83\xB9\x00\x00\x00\x00\x00\x48\x8B\xD9",
+											"xxxx?xxxxxxxx?????xxx",
+											&CHooking::set_vehicle_deformation_fixed);
 
 	//is_vehicle_seat_free
-	CPattern pattern_is_vehicle_seat_free (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x8A\xF8",
-											"xxxx?xxxx?xxxx?xxxxxxxxxxxx");
-	ptr	= pattern_is_vehicle_seat_free.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_vehicle_seat_free pattern")	: CHooking::is_vehicle_seat_free	= (fpIsVehicleSeatFree)	ptr;
+	setFn<fpIsVehicleSeatFree>(		"is_vehicle_seat_free",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x8A\xF8",
+									"xxxx?xxxx?xxxx?xxxxxxxxxxxx",
+									&CHooking::is_vehicle_seat_free);
 
 	//set_vehicle_mod_kit
-	CPattern pattern_set_vehicle_mod_kit (	"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x27",
-											"xxxxxxxxx????xxxxx");
-	ptr	= pattern_set_vehicle_mod_kit.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_mod_kit pattern")	: CHooking::set_vehicle_mod_kit	= (fpSetVehicleModKit)	ptr;
+	setFn<fpSetVehicleModKit>(		"set_vehicle_mod_kit",
+									"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x27",
+									"xxxxxxxxx????xxxxx",
+									&CHooking::set_vehicle_mod_kit);
 
 	//set_vehicle_number_plate_index
-	CPattern pattern_set_vehicle_number_plate_index (	"\x83\xFA\xFF\x0F\x8C\x00\x00\x00\x00\x48\x8B",
-														"xxxxx????xx");
-	ptr	= pattern_set_vehicle_number_plate_index.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_number_plate_index pattern")	: CHooking::set_vehicle_number_plate_index	= (fpSetVehicleNumberPlateIndex)	ptr;
+	setFn<fpSetVehicleNumberPlateIndex>(	"set_vehicle_number_plate_index",
+											"\x83\xFA\xFF\x0F\x8C\x00\x00\x00\x00\x48\x8B",
+											"xxxxx????xx",
+											&CHooking::set_vehicle_number_plate_index);
 
 	//toggle_vehicle_mod
-	CPattern pattern_toggle_vehicle_mod (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF8\x8B\xDA\x83\xFA\x0A",
-											"xxxx?xxxxxxxxxxxxx");
-	ptr	= pattern_toggle_vehicle_mod.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find toggle_vehicle_mod pattern")	: CHooking::toggle_vehicle_mod	= (fpToggleVehicleMod)	ptr;
+	setFn<fpToggleVehicleMod>(		"toggle_vehicle_mod",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF8\x8B\xDA\x83\xFA\x0A",
+									"xxxx?xxxxxxxxxxxxx",
+									&CHooking::toggle_vehicle_mod);
 
 	//set_vehicle_mod
-	CPattern pattern_set_vehicle_mod (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x56\x57\x41\x56\x48\x83\xEC\x30\x41\x8A\xE9",
-										"xxxx?xxxx?xxxxxxxxxxx");
-	ptr	= pattern_set_vehicle_mod.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_mod pattern")	: CHooking::set_vehicle_mod	= (fpSetVehicleMod)	ptr;
+	setFn<fpSetVehicleMod>(			"set_vehicle_mod",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x56\x57\x41\x56\x48\x83\xEC\x30\x41\x8A\xE9",
+									"xxxx?xxxx?xxxxxxxxxxx",
+									&CHooking::set_vehicle_mod);
 
 	//set_vehicle_wheel_type
-	CPattern pattern_set_vehicle_wheel_type (	"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x4C\x8B\xC0",
-												"xxxxxxxxx????xxx");
-	ptr	= pattern_set_vehicle_wheel_type.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_wheel_type pattern")	: CHooking::set_vehicle_wheel_type	= (fpSetVehicleWheelType)	ptr;
+	setFn<fpSetVehicleWheelType>(	"set_vehicle_wheel_type",
+									"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x4C\x8B\xC0",
+									"xxxxxxxxx????xxx",
+									&CHooking::set_vehicle_wheel_type);
 
 	//get_num_vehicle_mod
-	CPattern pattern_get_num_vehicle_mod (	"\x40\x53\x48\x83\xEC\x20\x8B\xDA\x83\xFA\x0A\x7E\x10\x8D\x42\xF5\x83\xF8\x0D\x77\x05\x83\xC3\x19\xEB\x03\x83\xEB\x0E\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x2C",
-											"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxx");
-	ptr	= pattern_get_num_vehicle_mod.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_num_vehicle_mod pattern")	: CHooking::get_num_vehicle_mod	= (fpGetNumVehicleMod)	ptr;
+	setFn<fpGetNumVehicleMod>(		"get_num_vehicle_mod",
+									"\x40\x53\x48\x83\xEC\x20\x8B\xDA\x83\xFA\x0A\x7E\x10\x8D\x42\xF5\x83\xF8\x0D\x77\x05\x83\xC3\x19\xEB\x03\x83\xEB\x0E\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x2C",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxx",
+									&CHooking::get_num_vehicle_mod);
 
 	//add_text_comp_substr_playername
-	CPattern pattern_add_text_comp_substr_playername (	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\x05\x00\x00\x00\x00\x4C\x8B\xD1",
-														"xxxx?xxxx?xxxx?xxxxxxx????xxx");
-	ptr	= pattern_add_text_comp_substr_playername.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find add_text_comp_substr_playername pattern")	: CHooking::add_text_comp_substr_playername	= (fpAddTextCompSubstrPlayerName)	ptr;
+	setFn<fpAddTextCompSubstrPlayerName>(	"add_text_comp_substr_playername",
+											"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\x05\x00\x00\x00\x00\x4C\x8B\xD1",
+											"xxxx?xxxx?xxxx?xxxxxxx????xxx",
+											&CHooking::add_text_comp_substr_playername);
 
 	//end_text_cmd_display_text
-	CPattern pattern_end_text_cmd_display_text (	"\x40\x53\x48\x83\xEC\x40\x0F\x29\x74\x24\x00\x0F\x29\x7C\x24\x00\x41\x8B\xD8",
-													"xxxxxxxxxx?xxxx?xxx");
-	ptr	= pattern_end_text_cmd_display_text.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find end_text_cmd_display_text pattern")	: CHooking::end_text_cmd_display_text	= (fpEndTextCmdDisplayText)	ptr;
+	setFn<fpEndTextCmdDisplayText>(	"end_text_cmd_display_text",
+									"\x40\x53\x48\x83\xEC\x40\x0F\x29\x74\x24\x00\x0F\x29\x7C\x24\x00\x41\x8B\xD8",
+									"xxxxxxxxxx?xxxx?xxx",
+									&CHooking::end_text_cmd_display_text);
 
 	//begin_text_cmd_display_text
-	CPattern pattern_begin_text_cmd_display_text (	"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x33\xC9\x48\x85\xC0",
-													"xxxxx????x????xxxxx");
-	ptr	= pattern_begin_text_cmd_display_text.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find begin_text_cmd_display_text pattern")	: CHooking::begin_text_cmd_display_text	= (fpBeginTextCmdDisplayText)	ptr;
+	setFn<fpBeginTextCmdDisplayText>(	"begin_text_cmd_display_text",
+										"\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x33\xC9\x48\x85\xC0",
+										"xxxxx????x????xxxxx",
+										&CHooking::begin_text_cmd_display_text);
 
 	//set_notification_text_entry
-	CPattern pattern_set_notification_text_entry (	"\x40\x53\x48\x83\xEC\x20\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x75\x16\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x1D\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x90\x48\x48\x83\xEC\x28",
-													"xxxxxxxx?????xxxxxxx????????x????xxx????xxxxxxxxxxxx");
-	ptr	= pattern_set_notification_text_entry.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_notification_text_entry pattern")	: CHooking::set_notification_text_entry	= (fpSetNotificationTextEntiry)	ptr;
+	setFn<fpSetNotificationTextEntiry>(	"set_notification_text_entry",
+										"\x40\x53\x48\x83\xEC\x20\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x75\x16\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x1D\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x90\x48\x48\x83\xEC\x28",
+										"xxxxxxxx?????xxxxxxx????????x????xxx????xxxxxxxxxxxx",
+										&CHooking::set_notification_text_entry);
 
 	//draw_notification
-	CPattern pattern_draw_notification (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x41\x8A\xD8",
-											"xxxx?xxxx?xxxx????xx?????xxx");
-	ptr	= pattern_draw_notification.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find draw_notification pattern")	: CHooking::draw_notification	= (fpDrawNotification)	ptr;
+	setFn<fpDrawNotification>(		"draw_notification",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x41\x8A\xD8",
+									"xxxx?xxxx?xxxx????xx?????xxx",
+									&CHooking::draw_notification);
 
 	//set_weather_type_now_persist
-	CPattern pattern_set_weather_type_now_persist (	"\x48\x83\xEC\x28\x48\x8B\xD1\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x78\x1C",
-													"xxxxxxxxxx????x????xxxx");
-	ptr	= pattern_set_weather_type_now_persist.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_weather_type_now_persist pattern")	: CHooking::set_weather_type_now_persist	= (fpSetWeatherTypeNowPersist)	ptr;
+	setFn<fpSetWeatherTypeNowPersist>(	"set_weather_type_now_persist",
+										"\x48\x83\xEC\x28\x48\x8B\xD1\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x78\x1C",
+										"xxxxxxxxxx????x????xxxx",
+										&CHooking::set_weather_type_now_persist);
 
 	//display_onscreen_keyboard
-	CPattern pattern_display_onscreen_keyboard (	"\x4C\x8B\xDC\x48\x83\xEC\x68\x8B\x84\x24",
-													"xxxxxxxxxx");
-	ptr	= pattern_display_onscreen_keyboard.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find display_onscreen_keyboard pattern")	: CHooking::display_onscreen_keyboard	= (fpDisplayOnscreenKeyboard)	ptr;
+	setFn<fpDisplayOnscreenKeyboard>(	"display_onscreen_keyboard",
+										"\x4C\x8B\xDC\x48\x83\xEC\x68\x8B\x84\x24",
+										"xxxxxxxxxx",
+										&CHooking::display_onscreen_keyboard);
 
 	//update_onscreen_keyboard
-	CPattern pattern_update_onscreen_keyboard (	"\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x00\x00\x00\x00\x8B\x99",
-												"xxxxxxxxx????xx");
-	ptr	= pattern_update_onscreen_keyboard.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find update_onscreen_keyboard pattern")	: CHooking::update_onscreen_keyboard	= (fpUpdateOnscreenKeyboard)	ptr;
+	setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
+										"\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x00\x00\x00\x00\x8B\x99",
+										"xxxxxxxxx????xx",
+										&CHooking::update_onscreen_keyboard);
 
 	//set_local_player_visible_locally
-	CPattern pattern_set_local_player_visible_locally (	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x40\x8A\xF9\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x6D",
-														"xxxx?xxxxxxxxx????xxxxxxxx");
-	ptr	= pattern_set_local_player_visible_locally.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_local_player_visible_locally pattern")	: CHooking::set_local_player_visible_locally	= (fpSetLocalPlayerVisibleLocally)	ptr;
+	setFn<fpSetLocalPlayerVisibleLocally>(	"set_local_player_visible_locally",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x40\x8A\xF9\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x6D",
+											"xxxx?xxxxxxxxx????xxxxxxxx",
+											&CHooking::set_local_player_visible_locally);
 
 	//network_override_clock_time
-	CPattern pattern_network_override_clock_time (	"\x80\x3D\x00\x00\x00\x00\x00\x75\x37\x8B\x05\x00\x00\x00\x00\xC6",
-													"xx?????xxxx????x");
-	ptr	= pattern_network_override_clock_time.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_override_clock_time pattern")	: CHooking::network_override_clock_time	= (fpNetworkOverrideClockTime)	ptr;
+	setFn<fpNetworkOverrideClockTime>(	"network_override_clock_time",
+										"\x80\x3D\x00\x00\x00\x00\x00\x75\x37\x8B\x05\x00\x00\x00\x00\xC6",
+										"xx?????xxxx????x",
+										&CHooking::network_override_clock_time);
 
 	//get_network_time
-	CPattern pattern_get_network_time (	"\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x74\x19",
-										"xxxxxxxxx????x????xxxx");
-	ptr	= pattern_get_network_time.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_network_time pattern")	: CHooking::get_network_time	= (fpGetNetworkTime)	ptr;
+	setFn<fpGetNetworkTime>(		"get_network_time",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x74\x19",
+									"xxxxxxxxx????x????xxxx",
+									&CHooking::get_network_time);
 
 	//ai_task_wander_standard
-	CPattern pattern_ai_task_wander_standard (	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x60\x0F\x28\xC1",
-												"xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_ai_task_wander_standard.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find ai_task_wander_standard pattern")	: CHooking::ai_task_wander_standard	= (fpAiTaskWanderStandard)	ptr;
+	setFn<fpAiTaskWanderStandard>(	"ai_task_wander_standard",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x60\x0F\x28\xC1",
+									"xxxx?xxxx?xxxxxxxx",
+									&CHooking::ai_task_wander_standard);
 
 	//ai_task_play_anim
-	CPattern pattern_ai_task_play_anim (	"\x48\x81\xEC\x00\x00\x00\x00\x44\x8B\x8C\x24",
-											"xxx????xxxx");
-	ptr	= pattern_ai_task_play_anim.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find ai_task_play_anim pattern")	: CHooking::ai_task_play_anim	= (fpAiTaskPlayAnim)	ptr;
+	setFn<fpAiTaskPlayAnim>(		"ai_task_play_anim",
+									"\x48\x81\xEC\x00\x00\x00\x00\x44\x8B\x8C\x24",
+									"xxx????xxxx",
+									&CHooking::ai_task_play_anim);
 
 	//is_model_in_cdimage
-	CPattern pattern_is_model_in_cdimage (	"\x48\x83\xEC\x28\x8B\x44\x24\x38\x48\x8D\x54\x24\x00\xC7\x44\x24\x00\x00\x00\x00\x00\x0D\x00\x00\x00\x00\x25\x00\x00\x00\x00\x89\x44\x24\x38\xE8\x00\x00\x00\x00\x0F\xB7\x44\x24\x00\x66\x89\x44\x24\x00\x8B\x44\x24\x38\x0D\x00\x00\x00\x00\x0F\xBA\xF0\x1C\x89\x44\x24\x38",
-											"xxxxxxxxxxxx?xxx?????x????x????xxxxx????xxxx?xxxx?xxxxx????xxxxxxxx");
-	ptr	= pattern_is_model_in_cdimage.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_in_cdimage pattern")	: CHooking::is_model_in_cdimage	= (fpIsModelInCdimage)	ptr;
+	setFn<fpIsModelInCdimage>(		"is_model_in_cdimage",
+									"\x48\x83\xEC\x28\x8B\x44\x24\x38\x48\x8D\x54\x24\x00\xC7\x44\x24\x00\x00\x00\x00\x00\x0D\x00\x00\x00\x00\x25\x00\x00\x00\x00\x89\x44\x24\x38\xE8\x00\x00\x00\x00\x0F\xB7\x44\x24\x00\x66\x89\x44\x24\x00\x8B\x44\x24\x38\x0D\x00\x00\x00\x00\x0F\xBA\xF0\x1C\x89\x44\x24\x38",
+									"xxxxxxxxxxxx?xxx?????x????x????xxxxx????xxxx?xxxx?xxxxx????xxxxxxxx",
+									&CHooking::is_model_in_cdimage);
 
 	//is_model_valid
-	CPattern pattern_is_model_valid (	"\x48\x83\xEC\x28\x8B\x44\x24\x38\x48\x8D\x54\x24\x00\xC7\x44\x24\x00\x00\x00\x00\x00\x0D\x00\x00\x00\x00\x25\x00\x00\x00\x00\x89\x44\x24\x38\xE8\x00\x00\x00\x00\x0F\xB7\x44\x24\x00\x66\x89\x44\x24\x00\x8B\x44\x24\x38\x0D\x00\x00\x00\x00\x0F\xBA\xF0\x1C\x0F\xB7\xC8",
-										"xxxxxxxxxxxx?xxx?????x????x????xxxxx????xxxx?xxxx?xxxxx????xxxxxxx");
-	ptr	= pattern_is_model_valid.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_valid pattern")	: CHooking::is_model_valid	= (fpIsModelValid)	ptr;
+	setFn<fpIsModelValid>(			"is_model_valid",
+									"\x48\x83\xEC\x28\x8B\x44\x24\x38\x48\x8D\x54\x24\x00\xC7\x44\x24\x00\x00\x00\x00\x00\x0D\x00\x00\x00\x00\x25\x00\x00\x00\x00\x89\x44\x24\x38\xE8\x00\x00\x00\x00\x0F\xB7\x44\x24\x00\x66\x89\x44\x24\x00\x8B\x44\x24\x38\x0D\x00\x00\x00\x00\x0F\xBA\xF0\x1C\x0F\xB7\xC8",
+									"xxxxxxxxxxxx?xxx?????x????x????xxxxx????xxxx?xxxx?xxxxx????xxxxxxx",
+									&CHooking::is_model_valid);
 
 	//is_model_a_vehicle
-	CPattern pattern_is_model_a_vehicle (	"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0",
-											"xxxxxxxxxx?xxxxx?????x????xxx");
-	ptr	= pattern_is_model_a_vehicle.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_model_a_vehicle pattern")	: CHooking::is_model_a_vehicle	= (fpIsModelAVehicle)	ptr;
+	setFn<fpIsModelAVehicle>(		"is_model_a_vehicle",
+									"\x40\x53\x48\x83\xEC\x20\x48\x8D\x54\x24\x00\x33\xDB\xC7\x44\x24\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\xC0",
+									"xxxxxxxxxx?xxxxx?????x????xxx",
+									&CHooking::is_model_a_vehicle);
 
 	//request_model
-	CPattern pattern_request_model (	"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x50\x8B\x45\x18",
-										"xxxx?xxxx?xxxxxxxxxxx");
-	ptr	= pattern_request_model.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find request_model pattern")	: CHooking::request_model	= (fpRequestModel)	ptr;
+	setFn<fpRequestModel>(			"request_model",
+									"\x48\x89\x5C\x24\x00\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x50\x8B\x45\x18",
+									"xxxx?xxxx?xxxxxxxxxxx",
+									&CHooking::request_model);
 
 	//has_model_loaded
-	CPattern pattern_has_model_loaded (	"\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x20\x8B\x45\x18\xBF",
-										"xxxx?xxxxxxxxxxxx");
-	ptr	= pattern_has_model_loaded.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find has_model_loaded pattern")	: CHooking::has_model_loaded	= (fpHasModelLoaded)	ptr;
+	setFn<fpHasModelLoaded>(		"has_model_loaded",
+									"\x48\x89\x7C\x24\x00\x55\x48\x8B\xEC\x48\x83\xEC\x20\x8B\x45\x18\xBF",
+									"xxxx?xxxxxxxxxxxx",
+									&CHooking::has_model_loaded);
 
 	//request_anim_dict
-	CPattern pattern_request_anim_dict (	"\x48\x83\xEC\x58\x48\x8B\xD1\x33\xC9",
-											"xxxxxxxxx");
-	ptr	= pattern_request_anim_dict.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find request_anim_dict pattern")	: CHooking::request_anim_dict	= (fpRequestAnimDict)	ptr;
+	setFn<fpRequestAnimDict>(		"request_anim_dict",
+									"\x48\x83\xEC\x58\x48\x8B\xD1\x33\xC9",
+									"xxxxxxxxx",
+									&CHooking::request_anim_dict);
 
 	//has_anim_dict_loaded
-	CPattern pattern_has_anim_dict_loaded (	"\x48\x83\xEC\x28\x48\x8B\xD1\x33\xC9\xE8\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x48\x8D\x4C\x24\x00\x89\x44\x24\x40",
-											"xxxxxxxxxx????xxxx?xxxx?xxxx");
-	ptr	= pattern_has_anim_dict_loaded.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find has_anim_dict_loaded pattern")	: CHooking::has_anim_dict_loaded	= (fpHasAnimDictLoaded)	ptr;
+	setFn<fpHasAnimDictLoaded>(		"has_anim_dict_loaded",
+									"\x48\x83\xEC\x28\x48\x8B\xD1\x33\xC9\xE8\x00\x00\x00\x00\x48\x8D\x54\x24\x00\x48\x8D\x4C\x24\x00\x89\x44\x24\x40",
+									"xxxxxxxxxx????xxxx?xxxx?xxxx",
+									&CHooking::has_anim_dict_loaded);
 
 	//decor_register
-	CPattern pattern_decor_register (	"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8B\xDA\x75\x29",
-										"xxxxxxxx?????xxxx");
-	ptr	= pattern_decor_register.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find decor_register pattern")	: CHooking::decor_register	= (fpDecorRegister)	ptr;
+	setFn<fpDecorRegister>(			"decor_register",
+									"\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x00\x8B\xDA\x75\x29",
+									"xxxxxxxx?????xxxx",
+									&CHooking::decor_register);
 
 	//decor_set_int
-	CPattern pattern_decor_set_int (	"\x48\x89\x5C\x24\x00\x44\x89\x44\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x22\x48\x8B\xD7\x33\xC9\xE8\x00\x00\x00\x00\x4C\x8D\x44\x24\x00\x48\x8D\x54\x24\x00\x48\x8B\xCB\x89\x44\x24\x48\xE8\x00\x00\x00\x00\xB0\x01",
-										"xxxx?xxxx?xxxxxxxxx????xxxxxxxxxxxxxx????xxxx?xxxx?xxxxxxxx????xx");
-	ptr	= pattern_decor_set_int.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find decor_set_int pattern")	: CHooking::decor_set_int	= (fpDecorSetInt)	ptr;
+	setFn<fpDecorSetInt>(			"decor_set_int",
+									"\x48\x89\x5C\x24\x00\x44\x89\x44\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x22\x48\x8B\xD7\x33\xC9\xE8\x00\x00\x00\x00\x4C\x8D\x44\x24\x00\x48\x8D\x54\x24\x00\x48\x8B\xCB\x89\x44\x24\x48\xE8\x00\x00\x00\x00\xB0\x01",
+									"xxxx?xxxx?xxxxxxxxx????xxxxxxxxxxxxxx????xxxx?xxxx?xxxxxxxx????xx",
+									&CHooking::decor_set_int);
 
 	//create_ambient_pickup
-	CPattern pattern_create_ambient_pickup (	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x60\x80\x3D",
-												"xxxxxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_create_ambient_pickup.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find create_ambient_pickup pattern")	: CHooking::create_ambient_pickup	= (fpCreateAmbientDrop)	ptr;
+	setFn<fpCreateAmbientDrop>(		"create_ambient_pickup",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x60\x80\x3D",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::create_ambient_pickup);
 
 	//is_player_free_aiming
-	CPattern pattern_is_player_free_aiming	(	"\x48\x83\xEC\x28\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x14\x48\x8B\x80\x00\x00\x00\x00\x0F\xB6\x80",
-												"xxxxxxx????xxxxxxxx????xxx");
-	ptr	= pattern_is_player_free_aiming.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find is_player_free_aiming pattern")	: CHooking::is_player_free_aiming	= (fpIsPlayerFreeAiming)	ptr;
+	setFn<fpIsPlayerFreeAiming>(	"is_player_free_aiming",
+									"\x48\x83\xEC\x28\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x14\x48\x8B\x80\x00\x00\x00\x00\x0F\xB6\x80",
+									"xxxxxxx????xxxxxxxx????xxx",
+									&CHooking::is_player_free_aiming);
 
 	//get_ped_last_weapon_impact
-	CPattern pattern_get_ped_last_weapon_impact	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x33\xDB\x48\x8B\xFA\x48\x89\x5A\x04",
-													"xxxx?xxxxxxxxxxxxxx");
-	ptr	= pattern_get_ped_last_weapon_impact.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ped_last_weapon_impact pattern")	: CHooking::get_ped_last_weapon_impact	= (fpGetPedLastWeaponImpactCoord)	ptr;
+	setFn<fpGetPedLastWeaponImpactCoord>(	"get_ped_last_weapon_impact",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x33\xDB\x48\x8B\xFA\x48\x89\x5A\x04",
+											"xxxx?xxxxxxxxxxxxxx",
+											&CHooking::get_ped_last_weapon_impact);
 
 	//start_ray_cast
-	CPattern pattern_start_ray_cast	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x4C\x89\x70\x20\x55\x48\x8D\xA8\x00\x00\x00\x00\x48\x81\xEC\x00\x00\x00\x00\x33\xDB\x45\x8B\xF0\x48\x8B\xFA\x48\x8B\xF1\x8B\xC3\x45\x85\xC9\x74\x08\x41\x8B\xC9\xE8\x00\x00\x00\x00\xF3\x0F\x10\x1F",
-										"xxxxxxxxxxxxxxxxxxxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxx????xxxx");
-	ptr	= pattern_start_ray_cast.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find start_ray_cast pattern")	: CHooking::start_ray_cast	= (fpStartRayCast)	ptr;
+	setFn<fpStartRayCast>(			"start_ray_cast",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x4C\x89\x70\x20\x55\x48\x8D\xA8\x00\x00\x00\x00\x48\x81\xEC\x00\x00\x00\x00\x33\xDB\x45\x8B\xF0\x48\x8B\xFA\x48\x8B\xF1\x8B\xC3\x45\x85\xC9\x74\x08\x41\x8B\xC9\xE8\x00\x00\x00\x00\xF3\x0F\x10\x1F",
+									"xxxxxxxxxxxxxxxxxxxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxx????xxxx",
+									&CHooking::start_ray_cast);
 
 	//get_ray_cast
-	CPattern pattern_get_ray_cast	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x41\x56\x41\x57\x48\x8D\x68\xB1\x48\x81\xEC\x00\x00\x00\x00\x33\xDB",
-										"xxxxxxxxxxxxxxxxxxxxxxxxxxx????xx");
-	ptr	= pattern_get_ray_cast.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find get_ray_cast pattern")	: CHooking::get_ray_cast	= (fpGetRayCast)	ptr;
+	setFn<fpGetRayCast>(			"get_ray_cast",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x48\x89\x78\x18\x55\x41\x56\x41\x57\x48\x8D\x68\xB1\x48\x81\xEC\x00\x00\x00\x00\x33\xDB",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxx????xx",
+									&CHooking::get_ray_cast);
 
 	//ptr_to_handle
-	CPattern pattern_ptr_to_handle	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\x15\x00\x00\x00\x00\x48\x8B\xF9\x48\x83\xC1\x10\x33\xDB",
-										"xxxx?xxxx?xxxxxxx????xxxxxxxxx");
-	ptr	= pattern_ptr_to_handle.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find ptr_to_handle pattern")	: CHooking::ptr_to_handle	= (fpPtrToHandle)	ptr;
+	setFn<fpPtrToHandle>(			"ptr_to_handle",
+									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\x15\x00\x00\x00\x00\x48\x8B\xF9\x48\x83\xC1\x10\x33\xDB",
+									"xxxx?xxxx?xxxxxxx????xxxxxxxxx",
+									&CHooking::ptr_to_handle);
 
 	//network_set_in_spectator_mode
-	CPattern pattern_network_set_in_spectator_mode	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF8\x84\xC9",
-														"xxxx?xxxxxxxxxx");
-	ptr	= pattern_network_set_in_spectator_mode.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find network_set_in_spectator_mode pattern")	: CHooking::network_set_in_spectator_mode	= (fpNetworkSetInSpectatorMode)	ptr;
+	setFn<fpNetworkSetInSpectatorMode>(	"network_set_in_spectator_mode",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF8\x84\xC9",
+									"xxxx?xxxxxxxxxx",
+									&CHooking::network_set_in_spectator_mode);
 
 	//set_ped_combat_ability
-	CPattern pattern_set_ped_combat_ability	(	"\x48\x81\xC1\x00\x00\x00\x00\x41\xB8\x00\x00\x00\x00\x48\x8B\x01\x48\x85\xC0\x74\x06",
-												"xxx????xx????xxxxxxxx");
-	ptr	= pattern_set_ped_combat_ability.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_combat_ability pattern")	: CHooking::set_ped_combat_ability	= (fpSetPedCombatAbility)	ptr;
+	setFn<fpSetPedCombatAbility>(	"set_ped_combat_ability",
+									"\x48\x81\xC1\x00\x00\x00\x00\x41\xB8\x00\x00\x00\x00\x48\x8B\x01\x48\x85\xC0\x74\x06",
+									"xxx????xx????xxxxxxxx",
+									&CHooking::set_ped_combat_ability);
 
 	//ai_task_combat_ped
-	CPattern pattern_ai_task_combat_ped	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x30\x8B\xF9",
-											"xxxxxxxxxxxxxxxxxxxxxxxxxxx");
-	ptr	= pattern_ai_task_combat_ped.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find ai_task_combat_ped pattern")	: CHooking::ai_task_combat_ped	= (fpAiTaskCombatPed)	ptr;
+	setFn<fpAiTaskCombatPed>(		"ai_task_combat_ped",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x83\xEC\x30\x8B\xF9",
+									"xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+									&CHooking::ai_task_combat_ped);
 
 	//trigger_script_event
-	CPattern pattern_trigger_script_event	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x81\xEC\x00\x00\x00\x00\x45\x8B\xF0\x41\x8B\xF9",
-												"xxxxxxxxxxxxxxxxxxxxxxxx????xxxxxx");
-	ptr	= pattern_trigger_script_event.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find trigger_script_event pattern")	: CHooking::trigger_script_event	= (fpTriggerScriptEvent)	ptr;
+	setFn<fpTriggerScriptEvent>(	"trigger_script_event",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x68\x10\x48\x89\x70\x18\x48\x89\x78\x20\x41\x56\x48\x81\xEC\x00\x00\x00\x00\x45\x8B\xF0\x41\x8B\xF9",
+									"xxxxxxxxxxxxxxxxxxxxxxxx????xxxxxx",
+									&CHooking::trigger_script_event);
 
 	//apply_vehicle_colors
-	CPattern pattern_apply_vehicle_colors	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\x41\x48\x48\x8B\xD9\x40\x8A\xFA",
-												"xxxx?xxxxxxxxxxxxxxx");
-	ptr	= pattern_apply_vehicle_colors.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find apply_vehicle_colors pattern")	: CHooking::apply_vehicle_colors	= (fpApplyVehicleColors)	ptr;
+	setFn<fpApplyVehicleColors>(	"apply_vehicle_colors",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\x41\x48\x48\x8B\xD9\x40\x8A\xFA",
+									"xxxx?xxxxxxxxxxxxxxx",
+									&CHooking::apply_vehicle_colors);
 
 	//set_ped_relationship_group_hash
-	CPattern pattern_set_ped_relationship_group_hash	(	"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x30\x8B\xF2\xE8",
-															"xxxx?xxxx?xxxxxxxx");
-	ptr	= pattern_set_ped_relationship_group_hash.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_ped_relationship_group_hash pattern")	: CHooking::set_ped_relationship_group_hash	= (fpSetPedRelationshipGroupHash)	ptr;
+	setFn<fpSetPedRelationshipGroupHash>(	"set_ped_relationship_group_hash",
+											"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x30\x8B\xF2\xE8",
+											"xxxx?xxxx?xxxxxxxx",
+											&CHooking::set_ped_relationship_group_hash);
 
 	//set_ped_relationship_group_hash
-	CPattern pattern_set_player_visible_locally	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x40\x8A\xFA\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0D\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xD8\xEB\x02\x33\xDB\x48\x85\xDB\x74\x64",
-													"xxxx?xxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxx");
-	ptr	= pattern_set_player_visible_locally.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_player_visible_locally pattern")	: CHooking::set_player_visible_locally	= (fpSetPlayerVisibleLocally)	ptr;
+	setFn<fpSetPlayerVisibleLocally>(	"set_player_visible_locally",
+										"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x40\x8A\xFA\xB2\x01\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0D\x48\x8B\xC8\xE8\x00\x00\x00\x00\x48\x8B\xD8\xEB\x02\x33\xDB\x48\x85\xDB\x74\x64",
+										"xxxx?xxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxx",
+										&CHooking::set_player_visible_locally);
 
 	//set_model_as_no_longer_needed
-	CPattern pattern_set_model_as_no_longer_needed	(	"\x40\x53\x48\x83\xEC\x30\x48\x8D\x54\x24\x00\x8B\xD9",
-														"xxxxxxxxxx?xx");
-	ptr	= pattern_set_model_as_no_longer_needed.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_model_as_no_longer_needed pattern")	: CHooking::set_model_as_no_longer_needed	= (fpSetModelAsNoLongerNeeded)	ptr;
+	setFn<fpSetModelAsNoLongerNeeded>(	"set_model_as_no_longer_needed",
+										"\x40\x53\x48\x83\xEC\x30\x48\x8D\x54\x24\x00\x8B\xD9",
+										"xxxxxxxxxx?xx",
+										&CHooking::set_model_as_no_longer_needed);
 
 	//set_radio_to_station_name
-	CPattern pattern_set_radio_to_station_name	(	"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9\x48\x8D\x15\x00\x00\x00\x00\x48\x8B\xCF\xE8\x00\x00\x00\x00\x85\xC0\x75\x43",
-													"xxxx?xxxxxxxxxxxxxx????xxxx????xxxx");
-	ptr	= pattern_set_radio_to_station_name.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_radio_to_station_name pattern")	: CHooking::set_radio_to_station_name	= (fpSetRadioToStationName)	ptr;
+	setFn<fpSetRadioToStationName>(	"set_radio_to_station_name",
+									"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9\x48\x8D\x15\x00\x00\x00\x00\x48\x8B\xCF\xE8\x00\x00\x00\x00\x85\xC0\x75\x43",
+									"xxxx?xxxxxxxxxxxxxx????xxxx????xxxx",
+									&CHooking::set_radio_to_station_name);
 
 	//set_vehicle_engine_on
-	CPattern pattern_set_vehicle_engine_on	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xE9\x41\x8A\xF8",
-												"xxxx?xxxx?xxxx?xxxxxxxxxxx");
-	ptr	= pattern_set_vehicle_engine_on.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_vehicle_engine_on pattern")	: CHooking::set_vehicle_engine_on	= (fpSetVehicleEngineOn)	ptr;
+	setFn<fpSetVehicleEngineOn>(	"set_vehicle_engine_on",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xE9\x41\x8A\xF8",
+									"xxxx?xxxx?xxxx?xxxxxxxxxxx",
+									&CHooking::set_vehicle_engine_on);
 
 	//attach_entity_to_entity
-	CPattern pattern_attach_entity_to_entity	(	"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x57\x48\x81\xEC\x00\x00\x00\x00\xF3\x41\x0F\x10\x01",
-													"xxxxxxxxxxxxxxx????xxxxx");
-	ptr	= pattern_attach_entity_to_entity.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find attach_entity_to_entity pattern")	: CHooking::attach_entity_to_entity	= (fpAttachEntityToEntity)	ptr;
+	setFn<fpAttachEntityToEntity>(	"attach_entity_to_entity",
+									"\x48\x8B\xC4\x48\x89\x58\x08\x48\x89\x70\x10\x57\x48\x81\xEC\x00\x00\x00\x00\xF3\x41\x0F\x10\x01",
+									"xxxxxxxxxxxxxxx????xxxxx",
+									&CHooking::attach_entity_to_entity);
 
 	//set_entity_collision
-	CPattern pattern_set_entity_collision	(	"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF1\x41\x8A\xE8\x40\x8A\xFA",
-												"xxxx?xxxx?xxxx?xxxxxxxxxxxxxx");
-	ptr	= pattern_set_entity_collision.find(1).get(0).get<char>(0);
-	ptr == nullptr ?	killProcess("Failed to find set_entity_collision pattern")	: CHooking::set_entity_collision	= (fpSetEntityCollision)	ptr;
+	setFn<fpSetEntityCollision>(	"set_entity_collision",
+									"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x41\x8A\xF1\x41\x8A\xE8\x40\x8A\xFA",
+									"xxxx?xxxx?xxxx?xxxxxxxxxxxxxx",
+									&CHooking::set_entity_collision);
+
 
 
 
@@ -1555,8 +1655,12 @@ void findPatterns()
 	ptr == nullptr ? CLog::error("Failed to find is player model allowed to spawn bypass pattern")	: mem_nop(ptr, 2);
 
 
-	
-
+	//hash table
+	CPattern pattern_obj_table		(	"\x01\x00\x00\x08\x43\x7f\x2e\x27\x00\x00\xFF\x0F\x00",
+										"xxxxxxxxxxxxx");
+	ptr	= pattern_obj_table.virtual_find(1).get(0).get<char>(4);
+	ptr == nullptr ?	killProcess("Failed to find object hash table pattern")		: CHooking::m_objectHashTable	= (void*)	ptr;
+	CHooking::m_objectHashTableSectionEnd	= pattern_obj_table.get(0).section_end<void>();
 
 
 

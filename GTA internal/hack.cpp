@@ -25,7 +25,6 @@
 std::string			CHack::m_szRequestedAnim;
 std::string			CHack::m_szRequestedAnimDict;
 
-CPlayers*			CHack::m_pCPlayers			= nullptr;
 CWorld*				CHack::m_pCWorld			= nullptr;
 CPed*				CHack::m_pCPedPlayer		= nullptr;
 CPlayerInfo*		CHack::m_pCPlayerInfo		= nullptr;
@@ -188,11 +187,11 @@ bool	CHack::refresh()
 	{
 
 		feat->m_bSet		= true;
-	}
+	}*/
 	/*feat = CMenu::getFeature(FEATURE_P_TEST2);
 	if(!feat->m_bSet)
 	{
-		VEHICLE::SET_VEHICLE_IS_STOLEN(playerVeh, feat->m_bOn);
+		CPlayerMem::get_player_cped(player)->setForcedAim(feat->m_bOn);
 	}*/
 
 	/*if(CHooking::is_player_free_aiming(player))
@@ -325,19 +324,39 @@ bool	CHack::refresh()
 	if(!m_requestedVehicle.empty())
 	{
 		BYTE	flags	= 0;
-		int		colours	= -1;
+		int		colours	= 0;
 
-		constexpr eFeatures	flagFeats[]	= {
+		constexpr eFeatures	flagFeats[]	=
+		{
 			FEATURE_S_IN_VEHICLE,
 			FEATURE_S_MP_BYPASS,
 			FEATURE_S_VEH_MOD,
 			FEATURE_S_LICENSE
 		};
 
-		for(int i = 0; i < sizeof(flagFeats) / sizeof(*flagFeats); ++i)
+		for(int i = 0; i < get_array_size(flagFeats); ++i)
 			flags	|= !!CMenu::getFeature(flagFeats[i])->m_bOn	<< i;
 
-		CFeat* feat		= CMenu::getFeature(FEATURE_S_COLOR_1);
+		constexpr eFeatures colorFeats[] =
+		{
+			FEATURE_S_COLOR_1,
+			FEATURE_S_COLOR_2,
+			FEATURE_S_COLOR_PEARL,
+			FEATURE_S_COLOR_WHEEL,
+		};
+
+		for(int i = 0; i < get_array_size(colorFeats); ++i)
+		{
+			feat	= CMenu::getFeature(colorFeats[i]);
+			if(!feat->m_bOn)
+				continue;
+			colours	|= ((int) feat->getValue()) << (i * 8);
+		}
+
+		if(colours == 0)
+			colours = -1;
+
+		/*CFeat* feat		= CMenu::getFeature(FEATURE_S_COLOR_1);
 		CFeat* feat2	= CMenu::getFeature(FEATURE_S_COLOR_2);
 		if(feat->m_bOn || feat2->m_bOn)
 		{
@@ -346,7 +365,7 @@ bool	CHack::refresh()
 				colours	|=	(int) feat->getValue();
 			if(feat2->m_bOn)
 				colours	|=	((int) feat2->getValue()) << 0x08;
-		}
+		}*/
 
 		if(script::spawn_vehicle(m_requestedVehicle.front(), nullptr, flags, colours))
 			m_requestedVehicle.pop();
@@ -728,6 +747,14 @@ bool	CHack::refresh()
 		feat->m_bSet		= true;
 	}
 
+	//50 securo serv
+	feat = CMenu::getFeature(FEATURE_U_SECURO_50K);
+	if(feat->m_bOn && curClock - feat->m_clockTick > 0x400)
+	{
+		script::trigger_script_event(SCRIPTEVENT_SECURO_PAYMENT_SILENT, player, 50000);
+		feat->m_clockTick = curClock;
+	}
+
 	//rp loop
 	feat = CMenu::getFeature(FEATURE_R_RP_LOOP);
 	if((feat->m_bOn && curClock - feat->m_clockTick > 0x6F) || !feat->m_bSet)
@@ -976,7 +1003,7 @@ bool	CHack::refresh()
 		feat = CMenu::getFeature(FEATURE_V_RAINBOW);
 		if(feat->m_bOn && curClock - feat->m_clockTick > 200)
 		{
-			script::set_vehicle_color(playerVeh, util::random_int(0, 160), util::random_int(0, 160));
+			script::set_vehicle_color(playerVeh, util::random_int(0, 160), util::random_int(0, 160), util::random_int(0, 160), util::random_int(0, 160));
 			feat->m_clockTick = curClock;
 		}
 
@@ -991,6 +1018,18 @@ bool	CHack::refresh()
 		if(!feat->m_bSet && feat->m_bOn)
 		{
 			script::set_vehicle_color(playerVeh, -1, (int) feat->getValue());
+			feat->m_bSet = true;
+		}
+		feat = CMenu::getFeature(FEATURE_V_COLOR_PEARL);
+		if(!feat->m_bSet && feat->m_bOn)
+		{
+			script::set_vehicle_color(playerVeh, -1, -1,(int) feat->getValue());
+			feat->m_bSet = true;
+		}
+		feat = CMenu::getFeature(FEATURE_V_COLOR_WHEEL);
+		if(!feat->m_bSet && feat->m_bOn)
+		{
+			script::set_vehicle_color(playerVeh, -1, -1, -1, (int) feat->getValue());
 			feat->m_bSet = true;
 		}
 			

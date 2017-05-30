@@ -196,13 +196,13 @@ namespace script
 	void	explosive_ammo(int explosionType);
 
 	bool	spawn_ped(Hash model, ePedType pedType = PedTypeHuman, v3 pos = {}, Ped* pedOut = nullptr, bool random = false, int flag = 0);
-	bool	spawn_vehicle(Hash model, Vehicle* vehOut = nullptr, BYTE flags = 0, int colours = -1);
+	bool	spawn_vehicle(Hash model, Vehicle* vehOut = nullptr, BYTE flags = 0, int64_t colours = -1);
 	void	vehicle_bypass(Vehicle vehicle);
 	bool	spawn_object(Hash model, Object* objOut = nullptr);
 	void	vehicle_sp_bypass(bool b);
 	void	vehicle_mp_bypass(bool b);
-	bool	upgrade_car(Vehicle v, bool car = true, int colours = -1);
-	bool	set_vehicle_color(Vehicle v, int p = -1, int s = -1);
+	bool	upgrade_car(Vehicle v, bool car = true, int64_t colours = -1);
+	bool	set_vehicle_color(Vehicle v, int p = -1, int s = -1, int pearl = -1, int wheel = -1);
 
 	void	teleport_player_on_foot(Ped p, float X, float Y, float Z);
 

@@ -32,7 +32,6 @@ class CHack
 		static std::string			m_szRequestedAnimDict;
 
 		//structs
-		static CPlayers*			m_pCPlayers;
 		static CWorld*				m_pCWorld;
 		static CPed*				m_pCPedPlayer;
 		static CPlayerInfo*			m_pCPlayerInfo;

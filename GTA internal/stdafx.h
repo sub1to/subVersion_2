@@ -65,4 +65,6 @@ DWORD	strToVk(std::string str);
 void	killProcess();
 void	killProcess(char*);
 
+extern const char	g_szVersion[];
+
 #endif

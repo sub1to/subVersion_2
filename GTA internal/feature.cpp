@@ -89,10 +89,13 @@ namespace feature
 			CMenu::indexFeature(FEATURE_V_STOP, CMenu::addFeature(-1, *parent, "Stop", feat_action));
 			CMenu::indexFeature(FEATURE_V_INVISIBLE, CMenu::addFeature(-1, *parent, "Invisible", feat_toggle, "vehicleInvis"));
 			CMenu::indexFeature(FEATURE_V_RAINBOW, CMenu::addFeature(-1, *parent, "Rainbow Car", feat_toggle, "vehRainbow"));
-			CMenu::indexFeature(FEATURE_V_COLOR_PRESET, CMenu::addFeature(-1, *parent, "Colors Primary", feat_action_value_str, "vehPresetColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
-			CMenu::indexFeature(FEATURE_V_COLOR_PRESET2, CMenu::addFeature(-1, *parent, "Colors Secondary", feat_action_value_str, "vehPresetColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+			*(parent + 1) = CMenu::addFeature(-1, *parent, "Colors", feat_parent);
+				CMenu::indexFeature(FEATURE_V_COLOR_PRESET, CMenu::addFeature(-1, *(parent + 1), "Primary", feat_action_value_str, "vehPresetColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_V_COLOR_PRESET2, CMenu::addFeature(-1, *(parent + 1), "Secondary", feat_action_value_str, "vehPresetColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_V_COLOR_PEARL, CMenu::addFeature(-1, *(parent + 1), "Pearlescent", feat_action_value_str, "vehPerlColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_V_COLOR_WHEEL, CMenu::addFeature(-1, *(parent + 1), "Wheel", feat_action_value_str, "vehWheelColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 			CMenu::indexFeature(FEATURE_V_BULLETPROOFTIRES, CMenu::addFeature(-1, *parent, "Bulletproof Tires", feat_toggle, "vehBulletproofTires"));
-			CMenu::indexFeature(FEATURE_V_DEFORMATION, CMenu::addFeature(-1, *parent, "Deformation", feat_slider, "vehDeform", 0.f, 1.f));
+			CMenu::indexFeature(FEATURE_V_DEFORMATION, CMenu::addFeature(-1, *parent, "Deformation", feat_slider, "vehDeform", 0.f, 50.f, .05f));
 			CMenu::indexFeature(FEATURE_V_ACCELERATION, CMenu::addFeature(-1, *parent, "Acceleration", feat_slider, "vehAccel", 1.f, 10.f, .05f));
 			CMenu::indexFeature(FEATURE_V_UPSHIFT, CMenu::addFeature(-1, *parent, "Up-Shift Rate", feat_slider, "vehUpShift", 1.f, 25.f, .05f));
 			CMenu::indexFeature(FEATURE_V_BRAKEFORCE, CMenu::addFeature(-1, *parent, "Brake force", feat_slider, "vehBrakeForce", 1.f, 10.f, .05f));
@@ -244,6 +247,7 @@ namespace feature
 			CMenu::indexFeature(FEATURE_U_PED_DROP, CMenu::addFeature(-1, *parent, "Ped Drop", feat_toggle));
 			CMenu::indexFeature(FEATURE_U_MONEY_DROP_2K, CMenu::addFeature(-1, *parent, "2K Drops", feat_value_str, "", 0.f, (float) get_array_size(hash::object_prop_money_name) - 1, 1.f, hash::object_prop_money_name));
 			CMenu::indexFeature(FEATURE_U_MONEY_DROP_40K, CMenu::addFeature(-1, *parent, "40K Drops", feat_toggle));
+			CMenu::indexFeature(FEATURE_U_SECURO_50K, CMenu::addFeature(-1, *parent, "SecuroServ 50K/s", feat_toggle));
 			CMenu::indexFeature(FEATURE_U_CLEAN_SESSION, CMenu::addFeature(-1, *parent, "Clean Session (Lag switch)", feat_action));
 
 		*parent	= CMenu::addFeature(0, -1, "Interface", feat_parent);
@@ -373,8 +377,10 @@ namespace feature
 				CMenu::indexFeature(FEATURE_S_SP_BYPASS, CMenu::addFeature(-1, *(parent + 1), "Allow MP vehicles in SP", feat_toggle, "spawnSPBypass"));
 				CMenu::indexFeature(FEATURE_S_MP_BYPASS, CMenu::addFeature(-1, *(parent + 1), "Bypass MP vehicle kick", feat_toggle, "spawnMPBypass"));
 				CMenu::indexFeature(FEATURE_S_LICENSE, CMenu::addFeature(-1, *(parent + 1), "Custom License", feat_toggle, "spawnLicense"));
-				CMenu::indexFeature(FEATURE_S_COLOR_1, CMenu::addFeature(-1, *(parent + 1), "Primary Color", feat_value_str, "spawnColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
-				CMenu::indexFeature(FEATURE_S_COLOR_2, CMenu::addFeature(-1, *(parent + 1), "Secondary Color", feat_value_str, "spawnColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_S_COLOR_1, CMenu::addFeature(-1, *(parent + 1), "Primary", feat_value_str, "spawnColor", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_S_COLOR_2, CMenu::addFeature(-1, *(parent + 1), "Secondary", feat_value_str, "spawnColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_S_COLOR_PEARL, CMenu::addFeature(-1, *(parent + 1), "Pearlescent", feat_value_str, "spawnColor3", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_S_COLOR_WHEEL, CMenu::addFeature(-1, *(parent + 1), "Wheel", feat_value_str, "spawnColor4", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 
 			*(parent + 1)		= CMenu::addFeature(-1, *parent, "Sports", feat_parent);
 			for(int i = 0; i < sizeof(hash::vehicle_sport_hash) / sizeof(hash::vehicle_sport_hash[0]); i++)
