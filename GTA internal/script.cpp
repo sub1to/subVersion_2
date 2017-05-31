@@ -257,10 +257,68 @@ namespace script
 		return pEntity != nullptr && pEntity->isInvisible();
 	}
 
+	int get_ped_drawable_variation(Ped ped, int group)
+	{
+		int res = -1;
+		if (group > -1 && group < 13)
+		{
+			CPed* cped = util::handle_to_ptr<CPed>(ped);
+			if (cped != nullptr && cped->pCPedStyle->propIndex[group] != 255)
+				res = (int)cped->pCPedStyle->propIndex[group];
+		}
+		return -1;
+	}
+
+	int get_ped_texture_variation(Ped ped, int group)
+	{
+		int res = -1;
+		if (group > -1 && group < 13)
+		{
+			CPed* cped = util::handle_to_ptr<CPed>(ped);
+			if (cped != nullptr && cped->pCPedStyle->textureIndex[group] != 255)
+				res = (int)cped->pCPedStyle->textureIndex[group];
+		}
+		return res;
+	}
+
+	int get_ped_palette_variation(Ped ped, int group)
+	{
+		int res = -1;
+		if (group > -1 && group < 13)
+		{
+			CPed* cped = util::handle_to_ptr<CPed>(ped);
+			if (cped != nullptr && cped->pCPedStyle->paletteIndex[group] != 255)
+				res = (int)cped->pCPedStyle->paletteIndex[group];
+		}
+		return res;
+	}
+
+	void set_ped_can_switch_weapons(Ped ped, bool toggle)
+	{
+		CPed*	pPed	= util::handle_to_ptr<CPed>(ped);
+		if(pPed == nullptr)
+			return;
+		pPed->btCanSwitchWeapons	= toggle;
+	}
+
 	void set_vehicle_stolen(Vehicle vehicle, bool toggle)
 	{
 		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(vehicle);
 		pVeh->set_stolen(toggle);
+	}
+
+	void set_vehicle_tire_smoke(Vehicle vehicle, int r, int g, int b)
+	{
+		CVehicle*	pVeh	= util::handle_to_ptr<CVehicle>(vehicle);
+		if(pVeh == nullptr || pVeh->pCVehicleMods == nullptr)
+			return;
+		pVeh->pCVehicleMods->btTireSmoke	= 0;
+		if(r != -1)
+			pVeh->pCVehicleMods->btTireColorR	= r & 0xFF;
+		if(g != -1)
+			pVeh->pCVehicleMods->btTireColorG	= g & 0xFF;
+		if(b != -1)
+			pVeh->pCVehicleMods->btTireColorB	= b & 0xFF;
 	}
 
 	void apply_force_to_entity(Ped ped, int forceType, float x, float y, float z, float rx, float ry, float rz, bool isRel, bool highForce)
@@ -280,9 +338,9 @@ namespace script
 		CPed* pPed = util::handle_to_ptr<CPed>(playerPed);
 		CHooking::set_ped_component_variation(	playerPed,
 												group,
-												var == -1		? CHooking::get_ped_drawable_varation(playerPed, group)	: var,
-												texture == -1	? CHooking::get_ped_texture_variation(playerPed, group)	: texture,
-												CHooking::get_ped_palette_variation(pPed, group)	);
+												var == -1		? get_ped_drawable_variation(playerPed, group)	: var,
+												texture == -1	? get_ped_texture_variation(playerPed, group)	: texture,
+												get_ped_palette_variation(playerPed, group)	);
 	}
 
 	void	apply_outfit(eCustomOutfit type)
@@ -802,7 +860,7 @@ namespace script
 				CHooking::set_ped_relationship_group_hash(ped, 0xe3d976f3);	//"army"
 				CHooking::ai_task_wander_standard(ped, 10.f, true);
 			}
-			CHooking::set_ped_can_switch_weapon(ped, false);
+			set_ped_can_switch_weapons(ped, false);
 			CHooking::give_delayed_weapon_to_ped(ped, 0x22d8fe39, 9999, 0);	//WEAPON_APPISTOL
 			CHooking::set_ped_combat_ability(util::handle_to_ptr<CPed>(ped), 3); //0 poor, 1 average, 2 prof
 
@@ -1036,7 +1094,7 @@ namespace script
 		int group = CHooking::get_ped_group_index(p);
 		Ped	ped = CHooking::clone_ped(p, CHooking::get_entity_heading(p), 1, 1);
 		CHooking::set_ped_as_group_member(ped, group);
-		CHooking::set_ped_can_switch_weapon(ped, false);
+		set_ped_can_switch_weapons(ped, false);
 		CHooking::give_delayed_weapon_to_ped(ped, 0x22d8fe39, 9999, 0);	//$("WEAPON_APPISTOL")
 		CHooking::set_ped_combat_ability(util::handle_to_ptr<CPed>(ped), 2); //0 poor, 1 average, 2 prof
 		return ped;

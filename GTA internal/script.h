@@ -140,6 +140,7 @@ namespace script
 	bool	is_entity_a_vehicle(Entity entity);
 	bool	is_entity_an_object(Entity entity);
 	bool	is_entity_visible(Entity entity);
+	void	set_vehicle_tire_smoke(Vehicle vehicle, int r = -1, int g = -1, int b = -1);
 
 	void	apply_force_to_entity(Ped ped, int forceType, float x, float y, float z, float rx, float ry, float rz, bool isRel, bool highForce);
 	void	add_explosion(Vector3 pos, int type, float damage, bool isAudible, bool isInvis, float shake);

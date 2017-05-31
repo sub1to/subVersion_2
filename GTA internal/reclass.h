@@ -48,6 +48,7 @@ class CTireInfo;
 class CLicencePlateInfo;
 class CColor;
 class CTextInfo;
+class CPedStyle;
 
 class CCameraInterface;
 class CVehicleInterface;
@@ -96,7 +97,9 @@ public:
 	BYTE btFreezeMomentum; //0x002E 
 	char pad_0x002F[0x1]; //0x002F
 	CNavigation* pCNavigation; //0x0030 
-	char pad_0x0038[0x58]; //0x0038
+	char pax_0x0038[0x10]; //0x0038
+	CPedStyle*	pCPedStyle; //0x0048
+	char pad_0x0038[0x40]; //0x0050
 	v3 v3VisualPos; //0x0090 
 	char pad_0x009C[0xED]; //0x009C
 	BYTE btGodMode; //0x0189 
@@ -120,7 +123,9 @@ public:
 	BYTE btSeatBelt; //0x13EC 
 	char pad_0x13ED[0xB]; //0x13ED
 	BYTE btSeatbeltWindshield; //0x13F8 
-	char pad_0x13F9[0x7]; //0x13F9
+	char pad_0x13F9[0x1]; //0x13F9
+	BYTE btCanSwitchWeapons; 
+	char pad_0x13FB[0x5]; 
 	BYTE btForcedAim; //0x1400 
 	BYTE N00000936; //0x1401 
 	BYTE N00000939; //0x1402 
@@ -201,6 +206,51 @@ public:
 		btForcedAim ^= (btForcedAim ^ -(char)toggle) & 0x20;
 	}
 }; //Size=0x15D8
+
+class CPedStyle
+{
+public:
+    char _0x0000[48];
+    void* N4100AE4A; //0x0030 
+    void* pColors; //0x0038 
+    char _0x0040[168];
+    BYTE propIndex[12]; //0x00E8 
+    char _0x00F4[12];
+    BYTE textureIndex[12]; //0x0100 
+	BYTE paletteIndex[12]; //0x10C
+    char _0x010C[9];
+    BYTE N4100F70F; //0x0121 
+    BYTE N4134BE09; //0x0122 
+    BYTE N4134C676; //0x0123 
+    BYTE btEars; //0x0124 
+    char _0x0125[3];
+    BYTE btEarsTexture; //0x0128 
+    char _0x0129[72];
+    BYTE N4100F719; //0x0171 
+    BYTE N413811BF; //0x0172 
+    BYTE N41381E8E; //0x0173 
+    BYTE btHats; //0x0174 
+    char _0x0175[3];
+    BYTE btHatsTexture; //0x0178 
+    BYTE N4100F71A; //0x0179 
+    BYTE N4461C523; //0x017A 
+    BYTE N4461D118; //0x017B 
+    BYTE N4461C524; //0x017C 
+    BYTE N445D0F2B; //0x017D 
+    BYTE N445D279D; //0x017E 
+    BYTE N445D3102; //0x017F 
+    BYTE N445D279E; //0x0180 
+    BYTE N4100F71B; //0x0181 
+    BYTE N445D522D; //0x0182 
+    BYTE N445D5D09; //0x0183 
+    char _0x0184[61];
+    BYTE N4100F723; //0x01C1 
+    BYTE N4132EABE; //0x01C2 
+    BYTE N4132F80B; //0x01C3 
+    BYTE btGlasses; //0x01C4 
+    char _0x01C5[3];
+    BYTE btGlassesTexture; //0x01C8 
+};//Size=0x03A8
 
 /*class CNavigation
 {

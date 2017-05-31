@@ -1032,6 +1032,26 @@ bool	CHack::refresh()
 			script::set_vehicle_color(playerVeh, -1, -1, -1, (int) feat->getValue());
 			feat->m_bSet = true;
 		}
+
+		//tire smoke colors
+		feat = CMenu::getFeature(FEATURE_V_COLOR_TIRE_R);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::set_vehicle_tire_smoke(playerVeh, (int) feat->getValue());
+			feat->m_bSet = true;
+		}
+		feat = CMenu::getFeature(FEATURE_V_COLOR_TIRE_G);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::set_vehicle_tire_smoke(playerVeh, -1, (int) feat->getValue());
+			feat->m_bSet = true;
+		}
+		feat = CMenu::getFeature(FEATURE_V_COLOR_TIRE_B);
+		if(feat->m_bOn && !feat->m_bSet)
+		{
+			script::set_vehicle_tire_smoke(playerVeh, -1, -1, (int) feat->getValue());
+			feat->m_bSet = true;
+		}
 			
 	}
 

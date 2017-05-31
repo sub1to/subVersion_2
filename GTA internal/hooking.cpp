@@ -110,7 +110,6 @@ fpClearPedTasksImmediately			CHooking::clear_ped_tasks_immediately;
 fpSetEntityVisible					CHooking::set_entity_visible;
 fpSetPedAsGroupMember				CHooking::set_ped_as_group_member;
 fpIsPedGroupMember					CHooking::is_ped_group_member;
-fpSetPedCanSwitchWeapon				CHooking::set_ped_can_switch_weapon;
 fpSetPedGravity						CHooking::set_ped_gravity;
 fpSetEntityHasGravity				CHooking::set_entity_has_gravity;
 fpIsVehicleDrivable					CHooking::is_vehicle_drivable;
@@ -132,9 +131,6 @@ fpSetPedNeverLeavesGroup			CHooking::set_ped_never_leaves_group;
 fpSetGroupFormation					CHooking::set_group_formation;
 fpGetPedBoneIndex					CHooking::get_ped_bone_index;
 fpSetPedComponentVariation			CHooking::set_ped_component_variation;
-fpGetPedDrawableVariation			CHooking::get_ped_drawable_varation;
-fpGetPedTextureVariation			CHooking::get_ped_texture_variation;
-fpGetPedPaletteVariation			CHooking::get_ped_palette_variation;
 fpClearAllPedProps					CHooking::clear_add_ped_props;
 fpSetPedPropIndex					CHooking::set_ped_prop_index;
 fpIsEntityInAir						CHooking::is_entity_in_air;
@@ -548,6 +544,7 @@ void findPatterns()
 {
 	char*	ptr			= nullptr;
 	constexpr char	pattern_event[]	= "\x4C\x8D\x05";
+	HANDLE steam	= GetModuleHandleA("steam_api64.dll");
 
 	//game state
 	setPat<eGameState>(	"game state",
@@ -657,14 +654,6 @@ void findPatterns()
 						true,
 						3);
 
-	//onscreen keyboard result
-	setPat<char>(		"onscreen keyboard result",
-						"\x48\x8D\x0D\x00\x00\x00\x00\x41\x3B\xC0",
-						"xxx????xxx",
-						&CHooking::m_onscreenKeyboardResult,
-						true,
-						3);
-
 	//clock time
 	setPat<clockTime>(	"clock time",
 						"\x48\x8D\x0D\x00\x00\x00\x00\x8B\xFA\xE8\x00\x00\x00\x00\x44\x8D\x0C\x5B",
@@ -711,15 +700,31 @@ void findPatterns()
 						false);
 
 
+	if(!steam)
+	{
+		//onscreen keyboard result
+		setPat<char>(		"onscreen keyboard result",
+							"\x48\x8D\x0D\x00\x00\x00\x00\x41\x3B\xC0",
+							"xxx????xxx",
+							&CHooking::m_onscreenKeyboardResult,
+							true,
+							3);
+	}
+	else
+	{
+		//onscreen keyboard result
+		setPat<char>(		"onscreen keyboard result",
+							"\x48\x8D\x0D\x00\x00\x00\x00\x41\xB9\x00\x00\x00\x00\x41\x3B\xC0",
+							"xxx????xx????xxx",
+							&CHooking::m_onscreenKeyboardResult,
+							true,
+							3);
+	}
+
+
 	/*
 		//functions
 	*/
-	//is_player_online
-	setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
-								"\xE9\x00\x00\x00\x00\xC3\xCC\x48\x8B\xC4",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
-								"x????xxxxx",									//"xxxx????xxxxxx"
-								&CHooking::IS_PLAYER_ONLINE);
-
 	//is_player_playing
 	setFn<fpIsPlayerPlaying>(	"is_player_playing",
 								"\x48\x83\xEC\x28\x33\xD2\xE8\x00\x00\x00\x00\x48\x85\xC0",
@@ -967,12 +972,6 @@ void findPatterns()
 									"xxxxxxxxxxxxxxxxxxx",
 									&CHooking::stat_get_int);
 
-	//add_explosion
-	setFn<fpAddExplosion>(			"add_explosion",
-									"\xE9\x00\x00\x00\x00\x8B\x85\x00\x00\x00\x00\xA8\x40\x48\x8D\x64\x24\x00\x48\x89\x2C\x24\x48\xBD\x00\x00\x00\x00\x00\x00\x00\x00\x48\x87\x2C\x24\x48\x89\x4C\x24",
-									"x????xx????xxxxxx?xxxxxx????????xxxxxxxx",
-									&CHooking::add_explosion);
-
 	//give_delayed_weapon_to_ped
 	setFn<fpGiveDelayedWeaponToPed>(	"give_delayed_weapon_to_ped",
 										"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x30\x41\x8A\xE9\x41\x8B\xF0\x8B\xFA\xE8\x00\x00\x00\x00\x48\x8B\xD8\x48\x85\xC0\x74\x63",
@@ -1092,12 +1091,6 @@ void findPatterns()
 									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x8B\xFA\xE8\x00\x00\x00\x00\x33\xDB\x48\x8B\xF0\x48\x85\xC0\x74\x63",
 									"xxxx?xxxx?xxxxxxxx????xxxxxxxxxx",
 									&CHooking::is_ped_group_member);
-
-	//set_ped_can_switch_weapon
-	setFn<fpSetPedCanSwitchWeapon>(	"set_ped_can_switch_weapon",
-									"\x40\x53\x48\x83\xEC\x20\x8A\xDA\xE8\x00\x00\x00\x00\x33\xC9\x48\x85\xC0\x74\x19\x84\xDB\x0F\x94\xC1\xF7\xD9\x33\x88\x00\x00\x00\x00\x81\xE1\x00\x00\x00\x00\x31\x88\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\xCC\x48\x89\x5C\x24\x00\x48\x89\x74\x24",
-									"xxxxxxxxx????xxxxxxxxxxxxxxxx????xx????xx????xxxxxxxxxxx?xxxx",
-									&CHooking::set_ped_can_switch_weapon);
 
 	//set_ped_gravity
 	setFn<fpSetPedGravity>(			"set_ped_gravity",
@@ -1243,24 +1236,6 @@ void findPatterns()
 										"\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x50\x41\x8B\xF9",
 										"xxxx?xxxx?xxxx?xxxxxxxx",
 										&CHooking::set_ped_component_variation);
-
-	//get_ped_drawable_varation
-	setFn<fpGetPedDrawableVariation>(	"get_ped_drawable_varation",
-										"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\x90",
-										"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx",
-										&CHooking::get_ped_drawable_varation);
-
-	//get_ped_texture_variation
-	setFn<fpGetPedTextureVariation>(	"get_ped_texture_variation",
-										"\x40\x53\x48\x83\xEC\x20\x8B\xDA\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x0F\x8B\xD3\x48\x8B\xC8\xE8\x00\x00\x00\x00\x0F\xB6\xC0\xEB\x03\x83\xC8\xFF\x48\x83\xC4\x20\x5B\xC3\xCC",
-										"xxxxxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxx",
-										&CHooking::get_ped_texture_variation);
-
-	//get_ped_palette_variation
-	setFn<fpGetPedPaletteVariation>(	"get_ped_palette_variation",
-										"\x48\x8B\x41\x48\x48\x63\xD2\x8A\x84\x10\x00\x00\x00\x00\xC3\x90\x40\x55",
-										"xxxxxxxxxx????xxxx",
-										&CHooking::get_ped_palette_variation);
 
 	//clear_add_ped_props
 	setFn<fpClearAllPedProps>(		"clear_add_ped_props",
@@ -1418,12 +1393,6 @@ void findPatterns()
 										"xxxxx????x????xxxxx",
 										&CHooking::begin_text_cmd_display_text);
 
-	//set_notification_text_entry
-	setFn<fpSetNotificationTextEntiry>(	"set_notification_text_entry",
-										"\x40\x53\x48\x83\xEC\x20\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x75\x16\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x1D\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x90\x48\x48\x83\xEC\x28",
-										"xxxxxxxx?????xxxxxxx????????x????xxx????xxxxxxxxxxxx",
-										&CHooking::set_notification_text_entry);
-
 	//draw_notification
 	setFn<fpDrawNotification>(		"draw_notification",
 									"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x41\x8A\xD8",
@@ -1441,12 +1410,6 @@ void findPatterns()
 										"\x4C\x8B\xDC\x48\x83\xEC\x68\x8B\x84\x24",
 										"xxxxxxxxxx",
 										&CHooking::display_onscreen_keyboard);
-
-	//update_onscreen_keyboard
-	setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
-										"\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x00\x00\x00\x00\x8B\x99",
-										"xxxxxxxxx????xx",
-										&CHooking::update_onscreen_keyboard);
 
 	//set_local_player_visible_locally
 	setFn<fpSetLocalPlayerVisibleLocally>(	"set_local_player_visible_locally",
@@ -1640,6 +1603,60 @@ void findPatterns()
 									"xxxx?xxxx?xxxx?xxxxxxxxxxxxxx",
 									&CHooking::set_entity_collision);
 
+	if(!steam)
+	{
+		//is_player_online
+		setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
+									"\xE9\x00\x00\x00\x00\xC3\xCC\x48\x8B\xC4",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
+									"x????xxxxx",									//"xxxx????xxxxxx"
+									&CHooking::IS_PLAYER_ONLINE);
+
+		//update_onscreen_keyboard
+		setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
+											"\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x00\x00\x00\x00\x8B\x99",
+											"xxxxxxxxx????xx",
+											&CHooking::update_onscreen_keyboard);
+
+		//add_explosion
+		setFn<fpAddExplosion>(	"add_explosion",
+								"\xE9\x00\x00\x00\x00\x8B\x85\x00\x00\x00\x00\xA8\x40\x48\x8D\x64\x24\x00\x48\x89\x2C\x24\x48\xBD\x00\x00\x00\x00\x00\x00\x00\x00\x48\x87\x2C\x24\x48\x89\x4C\x24",
+								"x????xx????xxxxxx?xxxxxx????????xxxxxxxx",
+								&CHooking::add_explosion);
+
+		//set_notification_text_entry
+		setFn<fpSetNotificationTextEntiry>(	"set_notification_text_entry",
+											"\x40\x53\x48\x83\xEC\x20\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x75\x16\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x1D\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\x90\x48\x48\x83\xEC\x28",
+											"xxxxxxxx?????xxxxxxx????????x????xxx????xxxxxxxxxxxx",
+											&CHooking::set_notification_text_entry);
+	}
+	else
+	{
+		//is_player_online
+		setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
+									"\xE9\x00\x00\x00\x00\xC3\xE9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x90\xE9\x00\x00\x00\x00\x39\x80\x9C\x3E\xD9\x70",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
+									"x????xx????x????xx????xxxxxx",									//"xxxx????xxxxxx"
+									&CHooking::IS_PLAYER_ONLINE);
+
+		//update_onscreen_keyboard
+		setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
+											"\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x30\x33\xDB\x38\x1D",
+											"xxxx?xxxxxxxxx",
+											&CHooking::update_onscreen_keyboard);
+
+		//add_explosion
+		setFn<fpAddExplosion>(	"add_explosion",
+								"\xE9\x00\x00\x00\x00\x48\x8B\x45\x60\x48\x8B\x00\xE9\x00\x00\x00\x00\x48\x89\x6C\x24",
+								"x????xxxxxxxx????xxxx",
+								&CHooking::add_explosion);
+
+		//set_notification_text_entry
+		setFn<fpSetNotificationTextEntiry>(	"set_notification_text_entry",
+											"\x40\x53\x48\x83\xEC\x20\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x75\x16\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x1D\x00\x00\x00\x00\x48\x83\xC4\x20\x5B\xC3\xCC\x69\x48\x83\xEC\x28\x80\x3D",
+											"xxxxxxxx?????xxxxxxx????????x????xxx????xxxxxxxxxxxxxx",
+											&CHooking::set_notification_text_entry);
+	}
+
+
 
 
 
@@ -1690,4 +1707,6 @@ void findPatterns()
 	LABEL_RESET:
 		i	= match	= 0;
 	}
+
+	CloseHandle(steam);
 }

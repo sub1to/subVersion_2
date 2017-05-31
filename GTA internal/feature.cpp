@@ -94,6 +94,9 @@ namespace feature
 				CMenu::indexFeature(FEATURE_V_COLOR_PRESET2, CMenu::addFeature(-1, *(parent + 1), "Secondary", feat_action_value_str, "vehPresetColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 				CMenu::indexFeature(FEATURE_V_COLOR_PEARL, CMenu::addFeature(-1, *(parent + 1), "Pearlescent", feat_action_value_str, "vehPerlColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 				CMenu::indexFeature(FEATURE_V_COLOR_WHEEL, CMenu::addFeature(-1, *(parent + 1), "Wheel", feat_action_value_str, "vehWheelColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+				CMenu::indexFeature(FEATURE_V_COLOR_TIRE_R, CMenu::addFeature(-1, *(parent + 1), "Tire Smoke R", feat_action_value, "vehTireColorR", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_V_COLOR_TIRE_G, CMenu::addFeature(-1, *(parent + 1), "Tire Smoke G", feat_action_value, "vehTireColorG", 0.f, 255.f, 5.f));
+				CMenu::indexFeature(FEATURE_V_COLOR_TIRE_B, CMenu::addFeature(-1, *(parent + 1), "Tire Smoke B", feat_action_value, "vehTireColorB", 0.f, 255.f, 5.f));
 			CMenu::indexFeature(FEATURE_V_BULLETPROOFTIRES, CMenu::addFeature(-1, *parent, "Bulletproof Tires", feat_toggle, "vehBulletproofTires"));
 			CMenu::indexFeature(FEATURE_V_DEFORMATION, CMenu::addFeature(-1, *parent, "Deformation", feat_slider, "vehDeform", 0.f, 50.f, .05f));
 			CMenu::indexFeature(FEATURE_V_ACCELERATION, CMenu::addFeature(-1, *parent, "Acceleration", feat_slider, "vehAccel", 1.f, 10.f, .05f));
@@ -381,6 +384,7 @@ namespace feature
 				CMenu::indexFeature(FEATURE_S_COLOR_2, CMenu::addFeature(-1, *(parent + 1), "Secondary", feat_value_str, "spawnColor2", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 				CMenu::indexFeature(FEATURE_S_COLOR_PEARL, CMenu::addFeature(-1, *(parent + 1), "Pearlescent", feat_value_str, "spawnColor3", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
 				CMenu::indexFeature(FEATURE_S_COLOR_WHEEL, CMenu::addFeature(-1, *(parent + 1), "Wheel", feat_value_str, "spawnColor4", 0.f, (float) get_array_size(hash::veh_color_enum) - 1, 1.f, hash::veh_color_enum));
+
 
 			*(parent + 1)		= CMenu::addFeature(-1, *parent, "Sports", feat_parent);
 			for(int i = 0; i < sizeof(hash::vehicle_sport_hash) / sizeof(hash::vehicle_sport_hash[0]); i++)
