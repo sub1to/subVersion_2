@@ -681,7 +681,7 @@ namespace script
 		return !active;
 	}
 
-	void draw_text(char* text, float x, float y, int font, float scale, CColor color)
+	void draw_text(char* text, float x, float y, int font, float scale, CColor color, bool centered)
 	{
 		CHooking::m_textInfo->iFont	= font;
 		CHooking::m_textInfo->btTextOutline	= 0;
@@ -689,7 +689,7 @@ namespace script
 		CHooking::m_textInfo->setColor(color);
 		CHooking::m_textInfo->fTextWrapStart	= 0.f;
 		CHooking::m_textInfo->fTextWrapEnd		= 1.f;
-		CHooking::m_textInfo->wNotCentered	= 1;
+		CHooking::m_textInfo->wNotCentered	= !centered;
 		CHooking::m_textInfo->btDropShadow	= 2;
 		CHooking::begin_text_cmd_display_text("STRING");
 		CHooking::add_text_comp_substr_playername(text);

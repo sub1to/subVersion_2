@@ -177,7 +177,7 @@ namespace script
 	bool	get_ingame_keyboard_result(std::string& str);
 	bool	ingame_keyboard(std::string& out, eKeyboardOwner owner, bool reset = false);
 
-	void	draw_text(char* text, float x, float y, int font, float scale, CColor color);
+	void	draw_text(char* text, float x, float y, int font, float scale, CColor color, bool centered = false);
 	void	draw_esp_on_player(Player player, char* text, int flag = 0, float fMaxDist = 5000.f);
 	Object	trap_player_in_cage(Player player);
 
