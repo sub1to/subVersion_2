@@ -22,7 +22,8 @@
 #ifndef HOOKING_H
 #define HOOKING_H
 
-typedef BOOL	(__cdecl*	fpIsPlayerOnline)(void*);
+typedef bool	(__cdecl*	fpIsEntityDead)(Entity entity);
+//typedef BOOL	(__cdecl*	fpIsPlayerOnline)(void*);
 typedef BOOL	(__cdecl*	fpIsPlayerPlaying)(Player player);
 typedef Player	(__cdecl*	fpPlayerId)();
 typedef Ped		(__cdecl*	fpGetPlayerPed)(Player player);
@@ -234,7 +235,8 @@ class CHooking
 		static CPlayers*				m_players;
 
 
-		static fpIsPlayerOnline						IS_PLAYER_ONLINE;
+		static fpIsEntityDead						is_entity_dead;
+		//static fpIsPlayerOnline						IS_PLAYER_ONLINE;
 		static fpIsPlayerPlaying					is_player_playing;
 		static fpPlayerId							player_id;
 		static fpGetPlayerPed						get_player_ped;

@@ -47,7 +47,8 @@ void*					CHooking::m_gameInfo;
 CPlayers*				CHooking::m_players;
 
 
-fpIsPlayerOnline					CHooking::IS_PLAYER_ONLINE;
+fpIsEntityDead						CHooking::is_entity_dead;
+//fpIsPlayerOnline					CHooking::IS_PLAYER_ONLINE;
 fpIsPlayerPlaying					CHooking::is_player_playing;
 fpPlayerId							CHooking::player_id;
 fpGetPlayerPed						CHooking::get_player_ped;
@@ -436,8 +437,8 @@ void antiCheatBypass(bool b = true)
 	//CHooking::defuseEvent(REVENT_REPORT_CASH_SPAWN_EVENT, b);
 }
 
-fpIsPlayerOnline	OG_IS_PLAYER_ONLINE	= nullptr;
-BOOL __cdecl HK_IS_PLAYER_ONLINE(void* pContext)
+fpIsEntityDead	OG_IS_ENTITY_DEAD	= nullptr;
+BOOL __cdecl HK_IS_ENTITY_DEAD(Entity entity)
 {
 	static uint64_t	last = 0;
 	uint64_t		cur = *CHooking::m_frameCount;
@@ -446,7 +447,7 @@ BOOL __cdecl HK_IS_PLAYER_ONLINE(void* pContext)
 		last = cur;
 		CHooking::onTick();
 	}
-	return OG_IS_PLAYER_ONLINE(pContext);
+	return OG_IS_ENTITY_DEAD(entity);
 }
 
 /*fpTriggerScriptEvent OG_TRIGGER_SCRIPT_EVENT	= nullptr;
@@ -461,10 +462,11 @@ BOOL	__cdecl HK_TRIGGER_SCRIPT_EVENT(bool unk0, uint64_t* args, int argCount, in
 
 bool hookNatives()
 {
-	MH_STATUS status = MH_CreateHook(CHooking::IS_PLAYER_ONLINE, HK_IS_PLAYER_ONLINE, (void**) &OG_IS_PLAYER_ONLINE);
-	if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::IS_PLAYER_ONLINE) != MH_OK)
+	MH_STATUS status = MH_CreateHook(CHooking::is_entity_dead, HK_IS_ENTITY_DEAD, (void**) &OG_IS_ENTITY_DEAD);
+	if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::is_entity_dead) != MH_OK)
 		return false;
-	CHooking::m_hooks.push_back(CHooking::IS_PLAYER_ONLINE);
+	CHooking::m_hooks.push_back(CHooking::is_entity_dead);
+
 
 	//status = MH_CreateHook(CHooking::trigger_script_event, HK_TRIGGER_SCRIPT_EVENT, (void**) &OG_TRIGGER_SCRIPT_EVENT);
 	//if((status != MH_OK && status != MH_ERROR_ALREADY_CREATED) || MH_EnableHook(CHooking::trigger_script_event) != MH_OK)
@@ -725,6 +727,14 @@ void findPatterns()
 	/*
 		//functions
 	*/
+	//\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x33\xDB xxxx?xxxx?xxxxxxxxx????xx
+	//fpIsEntityDead						is_entity_dead;
+	//is_entity_dead
+	setFn<fpIsEntityDead>(		"is_entity_dead",
+								"\x48\x89\x5C\x24\x00\x48\x89\x74\x24\x00\x57\x48\x83\xEC\x20\x40\x8A\xFA\xE8\x00\x00\x00\x00\x33\xDB",
+								"xxxx?xxxx?xxxxxxxxx????xx",
+								&CHooking::is_entity_dead);
+
 	//is_player_playing
 	setFn<fpIsPlayerPlaying>(	"is_player_playing",
 								"\x48\x83\xEC\x28\x33\xD2\xE8\x00\x00\x00\x00\x48\x85\xC0",
@@ -1606,10 +1616,10 @@ void findPatterns()
 	if(!steam)
 	{
 		//is_player_online
-		setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
-									"\xE9\x00\x00\x00\x00\xC3\xCC\x48\x8B\xC4",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
-									"x????xxxxx",									//"xxxx????xxxxxx"
-									&CHooking::IS_PLAYER_ONLINE);
+		//setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
+		//							"\xE9\x00\x00\x00\x00\xC3\xCC\x48\x8B\xC4",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
+		//							"x????xxxxx",									//"xxxx????xxxxxx"
+		//							&CHooking::IS_PLAYER_ONLINE);
 
 		//update_onscreen_keyboard
 		setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
@@ -1632,10 +1642,10 @@ void findPatterns()
 	else
 	{
 		//is_player_online
-		setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
-									"\xE9\x00\x00\x00\x00\xC3\xE9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x90\xE9\x00\x00\x00\x00\x39\x80\x9C\x3E\xD9\x70",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
-									"x????xx????x????xx????xxxxxx",									//"xxxx????xxxxxx"
-									&CHooking::IS_PLAYER_ONLINE);
+		//setFn<fpIsPlayerOnline>(	"IS_PLAYER_ONLINE",
+		//							"\xE9\x00\x00\x00\x00\xC3\xE9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x90\xE9\x00\x00\x00\x00\x39\x80\x9C\x3E\xD9\x70",		//"\x33\xC0\x38\x05\x00\x00\x00\x00\x0F\x95\xC0\xC3\x33\xC0"
+		//							"x????xx????x????xx????xxxxxx",									//"xxxx????xxxxxx"
+		//							&CHooking::IS_PLAYER_ONLINE);
 
 		//update_onscreen_keyboard
 		setFn<fpUpdateOnscreenKeyboard>(	"update_onscreen_keyboard",
