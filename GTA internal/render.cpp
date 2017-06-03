@@ -55,13 +55,13 @@ bool	CRender::render()
 
 	/*
 	1920 1080		.25f
-	1900 900		.30f
+	1600 900		.30f
 	1280 720		.35f
 
 	1080 - 900	= 180
 	1080 - 720	= 360
 	*/
-	float textScaleOffset	= .055f * ((1080 - CHooking::m_resolution->h) / 180.f);
+	float textScaleOffset	= .055f * ((1080.f - CHooking::m_resolution->h) / 180.f);
 	float textScale			= .24f + textScaleOffset;
 
 	//Draw header
