@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 
-const char	g_szVersion[]	= "1.1.0";
+const char	g_szVersion[]	= "2.1.0";
 
 //handles
 HMODULE		g_hModule;
