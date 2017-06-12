@@ -77,7 +77,7 @@
     <ClInclude Include="reclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="minhook\include\MinHook.h">
+    <ClInclude Include="..\..\minhook\include\MinHook.h">
       <Filter>Header Files\minhook</Filter>
     </ClInclude>
     <ClInclude Include="hashes.h">
@@ -109,7 +109,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="minhook\lib\libMinHook.x64.md.140_xp.lib">
+    <Library Include="..\..\minhook\build\VC15\lib\Release\libMinHook.x64.lib">
       <Filter>Source Files\minhook</Filter>
     </Library>
   </ItemGroup>
