@@ -2158,12 +2158,12 @@ namespace script
 		static clock_t    tmr    = { 0 };
 		if(!tmr)
 		{
-			ShellExecute(0, "open", "cmd.exe", "/C ipconfig -release", 0, SW_HIDE);
+			ShellExecute(0, LPCTSTR("open"), LPCTSTR("cmd.exe"), LPCTSTR("/C ipconfig -release"), 0, SW_HIDE);
 			tmr    = clock();
 		}
 		else if(clock() - tmr > 0x2000)
 		{
-			ShellExecute(0, "open", "cmd.exe", "/C ipconfig -renew", 0, SW_HIDE);
+			ShellExecute(0, LPCTSTR("open"), LPCTSTR("cmd.exe"), LPCTSTR("/C ipconfig -renew"), 0, SW_HIDE);
 			tmr    = 0;
 			return true;
 		}

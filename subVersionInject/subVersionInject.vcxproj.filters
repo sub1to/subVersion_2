@@ -30,7 +30,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="sub1to.ico">
+    <Image Include="subVersionInject.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

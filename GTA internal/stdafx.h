@@ -38,8 +38,8 @@
 #include <Dwmapi.h>
 #pragma comment(lib,"Dwmapi.lib")
 
-#pragma comment(lib, "minhook/lib/libMinHook.x64.md.140_xp.lib")
-#include "minhook/include/MinHook.h"
+#pragma comment(lib, "../../minhook/build/VC15/lib/Release/libMinHook.x64.lib")
+#include "../../minhook/include/MinHook.h"
 
 #define MAX_PLAYERS				0x20
 #define MAX_SPAWNED_PEDS		0x10
