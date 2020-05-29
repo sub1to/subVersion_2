@@ -395,7 +395,7 @@ public:
 	DWORD dwWantedLevelFake; //0x0094 
 	DWORD dwWantedLevel; //0x0098 
 
-}; //Size=0x00AC
+}; //Size=0x009C
 
 class CPlayerInfo
 {
